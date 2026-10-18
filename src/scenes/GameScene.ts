@@ -37,7 +37,7 @@ export class GameScene extends Phaser.Scene {
   private cameraUpButton?: ActionButton;
   private cameraDownButton?: ActionButton;
   private hintText?: Phaser.GameObjects.Text;
-  private cameraLookOffset = 0;
+  private cameraZoom = WORLD_ZOOM;
   private skillReadyAt = 0;
   /** Câmera da interface (sem zoom). Efeitos criados depois precisam ser ignorados por ela. */
   private uiCamera?: Phaser.Cameras.Scene2D.Camera;
@@ -122,14 +122,14 @@ export class GameScene extends Phaser.Scene {
         color: BUTTON_COLORS.skill,
         onPress: () => this.doSkill(),
       });
-      // Controles de enquadramento: deslocam o olhar da câmera sem parar de seguir o personagem.
+      // Controles de zoom: a câmera continua centralizada no personagem.
       this.cameraUpButton = new ActionButton(this, {
-        x: this.scale.width - 68, y: 72, radius: 34, label: '↑', color: 0x566b80,
-        onPress: () => this.setCameraLookOffset(this.cameraLookOffset - 96),
+        x: this.scale.width - 68, y: 72, radius: 34, label: '+', color: 0x566b80,
+        onPress: () => this.adjustCameraZoom(0.2),
       });
       this.cameraDownButton = new ActionButton(this, {
-        x: this.scale.width - 68, y: 150, radius: 34, label: '↓', color: 0x566b80,
-        onPress: () => this.setCameraLookOffset(this.cameraLookOffset + 96),
+        x: this.scale.width - 68, y: 150, radius: 34, label: '−', color: 0x566b80,
+        onPress: () => this.adjustCameraZoom(-0.2),
       });
     }
 
@@ -153,7 +153,8 @@ export class GameScene extends Phaser.Scene {
       .setDepth(100);
 
     // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
-    this.cameras.main.setZoom(WORLD_ZOOM);
+    this.cameraZoom = WORLD_ZOOM;
+    this.cameras.main.setZoom(this.cameraZoom);
     this.uiCamera = this.setupUiCamera();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -216,10 +217,10 @@ export class GameScene extends Phaser.Scene {
     this.cameraDownButton?.setPosition(width - 62, 136);
   }
 
-  /** Deslocamento vertical limitado; o jogador continua sendo seguido pela câmera. */
-  private setCameraLookOffset(offset: number): void {
-    this.cameraLookOffset = Phaser.Math.Clamp(offset, -384, 384);
-    this.cameras.main.setFollowOffset(0, this.cameraLookOffset);
+  /** Ajusta o zoom sem alterar o seguimento: o centro da câmera continua no personagem. */
+  private adjustCameraZoom(delta: number): void {
+    this.cameraZoom = Phaser.Math.Clamp(this.cameraZoom + delta, 1, 3.2);
+    this.cameras.main.setZoom(this.cameraZoom);
   }
 
   update(time: number): void {
