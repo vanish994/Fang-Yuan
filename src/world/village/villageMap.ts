@@ -311,6 +311,60 @@ export function buildVillageMap(seed = 2024): VillageMap {
     overlay[18]![tx] = 9;
   }
 
+  // Fase 1: base do relevo, sem casas, árvores ou decoração.
+  // Mantém o chão modular, os caminhos, o platô, o lago e as colisões do terreno.
+  const baseImages: ImageItem[] = [
+    { texture: PLATEAU_IMAGE.key, x: PLATEAU_COL * TILE, y: PLATEAU_ROW * TILE, scale: 2, depth: 0.1 },
+    { texture: POND_IMAGE.key, x: POND_COL * TILE, y: POND_ROW * TILE, scale: 2, depth: 0.1 },
+  ];
+  for (let cy = 0; cy < POND_ROWS.length; cy++) {
+    const row = POND_ROWS[cy]!;
+    for (let cx = 0; cx < row.length; cx++) {
+      if (row[cx] === 'w') {
+        baseImages.push({
+          texture: LAKE_KEY,
+          frame: LAKE_FRAME,
+          x: (POND_COL + cx) * TILE,
+          y: (POND_ROW + cy) * TILE,
+          scale: 2,
+          depth: 0.15,
+        });
+      }
+    }
+  }
+
+  const baseTileSolids: Rect[] = [];
+  for (let ty = 0; ty < MAP_ROWS; ty++) {
+    let runStart = -1;
+    for (let tx = 0; tx <= MAP_COLS; tx++) {
+      const isSolid = tx < MAP_COLS && blocked[ty]![tx] === true;
+      if (isSolid && runStart < 0) runStart = tx;
+      if (!isSolid && runStart >= 0) {
+        baseTileSolids.push({ x: runStart * TILE, y: ty * TILE, w: (tx - runStart) * TILE, h: TILE });
+        runStart = -1;
+      }
+    }
+  }
+
+  const baseSpawn = { x: SPAWN_TILE.x * TILE, y: SPAWN_TILE.y * TILE };
+  const basePlayerBox: Rect = { x: baseSpawn.x - 12, y: baseSpawn.y + 13, w: 24, h: 24 };
+  if (baseTileSolids.some((solid) => overlaps(basePlayerBox, solid))) {
+    throw new Error('O ponto de partida está bloqueado na base do terreno.');
+  }
+
+  return {
+    cols: MAP_COLS,
+    rows: MAP_ROWS,
+    ground,
+    overlay,
+    images: baseImages,
+    decor: [],
+    tileSolids: baseTileSolids,
+    solids: [...baseTileSolids],
+    spawn: baseSpawn,
+    plateauCells: { col: PLATEAU_COL, row: PLATEAU_ROW },
+  };
+
   // 4) Objetos do Feudal (casas, praça, canteiro, ornamentos).
   const decor: Decor[] = [];
   const addFeudal = (name: string, ax: number, ay: number): void => {
