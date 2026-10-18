@@ -36,7 +36,6 @@ export class GameScene extends Phaser.Scene {
   private skillButton?: ActionButton;
   private cameraUpButton?: ActionButton;
   private cameraDownButton?: ActionButton;
-  private hintText?: Phaser.GameObjects.Text;
   private cameraZoom = WORLD_ZOOM;
   private skillReadyAt = 0;
   private skillFx?: MoonlightSlash;
@@ -132,7 +131,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Legenda fixa na tela (não rola com a câmera).
-    this.hintText = this.add
+    this.add
       .text(
         16,
         16,
