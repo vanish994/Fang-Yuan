@@ -1,0 +1,367 @@
+# Reverend Insanity RPG — Game Design Document
+
+**Projeto:** Fang-Yuan  
+**Documento:** GDD principal  
+**Versão:** 0.1 — fundação de design  
+**Idioma:** Português  
+**Estado:** Base inicial; decisões marcadas como provisórias não devem ser tratadas como regras definitivas.
+
+> Este documento é exclusivo do RPG de *Reverend Insanity*. Não importar sistemas, elementos ou criaturas de outros projetos do desenvolvedor.
+
+## 1. Visão do jogo
+
+Um RPG 2D de exploração e estratégia ambientado no universo de *Reverend Insanity*, com **Fang Yuan como protagonista**. O jogador acompanha sua trajetória de cultivador, explora regiões interconectadas, encontra personagens e facções, obtém e utiliza Gu, coleta recursos, aprende receitas, refina Gu e toma decisões para avançar em um mundo hostil.
+
+O jogo não será um MMORPG. A experiência principal será uma campanha de RPG; o competitivo online será um modo separado, com regras validadas pelo servidor.
+
+### 1.1 Pilares de design
+
+1. **Fidelidade ao universo:** usar os conceitos próprios da obra — Gu, mestres Gu, abertura, essência primeva, pedras primevas, receitas, refinamento, caminhos e reinos de cultivo.
+2. **Preparação e estratégia:** vencer depende de combinação de Gu, recursos, informação e decisões, não apenas de atributos altos.
+3. **Liberdade com consequências:** recursos são limitados; escolhas de preparação e gasto devem importar.
+4. **Exploração recompensadora:** mapas, áreas secretas, materiais, encontros e personagens incentivam a descoberta.
+5. **Progressão legível:** o jogador entende os requisitos, custos, riscos e benefícios de cada avanço.
+6. **Regras determinísticas:** o motor do jogo resolve combate, custos, efeitos e progressão; narrativa não pode alterar resultados por conveniência.
+7. **Compatibilidade mobile:** controles e interface devem funcionar em telas pequenas, priorizando navegador e uso no celular.
+
+## 2. Identidade e escopo
+
+- **Gênero:** RPG de ação/exploração com sistemas estratégicos de cultivo e Gu. A forma exata do combate permanece como decisão de design a validar no protótipo.
+- **Protagonista:** Fang Yuan.
+- **Câmera:** 2D top-down.
+- **Arte:** pixel art, com cenários modulares e áreas conectadas.
+- **Tecnologia planejada:** Phaser + TypeScript.
+- **Plataforma prioritária:** navegador, com atenção especial a Android.
+- **Multiplayer:** competitivo online separado da campanha.
+- **Não é:** MMORPG com mundo persistente compartilhado por todos os jogadores.
+- **Não presumir:** classes tradicionais, sistema elemental genérico ou criaturas importadas de outros projetos.
+
+## 3. Protagonista e narrativa
+
+### 3.1 Fang Yuan
+
+Fang Yuan é o protagonista e o centro da progressão narrativa. A direção visual previamente desejada é uma figura de aparência austera, roupas tradicionais escuras e expressão fria/impassível. A arte deve manter silhueta reconhecível em tamanho pequeno e funcionar em perspectiva top-down.
+
+### 3.2 Abordagem narrativa
+
+A campanha deve se inspirar na trajetória e no universo da novel. A estrutura narrativa exata — adaptação fiel por arcos, recortes de eventos ou linha alternativa — precisa ser detalhada antes da produção de missões em larga escala.
+
+Princípios narrativos:
+- As ações de Fang Yuan devem refletir pragmatismo, paciência, cálculo e busca por avanço.
+- Personagens e facções devem ter interesses próprios; nem todo NPC deve agir como fornecedor de missão.
+- Informação, reputação, alianças temporárias e risco podem influenciar o acesso a oportunidades.
+- Evitar transformar decisões moralmente complexas em escolhas simplistas de “bom” e “mau”.
+- Eventos centrais da obra não devem ser alterados silenciosamente pelo agente de desenvolvimento; mudanças precisam ser registradas como decisão de design.
+
+### 3.3 Escopo inicial recomendado
+
+O primeiro protótipo narrativo deve cobrir uma pequena área inicial, com movimentação, interação, coleta, um encontro hostil e um objetivo claro. O arco inicial associado à Montanha Qing Mao é uma referência natural para o recorte, mas os eventos e limites exatos precisam ser definidos numa especificação narrativa própria.
+
+## 4. Universo e terminologia
+
+A terminologia deve respeitar a obra. Usar nomes consistentes em português e, quando necessário, manter o nome original em glossário.
+
+Conceitos centrais a representar:
+- Mestre Gu e Gu.
+- Abertura e aptidão.
+- Essência primeva e pedras primevas.
+- Refinamento e receitas.
+- Rank e estágio de cultivo.
+- Caminhos e especializações existentes no universo da obra.
+- Materiais, plantas, bestas e recursos usados em receitas.
+- Clãs, seitas, organizações e outras facções pertinentes ao arco adaptado.
+
+Não introduzir novos elementos ou regras universais sem documentá-los como conteúdo original do jogo.
+
+## 5. Sistema de cultivo
+
+### 5.1 Estrutura geral
+
+O sistema deverá representar a progressão de cultivo da obra, com ranks, estágios e custos próprios. A estrutura canônica de ranks deve ser confirmada na documentação de design antes de codificar fórmulas definitivas.
+
+O cultivo não deve ser simplesmente uma barra de experiência. Deve envolver requisitos, recursos, preparação e, quando aplicável, risco ou condições específicas.
+
+### 5.2 Aptidão e abertura
+
+A aptidão deve ter impacto real na progressão, especialmente no ritmo e na capacidade de acumular essência primeva. Os valores, categorias e fórmulas devem seguir a referência canônica que for adotada para a adaptação.
+
+A abertura é um sistema central e precisa ter representação visual e mecânica clara na ficha do personagem.
+
+### 5.3 Essência primeva
+
+A essência primeva é um recurso de jogo usado por Gu e ações compatíveis. O motor deverá controlar:
+- quantidade atual e capacidade máxima;
+- custo por ativação;
+- recuperação e condições de recuperação;
+- requisitos mínimos;
+- diferenças pertinentes entre ranks ou estágios.
+
+Os custos específicos devem ser definidos por Gu, sem uma fórmula genérica que torne todos os Gu equivalentes.
+
+## 6. Sistema de Gu
+
+### 6.1 Princípios
+
+Gu são entidades e ferramentas centrais da jogabilidade, não apenas habilidades intercambiáveis. Cada Gu deve ter função, custo, condições, limitações e papel estratégico claramente definidos.
+
+### 6.2 Dados de cada Gu
+
+Cada definição de Gu deverá incluir, conforme aplicável:
+- ID estável e nome;
+- descrição e origem;
+- rank;
+- caminho;
+- tipo e função;
+- efeitos ativos e passivos;
+- custo de essência primeva;
+- requisitos para uso;
+- duração, alcance e alvo;
+- condições de ativação e encerramento;
+- limitações, riscos e incompatibilidades;
+- método de obtenção;
+- receita e materiais relacionados;
+- dados de balanceamento;
+- referência de arte, animação e efeitos sonoros;
+- notas de fidelidade à obra e fonte de validação.
+
+### 6.3 Equipamento e capacidade
+
+A forma de armazenar, equipar e utilizar múltiplos Gu precisa ser especificada separadamente. O design deve considerar limites, custos de manutenção, compatibilidade com o rank do personagem e decisões de preparação. Não assumir um número final de slots antes de validar a mecânica.
+
+### 6.4 Aquisição
+
+Possíveis métodos, a confirmar por arco e por Gu:
+- recompensa narrativa;
+- compra ou troca;
+- exploração e descoberta;
+- refinamento;
+- obtenção por encontro ou missão;
+- recompensa de sistemas específicos.
+
+Evitar que todos os Gu sejam simplesmente capturados após uma luta; os métodos devem respeitar a natureza de cada Gu no universo.
+
+## 7. Refinamento e receitas
+
+O refinamento será um sistema próprio, não apenas uma combinação instantânea de itens.
+
+Uma receita deve definir:
+- Gu ou resultado produzido;
+- materiais e quantidades;
+- requisitos de rank, conhecimento ou instalações, quando aplicáveis;
+- custo em recursos;
+- etapas e condições;
+- chance de sucesso ou falha, se prevista;
+- consequências da falha;
+- tempo de execução, caso seja relevante;
+- origem da receita e como o jogador a descobre.
+
+As fórmulas e regras de refinamento devem ser orientadas por dados. O sistema precisa suportar novas receitas sem reescrever o motor.
+
+## 8. Recursos, coleta e economia
+
+A economia deve reforçar a necessidade de preparação. Recursos e materiais precisam ter usos claros e fontes controladas.
+
+Categorias iniciais:
+- pedras primevas;
+- materiais de refinamento;
+- plantas e recursos naturais;
+- itens consumíveis;
+- equipamentos e ferramentas relevantes;
+- receitas e informações;
+- itens de missão.
+
+Cada item deve registrar origem, usos, valor de troca quando houver, limites de acumulação e condições especiais. A economia não deve ser balanceada apenas por preços: disponibilidade, risco de obtenção e utilidade também importam.
+
+## 9. Exploração e mundo
+
+### 9.1 Estrutura do mapa
+
+O mundo será construído com áreas top-down interconectadas. A transição entre regiões adjacentes deve ser contínua sempre que viável, sem telas de carregamento desnecessárias. Regiões maiores podem ser divididas tecnicamente, mantendo continuidade visual e de navegação.
+
+### 9.2 Construção de mapas
+
+- Usar tilesets modulares e camadas com funções distintas.
+- Separar terreno, decoração, elementos acima do personagem, colisão e objetos interativos.
+- Manter escala, perspectiva, iluminação e paleta consistentes.
+- Criar caminhos legíveis e pontos de referência visuais.
+- Usar obstáculos e objetos para comunicar limites físicos sem depender apenas de paredes invisíveis.
+- Otimizar mapas para dispositivos móveis.
+- Registrar a licença e as restrições de cada pacote de assets.
+
+### 9.3 Conteúdo explorável
+
+As regiões poderão conter NPCs, materiais, áreas ocultas, pontos de interesse, perigos, encontros e acessos condicionados. O conteúdo deve ser ligado à região e ao arco narrativo, não distribuído aleatoriamente sem contexto.
+
+## 10. NPCs, facções e missões
+
+NPCs devem possuir identidade, objetivos e relações. Facções podem controlar recursos, informação, rotas e oportunidades, de acordo com a história adaptada.
+
+Uma missão deve especificar:
+- ID e título;
+- contexto narrativo;
+- pré-requisitos;
+- etapas e condições de conclusão;
+- personagens e regiões envolvidos;
+- recompensas e custos;
+- consequências;
+- estados possíveis;
+- critérios de teste.
+
+Evitar missões que sejam apenas “elimine X inimigos” quando houver oportunidade para exploração, investigação, negociação ou preparação.
+
+## 11. Combate
+
+O modelo exato de combate ainda precisa ser validado. O protótipo deve comparar alternativas antes de consolidar a arquitetura: combate diretamente no mapa, combate por turnos ou uma abordagem híbrida.
+
+Independentemente do modelo escolhido:
+- o motor de regras será a autoridade;
+- os custos de Gu serão validados antes da execução;
+- efeitos terão duração e regras de encerramento explícitas;
+- ordem de resolução será determinística e testável;
+- resultados importantes serão reproduzíveis em testes;
+- o servidor validará partidas competitivas;
+- animações e efeitos visuais não poderão alterar o resultado mecânico.
+
+Cada efeito deve especificar alvo, duração, prioridade, empilhamento, remoção e interação com outros efeitos.
+
+## 12. Competitivo online
+
+O modo competitivo é separado da campanha e não transforma o jogo em MMORPG.
+
+Requisitos previstos:
+- identidade de jogador e formação de partida;
+- validação de ações e resultados pelo servidor;
+- proteção contra alterações de estado pelo cliente;
+- regras iguais entre os participantes;
+- registro de resultados;
+- tratamento de desconexões;
+- sistema de classificação, caso aprovado;
+- separação entre conteúdo narrativo e regras de competição.
+
+O formato de equipe, regras de elegibilidade, sincronização, progressão competitiva e recompensas ainda são decisões pendentes.
+
+## 13. Interface e controles
+
+A interface deverá ser legível em celular e não depender de hover ou precisão de mouse.
+
+Áreas de interface a projetar:
+- HUD de exploração;
+- ficha de Fang Yuan;
+- abertura e estado de cultivo;
+- inventário e recursos;
+- coleção e gestão de Gu;
+- receitas e refinamento;
+- mapa e objetivos;
+- diálogos e missões;
+- configurações e controles;
+- interface de combate e resultados.
+
+O desenho final deverá ser validado em telas pequenas, com botões de tamanho adequado e informação prioritária bem hierarquizada.
+
+## 14. Direção de arte e animação
+
+- Pixel art 2D top-down.
+- Fang Yuan com vestimenta escura e expressão impassível.
+- Personagens e objetos com escala consistente.
+- Spritesheets com ordem de direções e quadros documentada.
+- Animações sem inversão de direção ou deslocamento incompatível com o movimento.
+- Camadas de cenário para profundidade visual.
+- Assets organizados por personagem, criatura, região, animação e interface.
+- Preferência por assets com licenças compatíveis com modificação e uso no projeto; registrar licença, atribuição exigida e restrições.
+
+O tamanho de referência de tiles de 32×32 px e sprite de personagem de 64×64 px é provisório até que a escala seja testada em jogo.
+
+## 15. Arquitetura técnica
+
+### Cliente
+Responsável por renderização, entrada, câmera, interface, áudio e apresentação das animações.
+
+### Motor de regras
+Responsável por cultivo, recursos, inventário, Gu, receitas, efeitos, missões e combate. Deve ser independente da renderização sempre que possível.
+
+### Dados
+Conteúdo de Gu, itens, receitas, NPCs, regiões e missões deve ser definido em dados estruturados com validação de esquema.
+
+### Servidor online
+Responsável pela autenticação, criação e validação das partidas competitivas, persistência necessária e prevenção de trapaças.
+
+### Qualidade
+- testes unitários para fórmulas e efeitos;
+- testes de integração para sistemas que interagem;
+- validação automática dos dados;
+- testes em Android e navegadores móveis;
+- logs úteis sem expor segredos;
+- desempenho monitorado em mapas e combates.
+
+## 16. Plano de desenvolvimento
+
+### Fase 1 — Base jogável
+- revisar a estrutura atual do repositório;
+- definir arquitetura e convenções;
+- configurar Phaser e TypeScript conforme o estado real do projeto;
+- implementar movimentação, câmera, colisões e interação;
+- carregar uma região de teste.
+
+### Fase 2 — Primeiro ciclo de jogo
+- implementar ficha básica de Fang Yuan;
+- modelar essência primeva e abertura;
+- adicionar um conjunto pequeno e representativo de Gu;
+- implementar inventário e coleta;
+- demonstrar um encontro com começo, decisões e resultado.
+
+### Fase 3 — Sistemas centrais
+- cultivo e progressão;
+- receitas e refinamento;
+- missões, NPCs e facções;
+- mais regiões e conteúdo;
+- interface de inventário, Gu e cultivo.
+
+### Fase 4 — Campanha
+- estruturar o arco inicial;
+- produzir mapas e encontros;
+- integrar diálogos, objetivos e consequências;
+- testar progressão e economia.
+
+### Fase 5 — Competitivo
+- definir regras competitivas;
+- implementar servidor e partidas;
+- validar ações e resultados;
+- tratar desconexões, integridade e balanceamento.
+
+As fases devem ser reordenadas conforme a auditoria do código existente. Não recriar componentes já funcionais sem necessidade.
+
+## 17. Critérios de qualidade
+
+Uma funcionalidade só será considerada concluída quando:
+- cumprir a especificação;
+- funcionar em dispositivo móvel;
+- tratar entradas inválidas e estados extremos;
+- ter testes proporcionais à sua importância;
+- não duplicar regras em cliente e servidor;
+- respeitar o conteúdo e as limitações de licenças;
+- possuir documentação atualizada;
+- integrar-se ao projeto sem quebrar funcionalidades existentes.
+
+## 18. Decisões pendentes
+
+Estas questões devem ser respondidas antes de fechar o design detalhado:
+
+1. **Narrativa:** adaptação fiel da novel por arcos ou história alternativa mantendo Fang Yuan como protagonista?
+2. **Combate:** ação no mapa, turnos ou híbrido?
+3. **Estrutura de progressão:** como os ranks e estágios serão apresentados e como a campanha limitará o avanço?
+4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
+5. **Falha e risco:** quais sistemas podem falhar, e quais consequências são justas e fiéis ao universo?
+6. **Competitivo:** duelo individual, equipes, formato assíncrono ou partidas em tempo real?
+7. **Escopo inicial:** qual arco e quais regiões serão incluídos na primeira versão jogável?
+
+## 19. Regras para agentes de IA
+
+- Ler este GDD e as instruções existentes do repositório antes de implementar.
+- Não misturar o projeto com outros RPGs ou MMORPGs.
+- Não substituir conceitos canônicos por sistemas genéricos sem aprovação.
+- Distinguir fatos definidos, propostas e decisões pendentes.
+- Não inventar regras de cultivo, Gu ou história como se fossem canônicas.
+- Antes de alterar arquitetura, inspecionar o código atual e preservar o que funciona.
+- Implementar mudanças pequenas, verificáveis e documentadas.
+- Nunca modificar ou substituir instruções de agentes existentes sem autorização explícita.
+- Quando uma lacuna impedir a implementação correta, documentar a questão e apresentar alternativas com consequências técnicas e de design.
