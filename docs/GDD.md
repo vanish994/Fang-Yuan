@@ -171,9 +171,15 @@ Cada definição de Gu deverá incluir, conforme aplicável:
 - referência de arte, animação e efeitos sonoros;
 - notas de fidelidade à obra e fonte de validação.
 
-### 6.3 Equipamento e capacidade
+### 6.3 Equipamento e capacidade — Definido
 
-A forma de armazenar, equipar e utilizar múltiplos Gu precisa ser especificada separadamente. O design deve considerar limites, custos de manutenção, compatibilidade com o rank do personagem e decisões de preparação. Não assumir um número final de slots antes de validar a mecânica.
+Fang Yuan terá quatro slots funcionais de Gu equipados:
+1. **Gu de ataque ativo**;
+2. **Gu passivo**;
+3. **Gu de movimento**;
+4. **Gu de apoio**.
+
+Os slots têm funções distintas. O Gu passivo pode aumentar atributos, como a defesa ou a força; o Gu de apoio pode oferecer recuperação de essência, cura ou outros efeitos de suporte. A troca de Gu equipados só é permitida fora de combate. Regras de inventário e quantidade total de Gu carregados permanecem **A definir**.
 
 ### 6.4 Aquisição
 
@@ -186,6 +192,35 @@ Possíveis métodos, a confirmar por arco e por Gu:
 - recompensa de sistemas específicos.
 
 Evitar que todos os Gu sejam simplesmente capturados após uma luta; os métodos devem respeitar a natureza de cada Gu no universo.
+
+
+### 6.5 Gu iniciais e aquisição na campanha — Proposta definida para o início
+
+#### Moonlight Gu — Gu de ataque ativo
+
+- Fang Yuan recebe o **Moonlight Gu** da vila no início do jogo, como seu Gu inicial de ataque.
+- **Adaptação de gameplay:** ao ser ativado, dispara um corte em meia-lua que percorre uma distância máxima definida pelo alcance do Gu.
+- O efeito visual do corte deve corresponder a uma hitbox própria, validada pelo motor de combate; a arte não determina sozinha o resultado mecânico.
+- Se o corte atingir um inimigo e derrotá-lo, continua avançando até acabar o alcance. Se atingir um inimigo que sobreviva, o corte para no primeiro inimigo atingido.
+- O golpe deve respeitar alcance, colisão e regras de acerto, sem atravessar inimigos sobreviventes.
+- Velocidade do projétil, dano, alcance, custo de essência e recarga ficam **A definir** para balanceamento.
+
+#### Liquor Worm — Gu de apoio
+
+- O **Liquor Worm (Verme do Licor)** poderá ser obtido no início da campanha, no final de uma caverna explorável com vários inimigos pelo caminho.
+- **Adaptação de gameplay específica do projeto:** equipado no slot de apoio, concede recuperação passiva de essência primeva.
+- Esta função de regeneração é uma adaptação para o RPG; não deve ser apresentada como descrição literal de sua habilidade canônica. A relação exata com a função da obra deverá ser documentada nas notas de fidelidade.
+- Valor da recuperação, limites, condições e eventuais custos ficam **A definir**.
+
+#### Jade Skin Gu — Gu passivo
+
+- O **Jade Skin Gu (Gu da Pele de Jade)** é planejado para o slot passivo.
+- **Adaptação de gameplay específica do projeto:** aumenta a defesa enquanto estiver equipado, de acordo com valores de balanceamento configuráveis.
+- O método e o momento de obtenção ainda ficam **A definir**.
+- O aumento defensivo, sua magnitude e eventuais condições precisam ser definidos antes da implementação. Não presumir que o efeito passivo do jogo reproduza literalmente todas as regras da obra.
+
+Essas decisões descrevem a adaptação do jogo. Ao documentar Gu adicionais, separar sempre efeito canônico confirmado de mecânica criada para o RPG.
+
 
 ## 7. Refinamento e receitas
 
