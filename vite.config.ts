@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 
-// Vite config para o jogo Phaser 4.
-// - host 0.0.0.0: permite acesso pelo preview do ambiente e pela rede local.
-// - allowedHosts: o preview roda atrás de um proxy com host dinâmico, então liberamos todos.
+// GitHub Pages publica este projeto em /Fang-Yuan/ (não na raiz do domínio).
+// Os hosts abertos permitem usar o preview do ambiente de desenvolvimento.
 export default defineConfig({
+  base: '/Fang-Yuan/',
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -18,7 +18,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    // Phaser é grande por natureza (~1.5 MB minificado); o aviso padrão de 500 kB não ajuda aqui.
     chunkSizeWarningLimit: 2000,
   },
 });
