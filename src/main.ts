@@ -13,6 +13,14 @@ const config: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  // Física Arcade sem gravidade: jogo visto de cima.
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 0 },
+      debug: false,
+    },
+  },
   // Ordem das cenas: a primeira é iniciada automaticamente.
   scene: [BootScene, GameScene],
 };
