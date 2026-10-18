@@ -270,6 +270,8 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - A interface deve comunicar custos, recargas, condições e motivos pelos quais um Gu não pode ser ativado.
 - Durante o combate, a interface terá **4 espaços de acesso rápido para Gu**. Esses espaços representam atalhos de uso, não o limite total de Gu que Fang Yuan pode possuir ou carregar.
 - A organização exata dos espaços e como acessar Gu adicionais permanece **A definir**.
+- **Mira híbrida:** o jogador pode tocar em um inimigo para selecioná-lo manualmente ou acionar uma opção para selecionar automaticamente o inimigo mais próximo. A seleção automática não deve substituir a seleção manual sem uma ação explícita do jogador.
+- A seleção de alvo não ignora regras de alcance, linha de visão, obstáculos ou condições de ativação de ataques e Gu.
 
 ### 11.3 Tipos de ataque — Definido
 
@@ -290,7 +292,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 
 ### 11.5 Decisões pendentes
 
-Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; organização dos 4 espaços de acesso rápido e acesso a Gu adicionais; valores do ataque básico; seleção de alvo; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
+Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; organização dos 4 espaços de acesso rápido e acesso a Gu adicionais; valores do ataque básico; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
 
 ## 12. Competitivo online
 
