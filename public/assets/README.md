@@ -48,3 +48,14 @@ O repositório é privado. Antes de publicar o jogo ou o build, confirme as lice
 - `src/world/village/assetCatalog.ts`: recortes em pixels nativos dos sheets do Harmonious (cada componente conexo vira um frame), tamanhos das peças e máscaras do platô e do lago.
 
 Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (precisa de Pillow, numpy e scipy). O layout do mapa fica em `src/world/village/villageMap.ts` e é escrito à mão.
+
+## Editar a vila no Tiled
+
+`village/vila-inicial-da-montanha.tmj` é o mapa no formato JSON do [Tiled](https://www.mapeditor.org/) (1.10 ou mais novo). Abra o arquivo direto no Tiled: os caminhos das imagens são relativos a ele.
+
+- Camadas de tile: `chao` (grama e terra) e `sobreposicao` (caminhos e canteiro). Tileset `ground`: o atlas de 64 px.
+- Camadas de objeto: `imagens` (platô, lago e água), `chao_objetos` (sob o personagem), `objetos` (árvores, casas e rochas, ordenados pelo y da base) e `colisao` (retângulos sólidos). A camada `spawn` marca o ponto de partida.
+- Tileset `vila-arte`: uma imagem por tile (recortes em `village/tiles/` e `village/props/`).
+
+O jogo lê o mapa de `src/world/village/villageMap.ts`, não deste arquivo. Para o `.tmj` refletir o código, gere de novo: `scripts/build-village-assets.py` (recortes) e depois `scripts/export-village-tiled.cjs` (ver o cabeçalho do script para compilar o TypeScript antes).
+

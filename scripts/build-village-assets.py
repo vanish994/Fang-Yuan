@@ -151,6 +151,17 @@ def main() -> None:
                 water_tile = (tx, ty, 32, 32)
     assert water_tile is not None, "sem tile de água no Lake_Water_Anim"
 
+    # Recortes individuais do Harmonious (um PNG por frame), para editores de tiles como o Tiled.
+    OUT_TILES = ROOT / "public/assets/village/tiles"
+    OUT_TILES.mkdir(parents=True, exist_ok=True)
+    for key, rel, frames in [(k, rel, f) for k, rel, f in harm_entries]:
+        sheet = Image.open(HARM / rel.split("harmonious-seasons/")[1]).convert("RGBA")
+        for i, (x, y, w, h) in enumerate(frames):
+            sheet.crop((x, y, x + w, y + h)).save(OUT_TILES / f"{key}-{i}.png", optimize=True)
+    lake_crop = Image.open(lake_path).convert("RGBA")
+    lx, ly, lw, lh = water_tile
+    lake_crop.crop((lx, ly, lx + lw, ly + lh)).save(OUT_TILES / "lake-water.png", optimize=True)
+
     # 2) Peças do Feudal: corte pelo alfa e redução para FEUDAL_SCALE.
     feudal_entries = {}
     for key, rel in FEUDAL_PROPS.items():
