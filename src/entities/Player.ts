@@ -25,12 +25,17 @@ const DIRECTION_ANGLES: Record<Direction, number> = {
   'up-left': -135,
 };
 
-export interface MoveInput {
-  left: boolean;
-  right: boolean;
-  up: boolean;
-  down: boolean;
+/**
+ * Direção de movimento: x e y em [-1, 1]. Teclado entrega -1/0/1; o joystick entrega valores
+ * analógicos, e a magnitude controla a velocidade.
+ */
+export interface MoveVector {
+  x: number;
+  y: number;
 }
+
+/** Abaixo desta magnitude o personagem está parado. */
+const MIN_MAGNITUDE = 0.01;
 
 /** Cria as animações do personagem uma única vez por jogo. */
 export function createFangYuanAnimations(scene: Phaser.Scene): void {
@@ -84,24 +89,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(10);
   }
 
-  /** Aplica a direção de movimento (já vinda do teclado) e troca a animação. */
-  move(input: MoveInput): void {
+  /** Aplica o vetor de movimento (teclado ou joystick) e troca a animação. */
+  move(dir: MoveVector): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
 
-    const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-
-    if (dx === 0 && dy === 0) {
+    // A magnitude é limitada a 1: diagonal do teclado não fica mais rápida que o normal.
+    const magnitude = Math.min(1, Math.hypot(dir.x, dir.y));
+    if (magnitude < MIN_MAGNITUDE) {
       body.setVelocity(0, 0);
       this.idle();
       return;
     }
 
-    // Normaliza para que a diagonal não seja mais rápida.
-    const length = Math.hypot(dx, dy);
-    body.setVelocity((dx / length) * SPEED, (dy / length) * SPEED);
+    const angle = Math.atan2(dir.y, dir.x);
+    body.setVelocity(Math.cos(angle) * SPEED * magnitude, Math.sin(angle) * SPEED * magnitude);
 
-    this.facing = directionFromAngle((Math.atan2(dy, dx) * 180) / Math.PI);
+    this.facing = directionFromAngle((angle * 180) / Math.PI);
     this.anims.play(`walk-${this.facing}`, true);
   }
 

@@ -54,6 +54,11 @@ Os assets do projeto estão em `public/assets/` (personagem, HUD e três tileset
 this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png');
 ```
 
+## Controles
+
+- **Computador:** setas ou WASD.
+- **Celular/tablet:** joystick flutuante. Arraste no lado esquerdo da tela; a base aparece onde você tocou. Em celular na vertical, a tela pede para girar o aparelho.
+
 ## Notas
 
 - A resolução base é 1280×720, com escala `FIT` centralizada (ver `src/config/gameConfig.ts` e `src/main.ts`).

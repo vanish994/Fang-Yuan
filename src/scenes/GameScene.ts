@@ -2,16 +2,20 @@ import Phaser from 'phaser';
 import { COLORS } from '../config/gameConfig';
 import { CELL_SIZE, KEYS } from '../config/assets';
 import { CHUNK_COLS, CHUNK_ROWS, buildTestChunk } from '../world/testChunk';
-import { Player, createFangYuanAnimations, type MoveInput } from '../entities/Player';
+import { Player, createFangYuanAnimations, type MoveVector } from '../entities/Player';
+import { VirtualJoystick } from '../ui/VirtualJoystick';
+
+type WasdKeys = Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 
 /**
  * Cena de teste: um chunk pequeno de chão (grama e terra) com o personagem Fang Yuan.
- * Use WASD ou as setas para mover.
+ * Teclado: setas ou WASD. Celular/tablet: joystick virtual no lado esquerdo da tela.
  */
 export class GameScene extends Phaser.Scene {
   private player!: Player;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
+  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasd?: WasdKeys;
+  private joystick?: VirtualJoystick;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -41,22 +45,27 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, mapWidth / 2, Math.round(5.5 * CELL_SIZE));
     this.cameras.main.startFollow(this.player, true);
 
-    // Controles: setas e WASD.
-    const keyboard = this.input.keyboard;
-    if (!keyboard) {
-      throw new Error('Teclado não disponível neste dispositivo.');
+    // Entrada: dispositivos com toque ganham o joystick; os demais, o teclado.
+    const isTouch = this.game.device.input.touch;
+    if (isTouch) {
+      this.joystick = new VirtualJoystick(this);
+    } else {
+      const keyboard = this.input.keyboard;
+      if (!keyboard) {
+        throw new Error('Teclado não disponível neste dispositivo.');
+      }
+      this.cursors = keyboard.createCursorKeys();
+      this.wasd = keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.W,
+        down: Phaser.Input.Keyboard.KeyCodes.S,
+        left: Phaser.Input.Keyboard.KeyCodes.A,
+        right: Phaser.Input.Keyboard.KeyCodes.D,
+      }) as WasdKeys;
     }
-    this.cursors = keyboard.createCursorKeys();
-    this.wasd = keyboard.addKeys({
-      up: Phaser.Input.Keyboard.KeyCodes.W,
-      down: Phaser.Input.Keyboard.KeyCodes.S,
-      left: Phaser.Input.Keyboard.KeyCodes.A,
-      right: Phaser.Input.Keyboard.KeyCodes.D,
-    }) as GameScene['wasd'];
 
     // Legenda fixa na tela (não rola com a câmera).
     this.add
-      .text(16, 16, 'Setas ou WASD para mover', {
+      .text(16, 16, isTouch ? 'Arraste no lado esquerdo para mover' : 'Setas ou WASD para mover', {
         fontFamily: 'sans-serif',
         fontSize: '18px',
         color: COLORS.text,
@@ -65,16 +74,27 @@ export class GameScene extends Phaser.Scene {
       })
       .setScrollFactor(0)
       .setDepth(100);
-
   }
 
   update(): void {
-    const input: MoveInput = {
-      left: this.cursors.left.isDown || this.wasd.left.isDown,
-      right: this.cursors.right.isDown || this.wasd.right.isDown,
-      up: this.cursors.up.isDown || this.wasd.up.isDown,
-      down: this.cursors.down.isDown || this.wasd.down.isDown,
+    this.player.move(this.readMoveVector());
+  }
+
+  /** Une o joystick (quando ativo) e o teclado. O joystick tem prioridade se estiver em uso. */
+  private readMoveVector(): MoveVector {
+    const joy = this.joystick?.vector;
+    if (joy && (joy.x !== 0 || joy.y !== 0)) {
+      return joy;
+    }
+
+    const left = this.cursors?.left.isDown || this.wasd?.left.isDown;
+    const right = this.cursors?.right.isDown || this.wasd?.right.isDown;
+    const up = this.cursors?.up.isDown || this.wasd?.up.isDown;
+    const down = this.cursors?.down.isDown || this.wasd?.down.isDown;
+
+    return {
+      x: (right ? 1 : 0) - (left ? 1 : 0),
+      y: (down ? 1 : 0) - (up ? 1 : 0),
     };
-    this.player.move(input);
   }
 }

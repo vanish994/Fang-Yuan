@@ -9,6 +9,12 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: COLORS.background,
+  // Sprites e tiles de pixel art ficam nítidos ao escalar (sem filtro borrado).
+  pixelArt: true,
+  // Permite mais de um dedo ao mesmo tempo (joystick + futuros botões).
+  input: {
+    activePointers: 3,
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
