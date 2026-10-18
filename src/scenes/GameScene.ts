@@ -33,8 +33,13 @@ export class GameScene extends Phaser.Scene {
   private wasd?: WasdKeys;
   private actionKeys?: ActionKeys;
   private joystick?: VirtualJoystick;
+  private attackButton?: ActionButton;
   private dashButton?: ActionButton;
   private skillButton?: ActionButton;
+  private cameraUpButton?: ActionButton;
+  private cameraDownButton?: ActionButton;
+  private hintText?: Phaser.GameObjects.Text;
+  private cameraLookOffset = 0;
   private skillReadyAt = 0;
   /** Câmera da interface (sem zoom). Efeitos criados depois precisam ser ignorados por ela. */
   private uiCamera?: Phaser.Cameras.Scene2D.Camera;
@@ -101,7 +106,7 @@ export class GameScene extends Phaser.Scene {
     const isTouch = this.game.device.input.touch;
     if (isTouch) {
       this.joystick = new VirtualJoystick(this);
-      new ActionButton(this, {
+      this.attackButton = new ActionButton(this, {
         ...TOUCH_BUTTONS.attack,
         label: 'ATK',
         color: BUTTON_COLORS.attack,
@@ -119,10 +124,19 @@ export class GameScene extends Phaser.Scene {
         color: BUTTON_COLORS.skill,
         onPress: () => this.doSkill(),
       });
+      // Controles de enquadramento: deslocam o olhar da câmera sem parar de seguir o personagem.
+      this.cameraUpButton = new ActionButton(this, {
+        x: this.scale.width - 68, y: 72, radius: 34, label: '↑', color: 0x566b80,
+        onPress: () => this.setCameraLookOffset(this.cameraLookOffset - 96),
+      });
+      this.cameraDownButton = new ActionButton(this, {
+        x: this.scale.width - 68, y: 150, radius: 34, label: '↓', color: 0x566b80,
+        onPress: () => this.setCameraLookOffset(this.cameraLookOffset + 96),
+      });
     }
 
     // Legenda fixa na tela (não rola com a câmera).
-    this.add
+    this.hintText = this.add
       .text(
         16,
         16,
@@ -143,6 +157,11 @@ export class GameScene extends Phaser.Scene {
     // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
     this.cameras.main.setZoom(WORLD_ZOOM);
     this.uiCamera = this.setupUiCamera();
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    });
+    this.layoutTouchControls(this.scale.width, this.scale.height);
   }
 
   /** Uma camada de tiles do ground-atlas, com a matriz de índices dada (-1 é vazio). */
@@ -176,9 +195,33 @@ export class GameScene extends Phaser.Scene {
     const worldObjects = all.filter((obj) => !isUi(obj));
 
     this.cameras.main.ignore(uiObjects);
-    const uiCamera = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     uiCamera.ignore(worldObjects);
     return uiCamera;
+  }
+
+
+  /** Mantém a interface preenchendo o viewport real quando o aparelho gira ou redimensiona. */
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    const width = gameSize.width;
+    const height = gameSize.height;
+    this.uiCamera?.setViewport(0, 0, width, height);
+    this.layoutTouchControls(width, height);
+    this.hintText?.setPosition(16, 16);
+  }
+
+  private layoutTouchControls(width: number, height: number): void {
+    this.attackButton?.setPosition(width - 104, height - 104);
+    this.dashButton?.setPosition(width - 258, height - 88);
+    this.skillButton?.setPosition(width - 228, height - 222);
+    this.cameraUpButton?.setPosition(width - 62, 58);
+    this.cameraDownButton?.setPosition(width - 62, 136);
+  }
+
+  /** Deslocamento vertical limitado; o jogador continua sendo seguido pela câmera. */
+  private setCameraLookOffset(offset: number): void {
+    this.cameraLookOffset = Phaser.Math.Clamp(offset, -384, 384);
+    this.cameras.main.setFollowOffset(0, this.cameraLookOffset);
   }
 
   update(time: number): void {
