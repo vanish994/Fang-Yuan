@@ -22,8 +22,10 @@ COLS, ROWS, TILE = 8, 7, 64
 
 # (arquivo, centro x, centro y, tamanho do recorte) na ordem dos índices do atlas.
 TILES = []
-TILES += [(GRASS, cx, 212, 212) for cx in [175, 433, 696, 965, 1235, 1497]]   # 0-5 grama
-TILES += [(GRASS, cx, 450, 212) for cx in [175, 433, 696, 965, 1235, 1497]]   # 6-11 terra
+# 0-11 (grama e terra): recorte com inset de 8 px (tamanho 196). Com 212 px a borda do recorte
+# pega o gutter semitransparente da folha, e as emendas entre tiles ficavam pretas no jogo.
+TILES += [(GRASS, cx, 212, 196) for cx in [175, 433, 696, 965, 1235, 1497]]   # 0-5 grama
+TILES += [(GRASS, cx, 450, 196) for cx in [175, 433, 696, 965, 1235, 1497]]   # 6-11 terra
 TILES += [(GRASS, cx, 690, 212) for cx in [175, 433, 697, 965, 1235, 1497]]   # 12-17 penhascos
 TILES += [(PATHS, 1012, 846, 212), (PATHS, 1330, 846, 212)]                   # 18-19 escadas
 TILES += [(PATHS, cx, 250, 212) for cx in [119, 336, 552, 767, 962, 1171, 1394]]  # 20-26 caminhos (20 = vertical)
