@@ -73,30 +73,73 @@ Conceitos centrais a representar:
 
 Não introduzir novos elementos ou regras universais sem documentá-los como conteúdo original do jogo.
 
-## 5. Sistema de cultivo
+## 5. Sistema de cultivo e progressão
 
-### 5.1 Estrutura geral
+### 5.1 Princípio central — Definido
 
-O sistema deverá representar a progressão de cultivo da obra, com ranks, estágios e custos próprios. A estrutura canônica de ranks deve ser confirmada na documentação de design antes de codificar fórmulas definitivas.
+**Pedras primordiais substituem XP como recurso principal de progressão do cultivo.** O personagem não precisa acumular uma barra tradicional de experiência para subir de nível. Em vez disso, utiliza pedras primordiais para avançar no cultivo.
 
-O cultivo não deve ser simplesmente uma barra de experiência. Deve envolver requisitos, recursos, preparação e, quando aplicável, risco ou condições específicas.
+O fluxo principal é:
 
-### 5.2 Aptidão e abertura
+**Combate / missões / exploração / comércio → pedras primordiais e materiais → avanço de cultivo → melhorias moderadas de atributos e acesso a Gu.**
 
-A aptidão deve ter impacto real na progressão, especialmente no ritmo e na capacidade de acumular essência primeva. Os valores, categorias e fórmulas devem seguir a referência canônica que for adotada para a adaptação.
+A proposta mantém o cultivo fácil de entender e implementar, sem transformar cada detalhe da novel em uma simulação complexa. As pedras primordiais também são um recurso econômico do mundo; portanto, gastá-las no cultivo cria uma escolha entre fortalecer o personagem e guardá-las para comprar itens, Gu ou outros serviços.
 
-A abertura é um sistema central e precisa ter representação visual e mecânica clara na ficha do personagem.
+### 5.2 Ranks e estágios — Definido
 
-### 5.3 Essência primeva
+O jogo terá **9 Ranks de Mestre Gu**, cada um dividido em quatro estágios:
 
-A essência primeva é um recurso de jogo usado por Gu e ações compatíveis. O motor deverá controlar:
-- quantidade atual e capacidade máxima;
-- custo por ativação;
-- recuperação e condições de recuperação;
-- requisitos mínimos;
-- diferenças pertinentes entre ranks ou estágios.
+1. Inicial
+2. Médio
+3. Superior
+4. Pico
 
-Os custos específicos devem ser definidos por Gu, sem uma fórmula genérica que torne todos os Gu equivalentes.
+Isso produz **36 etapas de progressão** (9 Ranks × 4 estágios).
+
+| Rank | Estágios |
+|---|---|
+| Rank 1 | Inicial, Médio, Superior, Pico |
+| Rank 2 | Inicial, Médio, Superior, Pico |
+| Rank 3 | Inicial, Médio, Superior, Pico |
+| Rank 4 | Inicial, Médio, Superior, Pico |
+| Rank 5 | Inicial, Médio, Superior, Pico |
+| Rank 6 | Inicial, Médio, Superior, Pico |
+| Rank 7 | Inicial, Médio, Superior, Pico |
+| Rank 8 | Inicial, Médio, Superior, Pico |
+| Rank 9 | Inicial, Médio, Superior, Pico |
+
+O jogador gasta pedras primordiais para progredir entre os estágios dentro do Rank atual. **Ao alcançar o Pico, a passagem para o Rank seguinte exige pedras primordiais e materiais específicos de avanço.** Após cumprir os requisitos, o personagem entra no estágio Inicial do próximo Rank.
+
+Os materiais exigidos devem fazer sentido para o Rank e para a ambientação, podendo vir de criaturas, coleta, exploração, missões, comércio ou outros sistemas documentados. A lista e as quantidades serão definidas por Rank. Não exigir esses materiais em cada avanço comum de estágio.
+
+### 5.3 Requisitos de avanço e balanceamento
+
+- Avanços comuns (Inicial → Médio → Superior → Pico): exigem pedras primordiais; não exigem materiais especiais de ruptura na regra-base.
+- Ruptura de Rank (Pico → Inicial do próximo Rank): exige pedras primordiais e um conjunto de materiais específicos.
+- O Rank 9 é o último Rank definido; progressão além dele não deve ser presumida.
+- Os custos de pedras, materiais por Rank, requisitos adicionais e ritmo de progressão ficam **A definir** e devem ser configuráveis em dados.
+- Os custos devem crescer de forma controlada, sem tornar os primeiros avanços lentos nem permitir que o jogador acumule recursos e salte toda a progressão.
+- Recompensas devem considerar risco, dificuldade e esforço; não criar uma fonte repetível e ilimitada que torne o cultivo trivial.
+- A economia precisa equilibrar o gasto de pedras no cultivo com seu uso como moeda de troca.
+- A falha de uma ruptura, perda de materiais ou penalidades não está definida. Não implementar consequências punitivas sem uma decisão de design explícita.
+
+### 5.4 Level e atributos
+
+XP deixa de ser a trilha de progressão principal. A representação principal do progresso será o **Rank + estágio de cultivo**. Se o jogo precisar de um atributo técnico chamado `level`, ele deverá derivar do estágio de cultivo ou cumprir uma função secundária claramente documentada; não deve coexistir como uma segunda progressão que duplique o cultivo.
+
+Atributos básicos recebem crescimento moderado conforme o avanço de cultivo. O poder principal deve vir da escolha, aquisição e combinação de Gu, além de recursos, preparação e decisões táticas. Dois personagens em estágios semelhantes podem ter estilos e resultados de combate muito diferentes por causa de suas builds.
+
+Os atributos exatos, seus valores e os benefícios de cada estágio são **A definir**.
+
+### 5.5 Aptidão, abertura e essência primeva
+
+A aptidão e a abertura continuam relevantes para a identidade do universo e podem afetar capacidade, eficiência ou opções de cultivo, mas suas regras detalhadas precisam ser especificadas antes da implementação. Elas não devem recriar uma barra de XP paralela.
+
+A essência primeva é um recurso de combate e uso de Gu, separado das pedras primordiais usadas para pagar a progressão. O motor deve distinguir claramente:
+- **Pedras primordiais:** recurso econômico consumido para cultivar e realizar transações.
+- **Essência primeva:** energia disponível ao personagem para ativar Gu e outras ações compatíveis.
+
+Custos, capacidade, recuperação e relação com Rank/estágio ficam **A definir**. Não tratar pedras primordiais e essência primeva como o mesmo recurso.
 
 ## 6. Sistema de Gu
 
