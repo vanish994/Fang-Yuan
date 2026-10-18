@@ -5,6 +5,9 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
+/** Zoom da câmera do mundo. Valores maiores aproximam o personagem e mostram menos área. */
+export const WORLD_ZOOM = 2;
+
 export const COLORS = {
   background: 0x101820,
   accent: 0xf0a500,

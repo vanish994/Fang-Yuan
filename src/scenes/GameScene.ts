@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
-import { BUTTON_COLORS, COLORS, TOUCH_BUTTONS } from '../config/gameConfig';
+import {
+  BUTTON_COLORS,
+  COLORS,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  TOUCH_BUTTONS,
+  WORLD_ZOOM,
+} from '../config/gameConfig';
 import { CELL_SIZE, KEYS } from '../config/assets';
 import { CHUNK_COLS, CHUNK_ROWS, buildTestChunk } from '../world/testChunk';
 import { Player, createFangYuanAnimations, type MoveVector } from '../entities/Player';
@@ -115,6 +122,28 @@ export class GameScene extends Phaser.Scene {
       )
       .setScrollFactor(0)
       .setDepth(100);
+
+    // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
+    this.cameras.main.setZoom(WORLD_ZOOM);
+    this.setupUiCamera();
+  }
+
+  /**
+   * Separa o mundo (com zoom) da interface (sem zoom). Objetos com scrollFactor 0 são
+   * interface e são desenhados por uma segunda câmera, fixa e com zoom 1.
+   * Chamar no fim do create(), depois que toda a interface já existe.
+   */
+  private setupUiCamera(): void {
+    const isUi = (obj: Phaser.GameObjects.GameObject): boolean =>
+      (obj as unknown as { scrollFactorX?: number }).scrollFactorX === 0;
+
+    const all = this.children.list;
+    const uiObjects = all.filter(isUi);
+    const worldObjects = all.filter((obj) => !isUi(obj));
+
+    this.cameras.main.ignore(uiObjects);
+    const uiCamera = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    uiCamera.ignore(worldObjects);
   }
 
   update(time: number): void {
