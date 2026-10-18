@@ -39,6 +39,14 @@ export class BootScene extends Phaser.Scene {
       frameWidth: CELL_SIZE,
       frameHeight: CELL_SIZE,
     });
+    this.load.spritesheet(KEYS.fangYuanAttack, PATHS.fangYuanAttack, {
+      frameWidth: CELL_SIZE,
+      frameHeight: CELL_SIZE,
+    });
+    this.load.spritesheet(KEYS.fangYuanDash, PATHS.fangYuanDash, {
+      frameWidth: CELL_SIZE,
+      frameHeight: CELL_SIZE,
+    });
   }
 
   create(): void {

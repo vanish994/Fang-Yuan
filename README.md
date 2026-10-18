@@ -56,8 +56,9 @@ this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png'
 
 ## Controles
 
-- **Computador:** setas ou WASD.
-- **Celular/tablet:** joystick flutuante. Arraste no lado esquerdo da tela; a base aparece onde você tocou. Em celular na vertical, a tela pede para girar o aparelho.
+- **Computador:** setas ou WASD para mover; `J` ataque básico, `K` habilidade ativa, `Shift` dash.
+- **Celular/tablet:** joystick flutuante no lado esquerdo (a base aparece onde você tocou). No lado direito: **ATK** (ataque básico, o maior botão), **DASH** e **HAB** (habilidade ativa), todos redondos e próximos ao polegar. Em celular na vertical, a tela pede para girar o aparelho.
+- A habilidade ativa ainda é um placeholder (anel e cooldown de 4 s). O efeito real será definido depois.
 
 ## Notas
 
