@@ -51,6 +51,14 @@ export class ActionButton {
     this.draw();
   }
 
+  /** Reposiciona o botão quando o tamanho da tela muda. */
+  setPosition(x: number, y: number): void {
+    this.config.x = x;
+    this.config.y = y;
+    this.text.setPosition(x, y);
+    this.draw();
+  }
+
   /** Atualiza o cooldown visual. 0 = pronto, 1 = recém usado. */
   setCooldown(fraction: number): void {
     const clamped = Math.min(1, Math.max(0, fraction));
