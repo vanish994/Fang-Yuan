@@ -123,7 +123,8 @@ Os materiais exigidos devem fazer sentido para o Rank e para a ambientação, po
 - A economia precisa equilibrar o gasto de pedras no cultivo com seu uso como moeda de troca.
 - **A ruptura é uma ação manual:** cumprir os requisitos não avança o personagem automaticamente; o jogador escolhe quando iniciar a tentativa.
 - **A tentativa de ruptura tem chance de falha.** A fórmula e os fatores que influenciam a chance (por exemplo, aptidão, Rank ou preparação) ainda são **A definir**; não presumir valores nem implementar uma fórmula arbitrária.
-- As consequências da falha — incluindo se pedras ou materiais são consumidos, e se existe alguma penalidade adicional — permanecem **A definir**. Não implementar punições sem uma decisão de design explícita.
+- **Falha na ruptura:** as pedras primordiais investidas na tentativa são perdidas. Além disso, existe uma chance de perder os materiais especiais usados na ruptura. A probabilidade de perda dos materiais e se ela varia por Rank permanecem **A definir**.
+- Não adicionar outras penalidades à falha sem uma decisão de design explícita.
 - Em caso de sucesso, o personagem avança para o estágio Inicial do Rank seguinte.
 
 ### 5.4 Level e atributos
@@ -396,7 +397,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 2. **Combate:** ação no mapa, turnos ou híbrido?
 3. **Balanceamento do cultivo:** quais serão os custos de pedras primordiais por estágio, os materiais de ruptura por Rank e os benefícios de atributos?
 4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
-5. **Falha e risco:** quais são a chance-base de sucesso de uma ruptura, os fatores que a modificam e o que se perde em caso de falha?
+5. **Falha e risco:** qual é a chance-base de sucesso da ruptura, quais fatores a modificam e qual é a chance de perder materiais especiais em caso de falha?
 6. **Competitivo:** duelo individual, equipes, formato assíncrono ou partidas em tempo real?
 7. **Escopo inicial:** qual arco e quais regiões serão incluídos na primeira versão jogável?
 
