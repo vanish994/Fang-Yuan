@@ -258,18 +258,30 @@ Evitar missões que sejam apenas “elimine X inimigos” quando houver oportuni
 
 ## 11. Combate
 
-O modelo exato de combate ainda precisa ser validado. O protótipo deve comparar alternativas antes de consolidar a arquitetura: combate diretamente no mapa, combate por turnos ou uma abordagem híbrida.
+### 11.1 Modelo principal — Definido
 
-Independentemente do modelo escolhido:
-- o motor de regras será a autoridade;
-- os custos de Gu serão validados antes da execução;
-- efeitos terão duração e regras de encerramento explícitas;
-- ordem de resolução será determinística e testável;
-- resultados importantes serão reproduzíveis em testes;
-- o servidor validará partidas competitivas;
-- animações e efeitos visuais não poderão alterar o resultado mecânico.
+O combate será **em tempo real, diretamente no mapa top-down**, sem transição para uma arena separada. Personagens e criaturas podem se movimentar enquanto o combate acontece. Posicionamento, distância, alcance, obstáculos e terreno poderão influenciar os resultados. O combate não será por turnos; ações e efeitos serão processados continuamente pelo motor de regras.
 
-Cada efeito deve especificar alvo, duração, prioridade, empilhamento, remoção e interação com outros efeitos.
+### 11.2 Ativação híbrida de Gu — Definido
+
+- **Gu ativos:** o jogador decide quando ativá-los, respeitando custo, alcance, recarga e condições de cada Gu.
+- **Gu passivos:** seus efeitos são aplicados automaticamente quando as condições especificadas forem atendidas.
+- Cada Gu deve declarar se é ativo, passivo ou se possui componentes dos dois tipos.
+- A interface deve comunicar custos, recargas, condições e motivos pelos quais um Gu não pode ser ativado.
+
+### 11.3 Regras gerais
+
+- O motor de regras é a autoridade sobre custos, acertos, dano, efeitos, recargas e resultados.
+- O custo de essência primeva é validado antes da execução; não permitir essência negativa.
+- Cada efeito especifica alvo, duração, prioridade, empilhamento, remoção e interação com outros efeitos.
+- Movimento, colisão, alcance, linha de visão, interrupções e condições de acerto devem ser explícitos e testáveis.
+- Animações e efeitos visuais não podem alterar resultados mecânicos.
+- O servidor validará ações e resultados nas partidas competitivas.
+- Não introduzir turnos ou ativação automática de Gu ativos sem decisão explícita.
+
+### 11.4 Decisões pendentes
+
+Continuam **A definir**: quantidade de Gu equipados e acessíveis durante a luta; ataque básico; seleção de alvo; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
 
 ## 12. Competitivo online
 
@@ -394,7 +406,7 @@ Uma funcionalidade só será considerada concluída quando:
 Estas questões devem ser respondidas antes de fechar o design detalhado:
 
 1. **Narrativa:** adaptação fiel da novel por arcos ou história alternativa mantendo Fang Yuan como protagonista?
-2. **Combate:** ação no mapa, turnos ou híbrido?
+2. **Combate — parcialmente definido:** tempo real no mapa top-down, com Gu ativos acionados pelo jogador e Gu passivos ativados automaticamente. Faltam definir ataque básico, movimento, alvo, alcance, recargas, recuperação de essência e fórmulas de dano.
 3. **Balanceamento do cultivo:** quais serão os custos de pedras primordiais por estágio, os materiais de ruptura por Rank e os benefícios de atributos?
 4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
 5. **Falha e risco:** qual é a chance-base de sucesso da ruptura, quais fatores a modificam e qual é a chance de perder materiais especiais em caso de falha?
@@ -407,7 +419,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 - Não misturar o projeto com outros RPGs ou MMORPGs.
 - Não substituir conceitos canônicos por sistemas genéricos sem aprovação.
 - Distinguir fatos definidos, propostas e decisões pendentes.
-- Não inventar regras de cultivo, Gu ou história como se fossem canônicas. A progressão definida usa pedras primordiais para avanços comuns e materiais específicos apenas nas rupturas de Rank, do Pico para o Inicial do Rank seguinte.
+- Não inventar regras de cultivo, Gu ou história como se fossem canônicas. A progressão definida usa pedras primordiais para avanços comuns e materiais específicos apenas nas rupturas de Rank, do Pico para o Inicial do Rank seguinte. O combate é em tempo real no mapa top-down, com Gu ativos acionados pelo jogador e Gu passivos ativados automaticamente conforme suas condições.
 - Antes de alterar arquitetura, inspecionar o código atual e preservar o que funciona.
 - Implementar mudanças pequenas, verificáveis e documentadas.
 - Nunca modificar ou substituir instruções de agentes existentes sem autorização explícita.
