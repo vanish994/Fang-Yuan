@@ -16,6 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
     activePointers: 3,
   },
   scale: {
+    // Resize para usar toda a área disponível em landscape, sem faixas vazias.
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },

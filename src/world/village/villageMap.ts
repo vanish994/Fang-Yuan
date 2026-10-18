@@ -41,9 +41,13 @@ export const POND_IMAGE = {
 export const LAKE_KEY = 'hm-lake';
 export const LAKE_FRAME = 'lake-water';
 
-/** Posição do platô e do lago, em tiles. */
-const PLATEAU_COL = 15;
-const PLATEAU_ROW = 4;
+/** Posições dos terraços da montanha e do lago, em tiles. */
+const TERRACES = [
+  { col: 15, row: 4 },  // terraço superior: área inicial da vila
+  { col: 1, row: 21 },  // terraço inferior: caminho de descida da montanha
+] as const;
+const PLATEAU_COL = TERRACES[0].col;
+const PLATEAU_ROW = TERRACES[0].row;
 const POND_COL = 34;
 const POND_ROW = 28;
 
@@ -124,11 +128,16 @@ function key(tx: number, ty: number): string {
 }
 
 function plateauChar(tx: number, ty: number): string {
-  const cx = tx - PLATEAU_COL;
-  const cy = ty - PLATEAU_ROW;
-  const row = PLATEAU_ROWS[cy];
-  if (row === undefined || cx < 0 || cx >= row.length) return '.';
-  return row[cx] ?? '.';
+  for (const terrace of TERRACES) {
+    const cx = tx - terrace.col;
+    const cy = ty - terrace.row;
+    const row = PLATEAU_ROWS[cy];
+    if (row !== undefined && cx >= 0 && cx < row.length) {
+      const char = row[cx] ?? '.';
+      if (char !== '.') return char;
+    }
+  }
+  return '.';
 }
 
 function pondChar(tx: number, ty: number): string {
@@ -192,8 +201,8 @@ function feudalBlocker(kind: BlockKind, x: number, y: number, w: number): Rect[]
 const TRAILS: Array<Array<[number, number]>> = [
   // Norte: da praça até a saída para a montanha.
   [[29.5, 11], [29.5, 7], [30.5, 3], [30.5, 0]],
-  // Sul: pela escada da falésia até a margem do lago, passando pela borda sul.
-  [[20.5, 18], [21.5, 24], [25, 31], [26, 43]],
+  // Sul: descida em zigue-zague entre o terraço inicial e o terraço inferior.
+  [[20.5, 18], [18, 21], [14, 24], [11, 28], [10, 34], [26, 43]],
   // Leste: pela rampa da falésia até a margem norte do lago.
   [[37.5, 18], [39, 22], [40, 27]],
   // Oeste: pela borda do platô até a orla da floresta.
@@ -310,6 +319,66 @@ export function buildVillageMap(seed = 2024): VillageMap {
     overlay[17]![tx] = 9;
     overlay[18]![tx] = 9;
   }
+
+  // Fase 1: base do relevo, sem casas, árvores ou decoração.
+  // Mantém o chão modular, os caminhos, o platô, o lago e as colisões do terreno.
+  const baseImages: ImageItem[] = [
+    ...TERRACES.map((terrace, index): ImageItem => ({
+      texture: PLATEAU_IMAGE.key,
+      x: terrace.col * TILE,
+      y: terrace.row * TILE,
+      scale: 2,
+      depth: 0.1 + index * 0.001,
+    })),
+    { texture: POND_IMAGE.key, x: POND_COL * TILE, y: POND_ROW * TILE, scale: 2, depth: 0.1 },
+  ];
+  for (let cy = 0; cy < POND_ROWS.length; cy++) {
+    const row = POND_ROWS[cy]!;
+    for (let cx = 0; cx < row.length; cx++) {
+      if (row[cx] === 'w') {
+        baseImages.push({
+          texture: LAKE_KEY,
+          frame: LAKE_FRAME,
+          x: (POND_COL + cx) * TILE,
+          y: (POND_ROW + cy) * TILE,
+          scale: 2,
+          depth: 0.15,
+        });
+      }
+    }
+  }
+
+  const baseTileSolids: Rect[] = [];
+  for (let ty = 0; ty < MAP_ROWS; ty++) {
+    let runStart = -1;
+    for (let tx = 0; tx <= MAP_COLS; tx++) {
+      const isSolid = tx < MAP_COLS && blocked[ty]![tx] === true;
+      if (isSolid && runStart < 0) runStart = tx;
+      if (!isSolid && runStart >= 0) {
+        baseTileSolids.push({ x: runStart * TILE, y: ty * TILE, w: (tx - runStart) * TILE, h: TILE });
+        runStart = -1;
+      }
+    }
+  }
+
+  const baseSpawn = { x: SPAWN_TILE.x * TILE, y: SPAWN_TILE.y * TILE };
+  const basePlayerBox: Rect = { x: baseSpawn.x - 12, y: baseSpawn.y + 13, w: 24, h: 24 };
+  if (baseTileSolids.some((solid) => overlaps(basePlayerBox, solid))) {
+    throw new Error('O ponto de partida está bloqueado na base do terreno.');
+  }
+
+  return {
+    cols: MAP_COLS,
+    rows: MAP_ROWS,
+    ground,
+    overlay,
+    images: baseImages,
+    decor: [],
+    tileSolids: baseTileSolids,
+    solids: [...baseTileSolids],
+    spawn: baseSpawn,
+    plateauCells: { col: PLATEAU_COL, row: PLATEAU_ROW },
+  };
 
   // 4) Objetos do Feudal (casas, praça, canteiro, ornamentos).
   const decor: Decor[] = [];

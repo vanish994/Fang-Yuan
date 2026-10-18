@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH } from '../config/gameConfig';
+import { COLORS } from '../config/gameConfig';
 import type { MoveVector } from '../entities/Player';
 
 /** Raio da base do joystick (px no espaço do jogo). */
@@ -56,7 +56,7 @@ export class VirtualJoystick {
 
   private handlePointerDown = (pointer: Phaser.Input.Pointer): void => {
     // Um joystick por vez, e só no lado esquerdo (o direito fica livre para ações).
-    if (this.pointerId !== null || pointer.x > GAME_WIDTH / 2) return;
+    if (this.pointerId !== null || pointer.x > this.scene.scale.width / 2) return;
 
     this.pointerId = pointer.id;
     this.center.set(pointer.x, pointer.y);

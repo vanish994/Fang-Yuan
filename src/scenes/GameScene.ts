@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 import {
   BUTTON_COLORS,
   COLORS,
-  GAME_HEIGHT,
-  GAME_WIDTH,
   TOUCH_BUTTONS,
   WORLD_ZOOM,
 } from '../config/gameConfig';
@@ -35,9 +33,8 @@ export class GameScene extends Phaser.Scene {
   private joystick?: VirtualJoystick;
   private dashButton?: ActionButton;
   private skillButton?: ActionButton;
+  private cameraZoom = WORLD_ZOOM;
   private skillReadyAt = 0;
-  /** Câmera da interface (sem zoom). Efeitos criados depois precisam ser ignorados por ela. */
-  private uiCamera?: Phaser.Cameras.Scene2D.Camera;
   private skillFx?: MoonlightSlash;
 
   constructor() {
@@ -119,6 +116,15 @@ export class GameScene extends Phaser.Scene {
         color: BUTTON_COLORS.skill,
         onPress: () => this.doSkill(),
       });
+      // Controles de zoom: a câmera continua centralizada no personagem.
+      new ActionButton(this, {
+        x: this.scale.width - 68, y: 72, radius: 34, label: '+', color: 0x566b80,
+        onPress: () => this.adjustCameraZoom(0.2),
+      });
+      new ActionButton(this, {
+        x: this.scale.width - 68, y: 150, radius: 34, label: '−', color: 0x566b80,
+        onPress: () => this.adjustCameraZoom(-0.2),
+      });
     }
 
     // Legenda fixa na tela (não rola com a câmera).
@@ -141,8 +147,8 @@ export class GameScene extends Phaser.Scene {
       .setDepth(100);
 
     // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
-    this.cameras.main.setZoom(WORLD_ZOOM);
-    this.uiCamera = this.setupUiCamera();
+    this.cameraZoom = WORLD_ZOOM;
+    this.cameras.main.setZoom(this.cameraZoom);
   }
 
   /** Uma camada de tiles do ground-atlas, com a matriz de índices dada (-1 é vazio). */
@@ -162,23 +168,10 @@ export class GameScene extends Phaser.Scene {
     return zone;
   }
 
-  /**
-   * Separa o mundo (com zoom) da interface (sem zoom). Objetos com scrollFactor 0 são
-   * interface e são desenhados por uma segunda câmera, fixa e com zoom 1.
-   * Chamar no fim do create(), depois que toda a interface já existe.
-   */
-  private setupUiCamera(): Phaser.Cameras.Scene2D.Camera {
-    const isUi = (obj: Phaser.GameObjects.GameObject): boolean =>
-      (obj as unknown as { scrollFactorX?: number }).scrollFactorX === 0;
-
-    const all = this.children.list;
-    const uiObjects = all.filter(isUi);
-    const worldObjects = all.filter((obj) => !isUi(obj));
-
-    this.cameras.main.ignore(uiObjects);
-    const uiCamera = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    uiCamera.ignore(worldObjects);
-    return uiCamera;
+  /** Ajusta o zoom sem alterar o seguimento: o centro da câmera continua no personagem. */
+  private adjustCameraZoom(delta: number): void {
+    this.cameraZoom = Phaser.Math.Clamp(this.cameraZoom + delta, 1, 3.2);
+    this.cameras.main.setZoom(this.cameraZoom);
   }
 
   update(time: number): void {
@@ -211,7 +204,6 @@ export class GameScene extends Phaser.Scene {
     // Só um corte por vez: o cooldown é maior que a duração do efeito, então o anterior já acabou.
     this.skillFx?.destroy();
     this.skillFx = new MoonlightSlash(this, this.player.facingDirection);
-    this.uiCamera?.ignore(this.skillFx.gameObjects);
     this.skillFx.follow(this.player.feetX, this.player.feetY);
   }
 
