@@ -31,11 +31,8 @@ export class GameScene extends Phaser.Scene {
   private wasd?: WasdKeys;
   private actionKeys?: ActionKeys;
   private joystick?: VirtualJoystick;
-  private attackButton?: ActionButton;
   private dashButton?: ActionButton;
   private skillButton?: ActionButton;
-  private cameraUpButton?: ActionButton;
-  private cameraDownButton?: ActionButton;
   private cameraZoom = WORLD_ZOOM;
   private skillReadyAt = 0;
   private skillFx?: MoonlightSlash;
@@ -101,7 +98,7 @@ export class GameScene extends Phaser.Scene {
     const isTouch = this.game.device.input.touch;
     if (isTouch) {
       this.joystick = new VirtualJoystick(this);
-      this.attackButton = new ActionButton(this, {
+      new ActionButton(this, {
         ...TOUCH_BUTTONS.attack,
         label: 'ATK',
         color: BUTTON_COLORS.attack,
@@ -120,11 +117,11 @@ export class GameScene extends Phaser.Scene {
         onPress: () => this.doSkill(),
       });
       // Controles de zoom: a câmera continua centralizada no personagem.
-      this.cameraUpButton = new ActionButton(this, {
+      new ActionButton(this, {
         x: this.scale.width - 68, y: 72, radius: 34, label: '+', color: 0x566b80,
         onPress: () => this.adjustCameraZoom(0.2),
       });
-      this.cameraDownButton = new ActionButton(this, {
+      new ActionButton(this, {
         x: this.scale.width - 68, y: 150, radius: 34, label: '−', color: 0x566b80,
         onPress: () => this.adjustCameraZoom(-0.2),
       });
