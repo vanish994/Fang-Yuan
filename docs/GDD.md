@@ -269,7 +269,14 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - Cada Gu deve declarar se é ativo, passivo ou se possui componentes dos dois tipos.
 - A interface deve comunicar custos, recargas, condições e motivos pelos quais um Gu não pode ser ativado.
 
-### 11.3 Regras gerais
+### 11.3 Tipos de ataque — Definido
+
+- **Ataque básico:** ação de combate disponível sem depender da ativação de um Gu. Seu dano, alcance, velocidade e possíveis custos ficam **A definir**.
+- **Gu ativos:** habilidades acionadas manualmente pelo jogador, conforme as regras e limitações de cada Gu.
+- **Ataques especiais combinados:** técnicas que exigem uma combinação específica de Gu. Cada combinação deve declarar seus requisitos, efeito, custo total de essência primeva, alcance, condições, recarga e possíveis riscos. Não presumir que qualquer par de Gu possa ser combinado.
+- As combinações devem acrescentar decisões táticas, sem tornar obsoletos os Gu individuais ou o ataque básico.
+
+### 11.4 Regras gerais
 
 - O motor de regras é a autoridade sobre custos, acertos, dano, efeitos, recargas e resultados.
 - O custo de essência primeva é validado antes da execução; não permitir essência negativa.
@@ -279,9 +286,9 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - O servidor validará ações e resultados nas partidas competitivas.
 - Não introduzir turnos ou ativação automática de Gu ativos sem decisão explícita.
 
-### 11.4 Decisões pendentes
+### 11.5 Decisões pendentes
 
-Continuam **A definir**: quantidade de Gu equipados e acessíveis durante a luta; ataque básico; seleção de alvo; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
+Continuam **A definir**: quantidade de Gu equipados e acessíveis durante a luta; valores do ataque básico; seleção de alvo; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
 
 ## 12. Competitivo online
 
