@@ -273,7 +273,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
   2. **Gu passivo:** Gu cujo efeito funciona automaticamente. Pode ser ofensivo, como um Gu que aumenta a força, ou fornecer outro benefício passivo compatível.
   3. **Gu de movimento:** Gu que concede mobilidade especial, incluindo o dash quando aplicável. O botão de dash só aparece se houver um Gu de movimento equipado que permita essa ação.
   4. **Gu de apoio:** Gu voltado a suporte, como o Verme do Licor, que pode acelerar a recuperação de essência primeva, ou um Gu de cura, conforme suas regras.
-- Os quatro espaços são **slots de equipamento por função**, não quatro atalhos livremente intercambiáveis durante o combate. A troca de Gu equipados e suas eventuais restrições ficam **A definir**.
+- Os quatro espaços são **slots de equipamento por função**, não quatro atalhos livremente intercambiáveis durante o combate. **Gu equipados só podem ser trocados fora de combate**; durante uma luta, a configuração fica bloqueada. O jogo deve comunicar claramente quando o personagem ainda está em combate e não pode trocar seus Gu.
 - Cada Gu equipado deve respeitar suas próprias condições, custos, recargas e compatibilidade com o slot correspondente.
 - **Mira híbrida:** o jogador pode tocar em um inimigo para selecioná-lo manualmente ou acionar uma opção para selecionar automaticamente o inimigo mais próximo. A seleção automática não deve substituir a seleção manual sem uma ação explícita do jogador.
 - A seleção de alvo não ignora regras de alcance, linha de visão, obstáculos ou condições de ativação de ataques e Gu.
@@ -306,7 +306,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 
 ### 11.6 Decisões pendentes
 
-Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; regras para trocar Gu equipados; valores do ataque básico; fórmula exata de distância do dash por Rank, custo e recarga dos Gu de movimento; evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
+Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; condições exatas para o jogo considerar o combate encerrado e liberar a troca de Gu; valores do ataque básico; fórmula exata de distância do dash por Rank, custo e recarga dos Gu de movimento; evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
 
 ## 12. Competitivo online
 
