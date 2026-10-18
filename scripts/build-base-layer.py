@@ -18,7 +18,7 @@ PACK = REPO / 'public/assets/tilesets/free-asset-pack'
 GRASS = PACK / '1. Grass and dirt.png'
 PATHS = PACK / '6. Dirt paths.png'
 OUT = REPO / 'public/assets/village/base-tiles-64.png'
-COLS, ROWS, TILE = 8, 5, 64
+COLS, ROWS, TILE = 8, 7, 64
 
 # (arquivo, centro x, centro y, tamanho do recorte) na ordem dos índices do atlas.
 TILES = []
@@ -30,6 +30,11 @@ TILES += [(PATHS, cx, 250, 212) for cx in [119, 336, 552, 767, 962, 1171, 1394]]
 TILES += [(PATHS, cx, 542, 240) for cx in [157, 443, 728, 1020, 1340]]        # 27-31 cruzamentos
 TILES += [(PATHS, 162, 846, 212), (PATHS, 438, 846, 212)]                     # 32 arco, 33 vertical largo
 assert len(TILES) == 34
+# 34-51: penhascos girados. Grama (topo do penhasco) voltada para o lado do patamar.
+#   34-39 CW  (patamar a leste: grama à direita)
+#   40-45 CCW (patamar a oeste: grama à esquerda)
+#   46-51 180 (patamar ao sul: grama embaixo)
+ROTATIONS = [('CW', Image.ROTATE_270), ('CCW', Image.ROTATE_90), ('180', Image.ROTATE_180)]
 
 
 def crop(img, cx, cy, size):
@@ -42,14 +47,19 @@ def crop(img, cx, cy, size):
 def main():
     atlas = Image.new('RGBA', (COLS * TILE, ROWS * TILE), (0, 0, 0, 0))
     cache = {}
+    base = []
     for i, (path, cx, cy, size) in enumerate(TILES):
         if path not in cache:
             cache[path] = Image.open(path).convert('RGBA')
         t = crop(cache[path], cx, cy, size).resize((TILE, TILE), Image.BOX)
+        base.append(t)
+    faces = base[12:18]
+    rotated = [f.transpose(m) for _, m in ROTATIONS for f in faces]
+    for i, t in enumerate(base + rotated):
         atlas.paste(t, ((i % COLS) * TILE, (i // COLS) * TILE), t)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     atlas.save(OUT)
-    print('escrito', OUT.relative_to(REPO), atlas.size, 'tiles', len(TILES))
+    print('escrito', OUT.relative_to(REPO), atlas.size, 'tiles', len(TILES) + 18)
 
 
 if __name__ == '__main__':

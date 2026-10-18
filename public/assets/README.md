@@ -47,13 +47,13 @@ O repositório é privado. Antes de publicar o jogo ou o build, confirme as lice
 - `public/assets/village/props/*.png`: peças do Feudal reduzidas para ~2/3 e cortadas pelo alfa.
 - `src/world/village/assetCatalog.ts`: recortes em pixels nativos dos sheets do Harmonious (cada componente conexo vira um frame), tamanhos das peças e máscaras do platô e do lago.
 
-Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (precisa de Pillow, numpy e scipy). O mapa hoje está em branco: `src/world/village/villageMap.ts` só guarda o tamanho e o ponto de partida.
+Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (precisa de Pillow, numpy e scipy). O chão e o relevo ficam em `src/world/village/baseLayout.ts` (alturas 0–3 e superfície: grama, terra da praça, escadas e trilhas). `src/world/village/villageMap.ts` deriva paredes, escadas e colisões a partir dele e recusa layouts com desnível sem parede.
 
 ## Editar a vila no Tiled
 
 `village/vila-inicial-da-montanha.tmj` é o mapa no formato JSON do [Tiled](https://www.mapeditor.org/) (1.10 ou mais novo). Abra o arquivo direto no Tiled: os caminhos das imagens são relativos a ele.
 
-- Camadas de tile: `chao` (grama e terra da praça) e `sobreposicao` (penhascos, escadas e trilhas). Tileset `base`: `village/base-tiles-64.png`, 8×5 tiles de 64 px (34 usados).
+- Camadas de tile: `chao` (grama e terra da praça) e `sobreposicao` (penhascos, escadas e trilhas). Tileset `base`: `village/base-tiles-64.png`, 8×7 tiles de 64 px (52 usados).
 - Camadas de objeto: `imagens` (platô, lago e água), `chao_objetos` (sob o personagem), `objetos` (árvores, casas e rochas, ordenados pelo y da base) e `colisao` (retângulos sólidos). A camada `spawn` marca o ponto de partida.
 - Tileset `vila-arte`: uma imagem por tile (recortes em `village/tiles/` e `village/props/`). A paleta traz toda a arte do catálogo, mesmo sem uso no mapa, para montar o mapa do zero.
 - O chão atual (relevo, grama, terra, escadas e trilhas verticais) está no `.tmj`. Objetos e colisões de decoração ainda não foram colocados.
@@ -64,9 +64,14 @@ Derivado do pack gratuito que já está em `tilesets/free-asset-pack/` (sheets `
 
 Ordem dos índices (linha a linha, 8 colunas):
 - 0–5 grama, 6–11 terra (6 e 7 são as usadas na praça).
-- 12–17 penhascos (faces de 1 tile, grama no topo e rocha embaixo). Só existem na borda sul de cada patamar.
+- 12–17 penhasco de frente (grama no topo, rocha embaixo): patamar ao norte.
+- 34–39 penhasco girado no sentido horário (grama à direita): patamar a leste.
+- 40–45 penhasco girado no sentido anti-horário (grama à esquerda): patamar a oeste.
+- 46–51 penhasco girado 180° (grama embaixo): patamar ao sul.
 - 18–19 escadas de madeira.
-- 20 trilha vertical (aberta em cima e embaixo), 21 trilha horizontal, 22–23 curvas, 24–26 trilhas fechadas, 27–31 cruzamentos, 32 arco, 33 vertical largo. Hoje só o 20 é usado, porque o layout só tem trilhas verticais.
+- 20 trilha vertical. 21–33 (trilhas horizontais, curvas, cruzamentos, arco) estão no atlas, mas o layout hoje só usa a 20.
+
+As paredes são células inteiras. A arte segue o lado do patamar mais alto que encosta na célula (na diagonal, vale a componente vertical).
 
 O jogo lê o mapa de `src/world/village/villageMap.ts`, não deste arquivo. Para o `.tmj` refletir o código, gere de novo: `scripts/build-village-assets.py` (recortes) e depois `scripts/export-village-tiled.cjs` (ver o cabeçalho do script para compilar o TypeScript antes).
 
