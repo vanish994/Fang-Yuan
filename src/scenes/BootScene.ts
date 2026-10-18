@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { CELL_SIZE, KEYS, PATHS } from '../config/assets';
 import { loadMoonlightSlash } from '../effects/MoonlightSlash';
+import { villageTextureFiles } from '../world/village/villageMap';
 
 /**
  * Cena de inicialização: carrega assets e então passa para a cena principal.
@@ -51,6 +52,11 @@ export class BootScene extends Phaser.Scene {
 
     // Efeito da habilidade (Moonlight Gu): camadas de cada direção, cada uma com seu tamanho.
     loadMoonlightSlash(this.load);
+
+    // Vila: recortes do Harmonious Seasons (sheets inteiras) e peças do Feudal Japan.
+    for (const file of villageTextureFiles()) {
+      this.load.image(file.key, file.file);
+    }
   }
 
   create(): void {

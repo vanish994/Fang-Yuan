@@ -12,9 +12,6 @@ const BASE_PATH = 'assets/effects/moonlight-gu';
 
 type LayerName = 'behind' | 'front';
 
-/** Profundidade: a camada de trás fica abaixo do personagem (10) e a da frente acima. */
-const DEPTH: Record<LayerName, number> = { behind: 9, front: 11 };
-
 export function moonlightTextureKey(dir: Direction, layer: LayerName): string {
   return `moonlight-${dir}-${layer}`;
 }
@@ -76,7 +73,7 @@ export function createMoonlightAnimations(scene: Phaser.Scene): void {
  * O efeito segue os pés do personagem enquanto dura. Quando termina, remove os próprios objetos.
  */
 export class MoonlightSlash {
-  private readonly parts: Array<{ sprite: Phaser.GameObjects.Sprite; layer: MoonlightLayer }> = [];
+  private readonly parts: Array<{ sprite: Phaser.GameObjects.Sprite; layer: MoonlightLayer; name: LayerName }> = [];
   private readonly timers: Phaser.Time.TimerEvent[] = [];
 
   constructor(scene: Phaser.Scene, dir: Direction) {
@@ -92,9 +89,8 @@ export class MoonlightSlash {
       const sprite = scene.add
         .sprite(0, 0, moonlightTextureKey(dir, name), 0)
         .setOrigin(0, 0)
-        .setDepth(DEPTH[name])
         .setVisible(false);
-      this.parts.push({ sprite, layer });
+      this.parts.push({ sprite, layer, name });
 
       // Cada camada começa no seu frame (`start`), não necessariamente no primeiro.
       this.timers.push(
@@ -115,10 +111,15 @@ export class MoonlightSlash {
     return this.parts.map((part) => part.sprite);
   }
 
-  /** Reposiciona o efeito nos pés do personagem. Chamar a cada frame enquanto existir. */
+  /**
+   * Reposiciona o efeito nos pés do personagem. Chamar a cada frame enquanto existir.
+   * A profundidade acompanha os pés (igual ao personagem): a camada de trás fica logo abaixo
+   * do personagem e a da frente logo acima, sem atravessar objetos da cena.
+   */
   follow(feetX: number, feetY: number): void {
-    for (const { sprite, layer } of this.parts) {
+    for (const { sprite, layer, name } of this.parts) {
       sprite.setPosition(feetX + layer.offsetX, feetY + layer.offsetY);
+      sprite.setDepth(name === 'behind' ? feetY - 0.1 : feetY + 0.1);
     }
   }
 

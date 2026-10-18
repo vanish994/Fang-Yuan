@@ -8,7 +8,8 @@ import {
   WORLD_ZOOM,
 } from '../config/gameConfig';
 import { CELL_SIZE, KEYS } from '../config/assets';
-import { CHUNK_COLS, CHUNK_ROWS, buildTestChunk } from '../world/testChunk';
+import { buildVillageMap, type Rect } from '../world/village/villageMap';
+import { registerVillageFrames } from '../world/village/villageTextures';
 import { Player, createFangYuanAnimations, type MoveVector } from '../entities/Player';
 import { VirtualJoystick } from '../ui/VirtualJoystick';
 import { ActionButton } from '../ui/ActionButton';
@@ -21,7 +22,7 @@ type ActionKeys = Record<'attack' | 'skill' | 'dash', Phaser.Input.Keyboard.Key>
 const SKILL_COOLDOWN_MS = 4000;
 
 /**
- * Cena de teste: um chunk pequeno de chão (grama e terra) com o personagem Fang Yuan.
+ * Vila Inicial da Montanha: mapa com chão, objetos e colisões, e o personagem Fang Yuan.
  *
  * Celular/tablet: joystick à esquerda; botões ATK, DASH e HAB à direita.
  * Teclado: setas ou WASD para mover; J ataque, K habilidade, Shift dash.
@@ -44,29 +45,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Chão: o chunk é uma matriz de índices do atlas, desenhada como camada de tilemap.
-    const mapWidth = CHUNK_COLS * CELL_SIZE;
-    const mapHeight = CHUNK_ROWS * CELL_SIZE;
-    const map = this.make.tilemap({
-      data: buildTestChunk(),
-      tileWidth: CELL_SIZE,
-      tileHeight: CELL_SIZE,
-    });
-    const tileset = map.addTilesetImage('ground', KEYS.groundTiles, CELL_SIZE, CELL_SIZE, 0, 0);
-    if (!tileset) {
-      throw new Error(`Tileset '${KEYS.groundTiles}' não foi carregado.`);
+    // Chão e vila: camadas e objetos vêm de buildVillageMap() (ver src/world/village/villageMap.ts).
+    const village = buildVillageMap();
+    const mapWidth = village.cols * CELL_SIZE;
+    const mapHeight = village.rows * CELL_SIZE;
+    registerVillageFrames(this);
+    this.buildGroundLayer(village.ground, 0);
+    this.buildGroundLayer(village.overlay, 0.2);
+    for (const img of village.images) {
+      this.add
+        .image(img.x, img.y, img.texture, img.frame)
+        .setOrigin(0, 0)
+        .setScale(img.scale)
+        .setDepth(img.depth);
     }
-    map.createLayer(0, tileset, 0, 0);
+    for (const d of village.decor) {
+      // Base do objeto no centro inferior. Objetos no chão ficam sob o personagem.
+      const img = this.add.image(d.x, d.y, d.texture, d.frame).setOrigin(0.5, 1);
+      img.setScale(d.w / img.width, d.h / img.height);
+      img.setDepth(d.flat ? 0.5 : d.y);
+    }
 
-    // Limites do mundo e da câmera: o chunk inteiro.
+    // Limites do mundo e da câmera: o mapa inteiro.
     this.physics.world.setBounds(0, 0, mapWidth, mapHeight);
     this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
 
-    // Personagem começa no meio do caminho de terra.
+    // Personagem começa na praça da vila.
     createFangYuanAnimations(this);
     createMoonlightAnimations(this);
-    this.player = new Player(this, mapWidth / 2, Math.round(5.5 * CELL_SIZE));
+    this.player = new Player(this, village.spawn.x, village.spawn.y);
     this.cameras.main.startFollow(this.player, true);
+
+    // Colisões: falésia, água e bases de árvores, casas e objetos.
+    const solids = village.solids.map((r) => this.addSolid(r));
+    this.physics.add.collider(this.player, solids);
 
     // Teclado (desktop, ou tablet com teclado externo).
     const keyboard = this.input.keyboard;
@@ -133,6 +145,23 @@ export class GameScene extends Phaser.Scene {
     this.uiCamera = this.setupUiCamera();
   }
 
+  /** Uma camada de tiles do ground-atlas, com a matriz de índices dada (-1 é vazio). */
+  private buildGroundLayer(data: number[][], depth: number): void {
+    const map = this.make.tilemap({ data, tileWidth: CELL_SIZE, tileHeight: CELL_SIZE });
+    const tileset = map.addTilesetImage('ground', KEYS.groundTiles, CELL_SIZE, CELL_SIZE, 0, 0);
+    if (!tileset) {
+      throw new Error(`Tileset '${KEYS.groundTiles}' não foi carregado.`);
+    }
+    map.createLayer(0, tileset, 0, 0)?.setDepth(depth);
+  }
+
+  /** Retângulo sólido invisível para a colisão do personagem (corpo estático). */
+  private addSolid(r: Rect): Phaser.GameObjects.Zone {
+    const zone = this.add.zone(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h);
+    this.physics.add.existing(zone, true);
+    return zone;
+  }
+
   /**
    * Separa o mundo (com zoom) da interface (sem zoom). Objetos com scrollFactor 0 são
    * interface e são desenhados por uma segunda câmera, fixa e com zoom 1.
@@ -156,6 +185,8 @@ export class GameScene extends Phaser.Scene {
     this.player.tick(time);
     this.handleActionKeys();
     this.player.move(this.readMoveVector());
+    // Ordenação pelo y dos pés: o personagem passa atrás ou na frente dos objetos.
+    this.player.setDepth(this.player.feetY);
     if (this.skillFx) this.skillFx.follow(this.player.feetX, this.player.feetY);
     this.updateCooldownVisuals(time);
   }

@@ -68,3 +68,10 @@ this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png'
 ## Ferramentas de agente (SpriteShip)
 
 A pasta `scripts/` e o arquivo `setup_spriteship_079.py` são o instalador de skills do SpriteShip 0.7.9 para agentes de código. Eles não fazem parte do jogo e não são usados pelo build.
+
+## Mapa
+
+A cena principal é a **Vila Inicial da Montanha** (`src/world/village/villageMap.ts`): um platô gramado com falésia ao sul, casas e objetos em volta de uma praça, canteiro a oeste, lago ao sudeste e floresta densa em volta. Trilhas levam à montanha (norte), ao lago (sul e leste) e à orla oeste.
+
+- Os dados do mapa são código TypeScript (sem Phaser), e o próprio `buildVillageMap()` valida o layout (sem colisão sobre água ou falésia e sem sólidos sobrepostos).
+- Os recortes dos packs vêm de `scripts/build-village-assets.py`. Ver `public/assets/README.md`.
