@@ -17,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   scale: {
     // Resize para usar toda a área disponível em landscape, sem faixas vazias.
-    mode: Phaser.Scale.RESIZE,
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   // Física Arcade sem gravidade: jogo visto de cima.
