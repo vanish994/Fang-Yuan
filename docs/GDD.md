@@ -121,7 +121,10 @@ Os materiais exigidos devem fazer sentido para o Rank e para a ambientação, po
 - Os custos devem crescer de forma controlada, sem tornar os primeiros avanços lentos nem permitir que o jogador acumule recursos e salte toda a progressão.
 - Recompensas devem considerar risco, dificuldade e esforço; não criar uma fonte repetível e ilimitada que torne o cultivo trivial.
 - A economia precisa equilibrar o gasto de pedras no cultivo com seu uso como moeda de troca.
-- A falha de uma ruptura, perda de materiais ou penalidades não está definida. Não implementar consequências punitivas sem uma decisão de design explícita.
+- **A ruptura é uma ação manual:** cumprir os requisitos não avança o personagem automaticamente; o jogador escolhe quando iniciar a tentativa.
+- **A tentativa de ruptura tem chance de falha.** A fórmula e os fatores que influenciam a chance (por exemplo, aptidão, Rank ou preparação) ainda são **A definir**; não presumir valores nem implementar uma fórmula arbitrária.
+- As consequências da falha — incluindo se pedras ou materiais são consumidos, e se existe alguma penalidade adicional — permanecem **A definir**. Não implementar punições sem uma decisão de design explícita.
+- Em caso de sucesso, o personagem avança para o estágio Inicial do Rank seguinte.
 
 ### 5.4 Level e atributos
 
@@ -393,7 +396,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 2. **Combate:** ação no mapa, turnos ou híbrido?
 3. **Balanceamento do cultivo:** quais serão os custos de pedras primordiais por estágio, os materiais de ruptura por Rank e os benefícios de atributos?
 4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
-5. **Falha e risco:** quais sistemas podem falhar, e quais consequências são justas e fiéis ao universo?
+5. **Falha e risco:** quais são a chance-base de sucesso de uma ruptura, os fatores que a modificam e o que se perde em caso de falha?
 6. **Competitivo:** duelo individual, equipes, formato assíncrono ou partidas em tempo real?
 7. **Escopo inicial:** qual arco e quais regiões serão incluídos na primeira versão jogável?
 
