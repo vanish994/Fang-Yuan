@@ -352,7 +352,8 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - **Botão de ataque básico:** executa o ataque básico sem exigir a ativação de um Gu.
 - **Botão de Gu de ataque:** permite ativar o Gu de ataque selecionado, respeitando seus custos, alcance, recarga e condições. Os 4 espaços de acesso rápido continuam sendo atalhos para os Gu.
 - **Botão de dash:** só aparece quando Fang Yuan possui um Gu de movimento que conceda essa ação. Sem um Gu de movimento compatível, o botão fica oculto e o dash não pode ser usado.
-- **Distância do dash:** depende do Rank do Gu de movimento utilizado. A progressão exata da distância por Rank, assim como custo, recarga e eventuais limitações, permanece **A definir**.
+- **Efeito do dash:** ao ativá-lo, Fang Yuan realiza uma arrancada rápida na direção do movimento. Ao terminar a arrancada, recebe também um bônus temporário e curto de velocidade de movimento, para facilitar a fuga, perseguição ou reposicionamento. O bônus é parte do efeito do Gu de movimento, não um efeito visual.
+- **Balanceamento do dash:** distância da arrancada, intensidade e duração do bônus de velocidade, custo de essência primeva e recarga permanecem **A definir**. O bônus não deve se acumular indefinidamente com ativações sucessivas; a regra de reaplicação/empilhamento será definida no balanceamento.
 - Os controles devem funcionar em tela sensível ao toque e não podem cobrir desnecessariamente o alvo selecionado ou informações essenciais de combate.
 
 ### 11.4 Regras gerais
