@@ -253,6 +253,14 @@ As fórmulas e regras de refinamento devem ser orientadas por dados. O sistema p
 
 A economia deve reforçar a necessidade de preparação. Recursos e materiais precisam ter usos claros e fontes controladas.
 
+### 8.1 Pedras primevas: obtenção e perda na morte
+
+- **Terminologia:** o GDD usa o termo **pedras primevas** para o recurso equivalente às pedras primordiais da obra. Elas funcionam tanto como recurso de cultivo quanto como moeda de troca; não devem ser confundidas com essência primeva.
+- **Drops de inimigos:** inimigos podem deixar pedras primevas como saque, além de outros drops definidos por espécie e dificuldade.
+- **Troca na vila:** o jogador pode entregar drops obtidos de inimigos a um NPC/comerciante da vila e receber pedras primevas em troca. Os itens aceitos e as taxas de troca serão definidos pelo balanceamento.
+- **Penalidade por morte:** quando Fang Yuan morre em combate e a Cigarra da Primavera e Outono não o ressuscita, ele perde uma parte das pedras primevas que carrega. A quantidade ou percentual perdido, o destino das pedras perdidas e as regras para recuperá-las permanecem **A definir**.
+- A penalidade deve ser clara para o jogador e não pode retirar mais pedras do que ele possui. A ressurreição bem-sucedida pela Cigarra precisa ser tratada como um resultado diferente da morte normal; se ela evita totalmente a penalidade, isso será confirmado no balanceamento.
+
 Categorias iniciais:
 - pedras primevas;
 - materiais de refinamento;
