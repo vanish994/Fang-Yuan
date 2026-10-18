@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '../config/gameConfig';
 import { CELL_SIZE, KEYS, PATHS } from '../config/assets';
+import { loadMoonlightSlash } from '../effects/MoonlightSlash';
 
 /**
  * Cena de inicialização: carrega assets e então passa para a cena principal.
@@ -47,6 +48,9 @@ export class BootScene extends Phaser.Scene {
       frameWidth: CELL_SIZE,
       frameHeight: CELL_SIZE,
     });
+
+    // Efeito da habilidade (Moonlight Gu): camadas de cada direção, cada uma com seu tamanho.
+    loadMoonlightSlash(this.load);
   }
 
   create(): void {

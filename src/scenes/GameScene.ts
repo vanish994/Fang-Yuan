@@ -12,11 +12,12 @@ import { CHUNK_COLS, CHUNK_ROWS, buildTestChunk } from '../world/testChunk';
 import { Player, createFangYuanAnimations, type MoveVector } from '../entities/Player';
 import { VirtualJoystick } from '../ui/VirtualJoystick';
 import { ActionButton } from '../ui/ActionButton';
+import { MoonlightSlash, createMoonlightAnimations } from '../effects/MoonlightSlash';
 
 type WasdKeys = Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 type ActionKeys = Record<'attack' | 'skill' | 'dash', Phaser.Input.Keyboard.Key>;
 
-/** Cooldown da habilidade ativa (placeholder até ela ter efeito de verdade), em ms. */
+/** Cooldown da habilidade ativa, em ms. Valor provisório: o GDD ainda não fixou o número. */
 const SKILL_COOLDOWN_MS = 4000;
 
 /**
@@ -34,6 +35,9 @@ export class GameScene extends Phaser.Scene {
   private dashButton?: ActionButton;
   private skillButton?: ActionButton;
   private skillReadyAt = 0;
+  /** Câmera da interface (sem zoom). Efeitos criados depois precisam ser ignorados por ela. */
+  private uiCamera?: Phaser.Cameras.Scene2D.Camera;
+  private skillFx?: MoonlightSlash;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -60,6 +64,7 @@ export class GameScene extends Phaser.Scene {
 
     // Personagem começa no meio do caminho de terra.
     createFangYuanAnimations(this);
+    createMoonlightAnimations(this);
     this.player = new Player(this, mapWidth / 2, Math.round(5.5 * CELL_SIZE));
     this.cameras.main.startFollow(this.player, true);
 
@@ -125,7 +130,7 @@ export class GameScene extends Phaser.Scene {
 
     // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
     this.cameras.main.setZoom(WORLD_ZOOM);
-    this.setupUiCamera();
+    this.uiCamera = this.setupUiCamera();
   }
 
   /**
@@ -133,7 +138,7 @@ export class GameScene extends Phaser.Scene {
    * interface e são desenhados por uma segunda câmera, fixa e com zoom 1.
    * Chamar no fim do create(), depois que toda a interface já existe.
    */
-  private setupUiCamera(): void {
+  private setupUiCamera(): Phaser.Cameras.Scene2D.Camera {
     const isUi = (obj: Phaser.GameObjects.GameObject): boolean =>
       (obj as unknown as { scrollFactorX?: number }).scrollFactorX === 0;
 
@@ -144,12 +149,14 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.ignore(uiObjects);
     const uiCamera = this.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
     uiCamera.ignore(worldObjects);
+    return uiCamera;
   }
 
   update(time: number): void {
     this.player.tick(time);
     this.handleActionKeys();
     this.player.move(this.readMoveVector());
+    if (this.skillFx) this.skillFx.follow(this.player.feetX, this.player.feetY);
     this.updateCooldownVisuals(time);
   }
 
@@ -162,26 +169,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Habilidade ativa: placeholder. Por enquanto só mostra um anel ao redor do personagem
-   * e entra em cooldown. O efeito real entra quando a habilidade for definida.
+   * Habilidade ativa: Moonlight Gu, corte em meia-lua na direção em que o personagem está virado.
+   * Por enquanto só desenha o efeito e entra em cooldown. Dano e hitbox entram com os inimigos.
    */
   private doSkill(): void {
     const now = this.time.now;
     if (now < this.skillReadyAt) return;
     this.skillReadyAt = now + SKILL_COOLDOWN_MS;
 
-    const ring = this.add
-      .circle(this.player.x, this.player.y, 24)
-      .setFillStyle(0x000000, 0)
-      .setStrokeStyle(4, BUTTON_COLORS.skill)
-      .setDepth(9);
-    this.tweens.add({
-      targets: ring,
-      scale: 3,
-      alpha: 0,
-      duration: 500,
-      onComplete: () => ring.destroy(),
-    });
+    // Só um corte por vez: o cooldown é maior que a duração do efeito, então o anterior já acabou.
+    this.skillFx?.destroy();
+    this.skillFx = new MoonlightSlash(this, this.player.facingDirection);
+    this.uiCamera?.ignore(this.skillFx.gameObjects);
+    this.skillFx.follow(this.player.feetX, this.player.feetY);
   }
 
   private handleActionKeys(): void {

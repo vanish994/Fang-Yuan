@@ -58,7 +58,7 @@ this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png'
 
 - **Computador:** setas ou WASD para mover; `J` ataque básico, `K` habilidade ativa, `Shift` dash.
 - **Celular/tablet:** joystick flutuante no lado esquerdo (a base aparece onde você tocou). No lado direito: **ATK** (ataque básico, o maior botão), **DASH** e **HAB** (habilidade ativa), todos redondos e próximos ao polegar. Em celular na vertical, a tela pede para girar o aparelho.
-- A habilidade ativa ainda é um placeholder (anel e cooldown de 4 s). O efeito real será definido depois.
+- A habilidade ativa é o corte em meia-lua do **Moonlight Gu**, na direção em que o personagem está virado, com cooldown provisório de 4 s. Por enquanto é só visual: dano e hitbox entram com os inimigos.
 
 ## Notas
 

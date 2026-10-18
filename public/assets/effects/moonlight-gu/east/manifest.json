@@ -1,0 +1,94 @@
+{
+ "app": "PixelLab VFX Creator",
+ "name": "Slash arc (east)",
+ "fps": 20,
+ "frame_ms": 50,
+ "frames": 7,
+ "loop": false,
+ "canvas": {
+  "w": 92,
+  "h": 49
+ },
+ "anchor": {
+  "kind": "feet",
+  "x": 28,
+  "y": 24
+ },
+ "clips": [
+  {
+   "name": "whole",
+   "title": "the whole effect, no sprite",
+   "depth": "both",
+   "loop": false,
+   "start_frame": 0,
+   "frames": 6,
+   "frame": {
+    "w": 53,
+    "h": 20
+   },
+   "sheets": [
+    {
+     "file": "whole.png",
+     "first_frame": 0,
+     "frames": 6,
+     "columns": 3,
+     "rows": 2
+    }
+   ],
+   "offset": {
+    "x": -7,
+    "y": -8
+   }
+  },
+  {
+   "name": "behind",
+   "title": "everything behind the character",
+   "depth": "behind",
+   "loop": false,
+   "start_frame": 0,
+   "frames": 6,
+   "frame": {
+    "w": 37,
+    "h": 16
+   },
+   "sheets": [
+    {
+     "file": "behind.png",
+     "first_frame": 0,
+     "frames": 6,
+     "columns": 3,
+     "rows": 2
+    }
+   ],
+   "offset": {
+    "x": 9,
+    "y": -8
+   }
+  },
+  {
+   "name": "front",
+   "title": "everything in front of the character",
+   "depth": "front",
+   "loop": false,
+   "start_frame": 2,
+   "frames": 2,
+   "frame": {
+    "w": 16,
+    "h": 17
+   },
+   "sheets": [
+    {
+     "file": "front.png",
+     "first_frame": 0,
+     "frames": 2,
+     "columns": 2,
+     "rows": 1
+    }
+   ],
+   "offset": {
+    "x": -7,
+    "y": -5
+   }
+  }
+ ]
+}

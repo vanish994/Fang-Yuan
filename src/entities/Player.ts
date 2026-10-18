@@ -21,6 +21,12 @@ const WALK_FRAME_MS = 120;
 const ATTACK_FRAME_MS = 120;
 const DASH_FRAME_MS = 100;
 
+/**
+ * Distância (px) do centro do sprite até a linha dos pés. Medida no idle: o pixel mais baixo
+ * do personagem fica em y=57 dentro da célula de 64 px, cujo centro é 32.
+ */
+const FEET_OFFSET_Y = 25;
+
 /** Abaixo desta magnitude o personagem está parado. */
 const MIN_MAGNITUDE = 0.01;
 
@@ -123,6 +129,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setOffset((CELL_SIZE - 24) / 2, CELL_SIZE - 24 - 6);
 
     this.setDepth(10);
+  }
+
+  /** Direção para onde o personagem está virado (última direção de movimento). */
+  get facingDirection(): Direction {
+    return this.facing;
+  }
+
+  /** Posição dos pés no mundo (para efeitos que acompanham o personagem). */
+  get feetX(): number {
+    return this.x;
+  }
+
+  get feetY(): number {
+    return this.y + FEET_OFFSET_Y;
   }
 
   /** True enquanto um ataque ou dash está em andamento (o movimento fica travado). */

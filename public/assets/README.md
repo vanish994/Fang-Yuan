@@ -15,6 +15,7 @@ this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png'
 | `hud/tinyrpg-mana-soul-gui/` | Pack de interface (botões, molduras, setas, 9-slices). |
 | `tilesets/feudal-japan-props/` | Props do Japão feudal (240 tiles individuais em `Tiles/`) e o atlas compactado em `TileMap/*_packed.*`. `ASSET_LIST.json` mapeia nome, categoria e âncora de cada tile. |
 | `tilesets/free-asset-pack/` | Tilesets de terreno: grama, água, pedras, árvores, flores, caminhos, neve, deserto e praia. Inclui `ground-atlas-64.png`, um atlas derivado (6×2 tiles de 64 px: linha 1 = grama, linha 2 = terra), recortado de `1. Grass and dirt.png` para o chunk de teste. |
+| `effects/moonlight-gu/` | Efeito do Moonlight Gu (corte em meia-lua) em 8 direções. Cada pasta tem `behind.png` (atrás do personagem), `front.png` (na frente) e `manifest.json`. A configuração de runtime está em `src/config/moonlightSlash.ts`, gerada a partir dos manifestos. `whole.png` (efeito sem personagem) não foi copiado, porque o jogo não usa. |
 | `tilesets/harmonious-seasons/` | Tilesets por estação (outono, inverno, normal): árvores, arbustos, água animada, caminhos, falésias e personagens de fazendeiro. |
 
 ## Licenças e origem
@@ -24,6 +25,7 @@ this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png'
 | HUD (tinyRPG Mana Soul GUI, Gabriel "tiopalada" Lima) | CC0 1.0 | Uso livre, sem atribuição obrigatória. Veja `hud/tinyrpg-mana-soul-gui/README.html`. |
 | Feudal Japan Complete 2D Mega Props Pack (nacl1234) | Licença comercial | Permite uso em jogos comerciais. Proíbe redistribuir os arquivos originais como arquivos independentes. Texto completo em `tilesets/feudal-japan-props/Documentation/LICENSE.txt`. Só a versão completa está aqui; a amostra gratuita é subconjunto byte-idêntico e não foi copiada. |
 | Personagem Fang Yuan | Não informada | Sprite gerado com IA (provenance no manifesto). Personagem de *Reverend Insanity*. Sem arquivo de licença no pack. |
+| Efeito Moonlight Gu ("Slash arc", PixelLab VFX Creator) | Não informada | Gerado com PixelLab VFX Creator; sem arquivo de licença no pack. Confirmar termos antes de publicar o jogo. |
 | Free asset pack, thank u so much! | Não informada | Sem arquivo de licença. Confirmar termos antes de publicar o jogo. |
 | Harmonious Seasons - A Seasons Based 2D Pixel Art Pack | Não informada | Sem arquivo de licença. Confirmar termos antes de publicar o jogo. A trilha sonora (WAV de 34 MB) não foi copiada. |
 
