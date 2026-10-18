@@ -391,7 +391,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 
 1. **Narrativa:** adaptação fiel da novel por arcos ou história alternativa mantendo Fang Yuan como protagonista?
 2. **Combate:** ação no mapa, turnos ou híbrido?
-3. **Estrutura de progressão:** como os ranks e estágios serão apresentados e como a campanha limitará o avanço?
+3. **Balanceamento do cultivo:** quais serão os custos de pedras primordiais por estágio, os materiais de ruptura por Rank e os benefícios de atributos?
 4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
 5. **Falha e risco:** quais sistemas podem falhar, e quais consequências são justas e fiéis ao universo?
 6. **Competitivo:** duelo individual, equipes, formato assíncrono ou partidas em tempo real?
@@ -403,7 +403,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 - Não misturar o projeto com outros RPGs ou MMORPGs.
 - Não substituir conceitos canônicos por sistemas genéricos sem aprovação.
 - Distinguir fatos definidos, propostas e decisões pendentes.
-- Não inventar regras de cultivo, Gu ou história como se fossem canônicas.
+- Não inventar regras de cultivo, Gu ou história como se fossem canônicas. A progressão definida usa pedras primordiais para avanços comuns e materiais específicos apenas nas rupturas de Rank, do Pico para o Inicial do Rank seguinte.
 - Antes de alterar arquitetura, inspecionar o código atual e preservar o que funciona.
 - Implementar mudanças pequenas, verificáveis e documentadas.
 - Nunca modificar ou substituir instruções de agentes existentes sem autorização explícita.
