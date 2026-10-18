@@ -38,7 +38,7 @@ PY
 
 # Download and verify every file before changing the repository, so network or checksum
 # failures cannot leave a partial installation.
-while IFS="$(printf '\\t')" read -r rel expected_sha expected_size; do
+while IFS="$(printf '\t')" read -r rel expected_sha expected_size; do
   [ -n "$rel" ] || continue
   mkdir -p "$TMP_DIR/verified/$(dirname "$rel")"
   curl -fsSL "${BASE_URL}/releases/${VERSION}/$rel" -o "$TMP_DIR/verified/$rel"
@@ -55,7 +55,7 @@ PY
   echo "Verified: $rel"
 done < "$TMP_DIR/files.tsv"
 
-while IFS="$(printf '\\t')" read -r rel expected_sha expected_size; do
+while IFS="$(printf '\t')" read -r rel expected_sha expected_size; do
   [ -n "$rel" ] || continue
   mkdir -p "$(dirname ".agents/$rel")"
   cp "$TMP_DIR/verified/$rel" ".agents/$rel"
