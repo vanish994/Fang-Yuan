@@ -280,6 +280,15 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - **Ataques especiais combinados:** técnicas que exigem uma combinação específica de Gu. Cada combinação deve declarar seus requisitos, efeito, custo total de essência primeva, alcance, condições, recarga e possíveis riscos. Não presumir que qualquer par de Gu possa ser combinado.
 - As combinações devem acrescentar decisões táticas, sem tornar obsoletos os Gu individuais ou o ataque básico.
 
+### 11.4 Controles de combate para celular — Definido
+
+- **Joystick virtual à esquerda:** controla o movimento de Fang Yuan durante a exploração e o combate em tempo real.
+- **Botão de ataque básico:** executa o ataque básico sem exigir a ativação de um Gu.
+- **Botão de Gu de ataque:** permite ativar o Gu de ataque selecionado, respeitando seus custos, alcance, recarga e condições. Os 4 espaços de acesso rápido continuam sendo atalhos para os Gu.
+- **Botão de dash:** só aparece quando Fang Yuan possui um Gu de movimento que conceda essa ação. Sem um Gu de movimento compatível, o botão fica oculto e o dash não pode ser usado.
+- **Distância do dash:** depende do Rank do Gu de movimento utilizado. A progressão exata da distância por Rank, assim como custo, recarga e eventuais limitações, permanece **A definir**.
+- Os controles devem funcionar em tela sensível ao toque e não podem cobrir desnecessariamente o alvo selecionado ou informações essenciais de combate.
+
 ### 11.4 Regras gerais
 
 - O motor de regras é a autoridade sobre custos, acertos, dano, efeitos, recargas e resultados.
@@ -290,9 +299,9 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - O servidor validará ações e resultados nas partidas competitivas.
 - Não introduzir turnos ou ativação automática de Gu ativos sem decisão explícita.
 
-### 11.5 Decisões pendentes
+### 11.6 Decisões pendentes
 
-Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; organização dos 4 espaços de acesso rápido e acesso a Gu adicionais; valores do ataque básico; movimento e evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
+Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; organização dos 4 espaços de acesso rápido e acesso a Gu adicionais; valores do ataque básico; fórmula exata de distância do dash por Rank, custo e recarga dos Gu de movimento; evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
 
 ## 12. Competitivo online
 
