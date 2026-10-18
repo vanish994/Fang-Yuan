@@ -48,10 +48,10 @@ Outros comandos:
 
 ### Assets
 
-Coloque imagens, áudios e sprites em `public/assets/` e carregue-os no `preload()` da cena:
+Os assets do projeto estão em `public/assets/` (personagem, HUD e três tilesets). Veja `public/assets/README.md` para a organização, o status das licenças e como carregá-los no `preload()` da cena:
 
 ```ts
-this.load.image('player', 'assets/player.png');
+this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png');
 ```
 
 ## Notas
