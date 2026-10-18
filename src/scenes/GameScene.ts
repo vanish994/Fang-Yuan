@@ -39,8 +39,6 @@ export class GameScene extends Phaser.Scene {
   private hintText?: Phaser.GameObjects.Text;
   private cameraZoom = WORLD_ZOOM;
   private skillReadyAt = 0;
-  /** Câmera da interface (sem zoom). Efeitos criados depois precisam ser ignorados por ela. */
-  private uiCamera?: Phaser.Cameras.Scene2D.Camera;
   private skillFx?: MoonlightSlash;
 
   constructor() {
@@ -155,12 +153,6 @@ export class GameScene extends Phaser.Scene {
     // Zoom: a câmera principal aproxima o mundo. A interface não pode ser ampliada junto.
     this.cameraZoom = WORLD_ZOOM;
     this.cameras.main.setZoom(this.cameraZoom);
-    this.uiCamera = this.setupUiCamera();
-    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-    });
-    this.layoutTouchControls(this.scale.width, this.scale.height);
   }
 
   /** Uma camada de tiles do ground-atlas, com a matriz de índices dada (-1 é vazio). */
@@ -178,43 +170,6 @@ export class GameScene extends Phaser.Scene {
     const zone = this.add.zone(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h);
     this.physics.add.existing(zone, true);
     return zone;
-  }
-
-  /**
-   * Separa o mundo (com zoom) da interface (sem zoom). Objetos com scrollFactor 0 são
-   * interface e são desenhados por uma segunda câmera, fixa e com zoom 1.
-   * Chamar no fim do create(), depois que toda a interface já existe.
-   */
-  private setupUiCamera(): Phaser.Cameras.Scene2D.Camera {
-    const isUi = (obj: Phaser.GameObjects.GameObject): boolean =>
-      (obj as unknown as { scrollFactorX?: number }).scrollFactorX === 0;
-
-    const all = this.children.list;
-    const uiObjects = all.filter(isUi);
-    const worldObjects = all.filter((obj) => !isUi(obj));
-
-    this.cameras.main.ignore(uiObjects);
-    const uiCamera = this.cameras.add(0, 0, this.scale.width, this.scale.height);
-    uiCamera.ignore(worldObjects);
-    return uiCamera;
-  }
-
-
-  /** Mantém a interface preenchendo o viewport real quando o aparelho gira ou redimensiona. */
-  private handleResize(gameSize: Phaser.Structs.Size): void {
-    const width = gameSize.width;
-    const height = gameSize.height;
-    this.uiCamera?.setViewport(0, 0, width, height);
-    this.layoutTouchControls(width, height);
-    this.hintText?.setPosition(16, 16);
-  }
-
-  private layoutTouchControls(width: number, height: number): void {
-    this.attackButton?.setPosition(width - 104, height - 104);
-    this.dashButton?.setPosition(width - 258, height - 88);
-    this.skillButton?.setPosition(width - 228, height - 222);
-    this.cameraUpButton?.setPosition(width - 62, 58);
-    this.cameraDownButton?.setPosition(width - 62, 136);
   }
 
   /** Ajusta o zoom sem alterar o seguimento: o centro da câmera continua no personagem. */
@@ -253,7 +208,6 @@ export class GameScene extends Phaser.Scene {
     // Só um corte por vez: o cooldown é maior que a duração do efeito, então o anterior já acabou.
     this.skillFx?.destroy();
     this.skillFx = new MoonlightSlash(this, this.player.facingDirection);
-    this.uiCamera?.ignore(this.skillFx.gameObjects);
     this.skillFx.follow(this.player.feetX, this.player.feetY);
   }
 
