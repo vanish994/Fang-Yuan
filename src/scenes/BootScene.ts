@@ -26,7 +26,7 @@ export class BootScene extends Phaser.Scene {
       label.setText(`Carregando... ${Math.round(value * 100)}%`);
     });
 
-    // Atlas do chão (grama, terra, penhascos, escadas e trilhas): 8×5 tiles de 64 px.
+    // Atlas do chão (grama, terra, penhascos, escadas e trilhas): 8×7 tiles de 64 px.
     this.load.spritesheet(KEYS.villageBase, PATHS.villageBase, {
       frameWidth: CELL_SIZE,
       frameHeight: CELL_SIZE,

@@ -68,7 +68,7 @@ Ordem dos índices (linha a linha, 8 colunas):
 - 34–39 penhasco girado no sentido horário (grama à direita): patamar a leste.
 - 40–45 penhasco girado no sentido anti-horário (grama à esquerda): patamar a oeste.
 - 46–51 penhasco girado 180° (grama embaixo): patamar ao sul.
-- 18–19 escadas de madeira.
+- 18–19 escadas de pedra (degraus compostos a partir dos blocos de piso de pedra do pack "3. Rocks and cliffs"; ver `scripts/build-base-layer.py`).
 - 20 trilha vertical. 21–33 (trilhas horizontais, curvas, cruzamentos, arco) estão no atlas, mas o layout hoje só usa a 20.
 
 As paredes são células inteiras. A arte segue o lado do patamar mais alto que encosta na célula (na diagonal, vale a componente vertical).
