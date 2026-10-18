@@ -41,8 +41,10 @@ const FEUDAL = 'props/';
 const frameInfo = new Map();
 for (const sh of cat.HARMONIOUS_SHEETS) for (const f of sh.frames) frameInfo.set(f.name, f);
 
+// Atlas base: 8 colunas x 5 linhas de 64 px (40 slots, 34 usados). Paleta vem depois.
 const GROUND_FIRST = 1;
-const ART_FIRST = GROUND_FIRST + 12;
+const BASE_SLOTS = 40;
+const ART_FIRST = GROUND_FIRST + BASE_SLOTS;
 
 // Paleta completa: toda a arte do catálogo entra na coleção, mesmo sem uso no mapa,
 // para o Tiled poder pintar o mapa do zero. Ordem fixa (ids estáveis).
@@ -118,9 +120,9 @@ const layers = [
 
 const tilesets = [
   {
-    firstgid: GROUND_FIRST, name: 'ground', type: 'tileset', tilewidth: TILE, tileheight: TILE,
-    margin: 0, spacing: 0, columns: 6, tilecount: 12,
-    image: '../tilesets/free-asset-pack/ground-atlas-64.png', imagewidth: 384, imageheight: 128,
+    firstgid: GROUND_FIRST, name: 'base', type: 'tileset', tilewidth: TILE, tileheight: TILE,
+    margin: 0, spacing: 0, columns: 8, tilecount: BASE_SLOTS,
+    image: 'base-tiles-64.png', imagewidth: 512, imageheight: 320,
   },
   {
     firstgid: ART_FIRST, name: 'vila-arte', type: 'tileset', tilewidth: TILE, tileheight: TILE,

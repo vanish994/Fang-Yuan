@@ -50,8 +50,8 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = village.cols * CELL_SIZE;
     const mapHeight = village.rows * CELL_SIZE;
     registerVillageFrames(this);
-    this.buildGroundLayer(village.ground, 0);
-    this.buildGroundLayer(village.overlay, 0.2);
+    this.buildGroundLayer(village.ground, KEYS.villageBase, 0);
+    this.buildGroundLayer(village.overlay, KEYS.villageBase, 0.2);
     for (const img of village.images) {
       this.add
         .image(img.x, img.y, img.texture, img.frame)
@@ -145,12 +145,12 @@ export class GameScene extends Phaser.Scene {
     this.uiCamera = this.setupUiCamera();
   }
 
-  /** Uma camada de tiles do ground-atlas, com a matriz de índices dada (-1 é vazio). */
-  private buildGroundLayer(data: number[][], depth: number): void {
+  /** Uma camada de tiles do atlas base, com a matriz de índices dada (-1 é vazio). */
+  private buildGroundLayer(data: number[][], textureKey: string, depth: number): void {
     const map = this.make.tilemap({ data, tileWidth: CELL_SIZE, tileHeight: CELL_SIZE });
-    const tileset = map.addTilesetImage('ground', KEYS.groundTiles, CELL_SIZE, CELL_SIZE, 0, 0);
+    const tileset = map.addTilesetImage('base', textureKey, CELL_SIZE, CELL_SIZE, 0, 0);
     if (!tileset) {
-      throw new Error(`Tileset '${KEYS.groundTiles}' não foi carregado.`);
+      throw new Error(`Tileset '${textureKey}' não foi carregado.`);
     }
     map.createLayer(0, tileset, 0, 0)?.setDepth(depth);
   }

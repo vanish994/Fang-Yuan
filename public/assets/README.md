@@ -53,10 +53,20 @@ Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (
 
 `village/vila-inicial-da-montanha.tmj` é o mapa no formato JSON do [Tiled](https://www.mapeditor.org/) (1.10 ou mais novo). Abra o arquivo direto no Tiled: os caminhos das imagens são relativos a ele.
 
-- Camadas de tile: `chao` (grama e terra) e `sobreposicao` (caminhos e canteiro). Tileset `ground`: o atlas de 64 px.
+- Camadas de tile: `chao` (grama e terra da praça) e `sobreposicao` (penhascos, escadas e trilhas). Tileset `base`: `village/base-tiles-64.png`, 8×5 tiles de 64 px (34 usados).
 - Camadas de objeto: `imagens` (platô, lago e água), `chao_objetos` (sob o personagem), `objetos` (árvores, casas e rochas, ordenados pelo y da base) e `colisao` (retângulos sólidos). A camada `spawn` marca o ponto de partida.
 - Tileset `vila-arte`: uma imagem por tile (recortes em `village/tiles/` e `village/props/`). A paleta traz toda a arte do catálogo, mesmo sem uso no mapa, para montar o mapa do zero.
-- Hoje o mapa está em branco: as camadas existem, mas sem nenhum tile, objeto ou colisão.
+- O chão atual (relevo, grama, terra, escadas e trilhas verticais) está no `.tmj`. Objetos e colisões de decoração ainda não foram colocados.
+
+### Atlas base (`village/base-tiles-64.png`)
+
+Derivado do pack gratuito que já está em `tilesets/free-asset-pack/` (sheets `1. Grass and dirt.png` e `6. Dirt paths.png`), com a mesma regra de licença das cópias reduzidas. Cada tile é recortado do sheet e reduzido para 64 px com filtro de área. Regenerar: `python3 scripts/build-base-layer.py` (precisa de Pillow).
+
+Ordem dos índices (linha a linha, 8 colunas):
+- 0–5 grama, 6–11 terra (6 e 7 são as usadas na praça).
+- 12–17 penhascos (faces de 1 tile, grama no topo e rocha embaixo). Só existem na borda sul de cada patamar.
+- 18–19 escadas de madeira.
+- 20 trilha vertical (aberta em cima e embaixo), 21 trilha horizontal, 22–23 curvas, 24–26 trilhas fechadas, 27–31 cruzamentos, 32 arco, 33 vertical largo. Hoje só o 20 é usado, porque o layout só tem trilhas verticais.
 
 O jogo lê o mapa de `src/world/village/villageMap.ts`, não deste arquivo. Para o `.tmj` refletir o código, gere de novo: `scripts/build-village-assets.py` (recortes) e depois `scripts/export-village-tiled.cjs` (ver o cabeçalho do script para compilar o TypeScript antes).
 
