@@ -1,0 +1,369 @@
+{
+  "schema": "fang-yuan.sprite-pack.v1",
+  "character": {
+    "name": "Fang Yuan",
+    "source": "Reverend Insanity / Gu Daoist Master",
+    "style": "top-down pixel art",
+    "cell_size_px": [
+      64,
+      64
+    ]
+  },
+  "direction_order": [
+    "up",
+    "up-right",
+    "right",
+    "down-right",
+    "down",
+    "down-left",
+    "left",
+    "up-left"
+  ],
+  "actions": {
+    "idle": {
+      "type": "loop",
+      "directions": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ],
+      "frames_per_direction": 1,
+      "duration_ms": 200,
+      "atlas": "assets/idle/fang-yuan-idle-8dir-1frame.png",
+      "atlas_size": [
+        512,
+        64
+      ],
+      "atlas_sha256": "2091bf15b62773edbe70c868cfdcb5f953eaa968cdbb8d19188270eebd8d8184",
+      "frames": [
+        "assets/idle/fang-yuan-idle-8dir-1frame.png",
+        "assets/idle/fang-yuan-idle-down-1.png",
+        "assets/idle/fang-yuan-idle-down-left-1.png",
+        "assets/idle/fang-yuan-idle-down-right-1.png",
+        "assets/idle/fang-yuan-idle-left-1.png",
+        "assets/idle/fang-yuan-idle-right-1.png",
+        "assets/idle/fang-yuan-idle-up-1.png",
+        "assets/idle/fang-yuan-idle-up-left-1.png",
+        "assets/idle/fang-yuan-idle-up-right-1.png"
+      ],
+      "source_direction_order": "canonicalized from supplied south,south-east,east,north-east,north,north-west,west,south-west"
+    },
+    "walk": {
+      "type": "loop",
+      "directions": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ],
+      "frames_per_direction": 6,
+      "duration_ms": 120,
+      "atlas": "assets/walk/fang-yuan-walk-8dir-6frames.png",
+      "atlas_size": [
+        384,
+        512
+      ],
+      "atlas_sha256": "bc13a2c431495503f9b6d38df5691e82fb6bc7af01b9d1adac78ff5951f47e76",
+      "frames": [
+        "assets/walk/fang-yuan-walk-8dir-6frames.png",
+        "assets/walk/fang-yuan-walk-down-1.png",
+        "assets/walk/fang-yuan-walk-down-2.png",
+        "assets/walk/fang-yuan-walk-down-3.png",
+        "assets/walk/fang-yuan-walk-down-4.png",
+        "assets/walk/fang-yuan-walk-down-5.png",
+        "assets/walk/fang-yuan-walk-down-6.png",
+        "assets/walk/fang-yuan-walk-down-left-1.png",
+        "assets/walk/fang-yuan-walk-down-left-2.png",
+        "assets/walk/fang-yuan-walk-down-left-3.png",
+        "assets/walk/fang-yuan-walk-down-left-4.png",
+        "assets/walk/fang-yuan-walk-down-left-5.png",
+        "assets/walk/fang-yuan-walk-down-left-6.png",
+        "assets/walk/fang-yuan-walk-down-right-1.png",
+        "assets/walk/fang-yuan-walk-down-right-2.png",
+        "assets/walk/fang-yuan-walk-down-right-3.png",
+        "assets/walk/fang-yuan-walk-down-right-4.png",
+        "assets/walk/fang-yuan-walk-down-right-5.png",
+        "assets/walk/fang-yuan-walk-down-right-6.png",
+        "assets/walk/fang-yuan-walk-left-1.png",
+        "assets/walk/fang-yuan-walk-left-2.png",
+        "assets/walk/fang-yuan-walk-left-3.png",
+        "assets/walk/fang-yuan-walk-left-4.png",
+        "assets/walk/fang-yuan-walk-left-5.png",
+        "assets/walk/fang-yuan-walk-left-6.png",
+        "assets/walk/fang-yuan-walk-right-1.png",
+        "assets/walk/fang-yuan-walk-right-2.png",
+        "assets/walk/fang-yuan-walk-right-3.png",
+        "assets/walk/fang-yuan-walk-right-4.png",
+        "assets/walk/fang-yuan-walk-right-5.png",
+        "assets/walk/fang-yuan-walk-right-6.png",
+        "assets/walk/fang-yuan-walk-up-1.png",
+        "assets/walk/fang-yuan-walk-up-2.png",
+        "assets/walk/fang-yuan-walk-up-3.png",
+        "assets/walk/fang-yuan-walk-up-4.png",
+        "assets/walk/fang-yuan-walk-up-5.png",
+        "assets/walk/fang-yuan-walk-up-6.png",
+        "assets/walk/fang-yuan-walk-up-left-1.png",
+        "assets/walk/fang-yuan-walk-up-left-2.png",
+        "assets/walk/fang-yuan-walk-up-left-3.png",
+        "assets/walk/fang-yuan-walk-up-left-4.png",
+        "assets/walk/fang-yuan-walk-up-left-5.png",
+        "assets/walk/fang-yuan-walk-up-left-6.png",
+        "assets/walk/fang-yuan-walk-up-right-1.png",
+        "assets/walk/fang-yuan-walk-up-right-2.png",
+        "assets/walk/fang-yuan-walk-up-right-3.png",
+        "assets/walk/fang-yuan-walk-up-right-4.png",
+        "assets/walk/fang-yuan-walk-up-right-5.png",
+        "assets/walk/fang-yuan-walk-up-right-6.png"
+      ],
+      "mirror_pairs": {
+        "left": "right",
+        "up-left": "up-right",
+        "down-left": "down-right"
+      }
+    },
+    "attack": {
+      "type": "one_shot",
+      "directions": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ],
+      "frames_per_direction": 6,
+      "duration_ms": 120,
+      "atlas": "assets/attack/fang-yuan-attack-8dir-6frames.png",
+      "atlas_size": [
+        384,
+        512
+      ],
+      "atlas_sha256": "432bb409aedcfc7bafa1bc91d33012d292cd6228704db8504c5d71514ea912fb",
+      "frames": [
+        "assets/attack/fang-yuan-attack-8dir-6frames.png",
+        "assets/attack/fang-yuan-attack-down-1.png",
+        "assets/attack/fang-yuan-attack-down-2.png",
+        "assets/attack/fang-yuan-attack-down-3.png",
+        "assets/attack/fang-yuan-attack-down-4.png",
+        "assets/attack/fang-yuan-attack-down-5.png",
+        "assets/attack/fang-yuan-attack-down-6.png",
+        "assets/attack/fang-yuan-attack-down-left-1.png",
+        "assets/attack/fang-yuan-attack-down-left-2.png",
+        "assets/attack/fang-yuan-attack-down-left-3.png",
+        "assets/attack/fang-yuan-attack-down-left-4.png",
+        "assets/attack/fang-yuan-attack-down-left-5.png",
+        "assets/attack/fang-yuan-attack-down-left-6.png",
+        "assets/attack/fang-yuan-attack-down-right-1.png",
+        "assets/attack/fang-yuan-attack-down-right-2.png",
+        "assets/attack/fang-yuan-attack-down-right-3.png",
+        "assets/attack/fang-yuan-attack-down-right-4.png",
+        "assets/attack/fang-yuan-attack-down-right-5.png",
+        "assets/attack/fang-yuan-attack-down-right-6.png",
+        "assets/attack/fang-yuan-attack-left-1.png",
+        "assets/attack/fang-yuan-attack-left-2.png",
+        "assets/attack/fang-yuan-attack-left-3.png",
+        "assets/attack/fang-yuan-attack-left-4.png",
+        "assets/attack/fang-yuan-attack-left-5.png",
+        "assets/attack/fang-yuan-attack-left-6.png",
+        "assets/attack/fang-yuan-attack-right-1.png",
+        "assets/attack/fang-yuan-attack-right-2.png",
+        "assets/attack/fang-yuan-attack-right-3.png",
+        "assets/attack/fang-yuan-attack-right-4.png",
+        "assets/attack/fang-yuan-attack-right-5.png",
+        "assets/attack/fang-yuan-attack-right-6.png",
+        "assets/attack/fang-yuan-attack-up-1.png",
+        "assets/attack/fang-yuan-attack-up-2.png",
+        "assets/attack/fang-yuan-attack-up-3.png",
+        "assets/attack/fang-yuan-attack-up-4.png",
+        "assets/attack/fang-yuan-attack-up-5.png",
+        "assets/attack/fang-yuan-attack-up-6.png",
+        "assets/attack/fang-yuan-attack-up-left-1.png",
+        "assets/attack/fang-yuan-attack-up-left-2.png",
+        "assets/attack/fang-yuan-attack-up-left-3.png",
+        "assets/attack/fang-yuan-attack-up-left-4.png",
+        "assets/attack/fang-yuan-attack-up-left-5.png",
+        "assets/attack/fang-yuan-attack-up-left-6.png",
+        "assets/attack/fang-yuan-attack-up-right-1.png",
+        "assets/attack/fang-yuan-attack-up-right-2.png",
+        "assets/attack/fang-yuan-attack-up-right-3.png",
+        "assets/attack/fang-yuan-attack-up-right-4.png",
+        "assets/attack/fang-yuan-attack-up-right-5.png",
+        "assets/attack/fang-yuan-attack-up-right-6.png"
+      ],
+      "phases": [
+        "ready",
+        "hand_back",
+        "hand_raised",
+        "open_palm_cut",
+        "follow_through",
+        "recovery"
+      ],
+      "mirror_pairs": {
+        "left": "right",
+        "up-left": "up-right",
+        "down-left": "down-right"
+      }
+    },
+    "death": {
+      "type": "one_shot",
+      "directions": [
+        "down"
+      ],
+      "frames_per_direction": 6,
+      "duration_ms": 140,
+      "atlas": "assets/death/fang-yuan-death-front-6frames.png",
+      "atlas_size": [
+        192,
+        128
+      ],
+      "atlas_sha256": "ec86d21a97e5d8bb6175170cde7d8c96c9a21b0d8670bf93372cc06553ae5f9d",
+      "frames": [
+        "assets/death/fang-yuan-death-front-1.png",
+        "assets/death/fang-yuan-death-front-2.png",
+        "assets/death/fang-yuan-death-front-3.png",
+        "assets/death/fang-yuan-death-front-4.png",
+        "assets/death/fang-yuan-death-front-5.png",
+        "assets/death/fang-yuan-death-front-6.png",
+        "assets/death/fang-yuan-death-front-6frames.png"
+      ],
+      "gore": "stylized_pixel_art_blood",
+      "phases": [
+        "reaction",
+        "stagger",
+        "kneel",
+        "collapse",
+        "fallen",
+        "final"
+      ]
+    },
+    "dash": {
+      "type": "one_shot",
+      "directions": [
+        "up",
+        "up-right",
+        "right",
+        "down-right",
+        "down",
+        "down-left",
+        "left",
+        "up-left"
+      ],
+      "frames_per_direction": 6,
+      "duration_ms": 100,
+      "atlas": "assets/dash/fang-yuan-dash-8dir-6frames.png",
+      "atlas_size": [
+        384,
+        512
+      ],
+      "atlas_sha256": "c07724cf69d0664489e4abafb249a64f2b3539224727459e0dffc3bb251d338b",
+      "frames": [
+        "assets/dash/fang-yuan-dash-8dir-6frames.png",
+        "assets/dash/fang-yuan-dash-down-1.png",
+        "assets/dash/fang-yuan-dash-down-2.png",
+        "assets/dash/fang-yuan-dash-down-3.png",
+        "assets/dash/fang-yuan-dash-down-4.png",
+        "assets/dash/fang-yuan-dash-down-5.png",
+        "assets/dash/fang-yuan-dash-down-6.png",
+        "assets/dash/fang-yuan-dash-down-left-1.png",
+        "assets/dash/fang-yuan-dash-down-left-2.png",
+        "assets/dash/fang-yuan-dash-down-left-3.png",
+        "assets/dash/fang-yuan-dash-down-left-4.png",
+        "assets/dash/fang-yuan-dash-down-left-5.png",
+        "assets/dash/fang-yuan-dash-down-left-6.png",
+        "assets/dash/fang-yuan-dash-down-right-1.png",
+        "assets/dash/fang-yuan-dash-down-right-2.png",
+        "assets/dash/fang-yuan-dash-down-right-3.png",
+        "assets/dash/fang-yuan-dash-down-right-4.png",
+        "assets/dash/fang-yuan-dash-down-right-5.png",
+        "assets/dash/fang-yuan-dash-down-right-6.png",
+        "assets/dash/fang-yuan-dash-left-1.png",
+        "assets/dash/fang-yuan-dash-left-2.png",
+        "assets/dash/fang-yuan-dash-left-3.png",
+        "assets/dash/fang-yuan-dash-left-4.png",
+        "assets/dash/fang-yuan-dash-left-5.png",
+        "assets/dash/fang-yuan-dash-left-6.png",
+        "assets/dash/fang-yuan-dash-right-1.png",
+        "assets/dash/fang-yuan-dash-right-2.png",
+        "assets/dash/fang-yuan-dash-right-3.png",
+        "assets/dash/fang-yuan-dash-right-4.png",
+        "assets/dash/fang-yuan-dash-right-5.png",
+        "assets/dash/fang-yuan-dash-right-6.png",
+        "assets/dash/fang-yuan-dash-up-1.png",
+        "assets/dash/fang-yuan-dash-up-2.png",
+        "assets/dash/fang-yuan-dash-up-3.png",
+        "assets/dash/fang-yuan-dash-up-4.png",
+        "assets/dash/fang-yuan-dash-up-5.png",
+        "assets/dash/fang-yuan-dash-up-6.png",
+        "assets/dash/fang-yuan-dash-up-left-1.png",
+        "assets/dash/fang-yuan-dash-up-left-2.png",
+        "assets/dash/fang-yuan-dash-up-left-3.png",
+        "assets/dash/fang-yuan-dash-up-left-4.png",
+        "assets/dash/fang-yuan-dash-up-left-5.png",
+        "assets/dash/fang-yuan-dash-up-left-6.png",
+        "assets/dash/fang-yuan-dash-up-right-1.png",
+        "assets/dash/fang-yuan-dash-up-right-2.png",
+        "assets/dash/fang-yuan-dash-up-right-3.png",
+        "assets/dash/fang-yuan-dash-up-right-4.png",
+        "assets/dash/fang-yuan-dash-up-right-5.png",
+        "assets/dash/fang-yuan-dash-up-right-6.png"
+      ],
+      "phases": [
+        "ready_crouch",
+        "push_off",
+        "low_dash",
+        "maximum_extension",
+        "deceleration",
+        "recovery"
+      ],
+      "mirror_pairs": {
+        "left": "right",
+        "up-left": "up-right",
+        "down-left": "down-right"
+      }
+    }
+  },
+  "runtime": {
+    "transparent": "native_alpha",
+    "atlas_row_order": [
+      "up",
+      "up-right",
+      "right",
+      "down-right",
+      "down",
+      "down-left",
+      "left",
+      "up-left"
+    ],
+    "frame_indexing": "1-based filenames; atlas columns left-to-right",
+    "loop_actions": [
+      "idle",
+      "walk"
+    ],
+    "one_shot_actions": [
+      "attack",
+      "death",
+      "dash"
+    ]
+  },
+  "provenance": {
+    "image_model": "gpt-image-2.5",
+    "quality": "medium",
+    "credit_saving": "five unique directional sheets per 8-direction action; left-facing counterparts mirrored horizontally; death is front/down only"
+  },
+  "qa": {
+    "reports_dir": "qa",
+    "structural_processor": "pass for walk, attack, dash; death exported with reviewed source-edge-touch override",
+    "semantic_qc": "Per-action reports are preserved in qa; known warnings/failures are not hidden."
+  }
+}

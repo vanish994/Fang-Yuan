@@ -1,0 +1,69 @@
+{
+ "app": "PixelLab VFX Creator",
+ "name": "Slash arc (south-east)",
+ "fps": 20,
+ "frame_ms": 50,
+ "frames": 7,
+ "loop": false,
+ "canvas": {
+  "w": 106,
+  "h": 74
+ },
+ "anchor": {
+  "kind": "feet",
+  "x": 41,
+  "y": 28
+ },
+ "clips": [
+  {
+   "name": "whole",
+   "title": "the whole effect, no sprite",
+   "depth": "both",
+   "loop": false,
+   "start_frame": 0,
+   "frames": 6,
+   "frame": {
+    "w": 46,
+    "h": 27
+   },
+   "sheets": [
+    {
+     "file": "whole.png",
+     "first_frame": 0,
+     "frames": 6,
+     "columns": 3,
+     "rows": 2
+    }
+   ],
+   "offset": {
+    "x": -8,
+    "y": -7
+   }
+  },
+  {
+   "name": "front",
+   "title": "everything in front of the character",
+   "depth": "front",
+   "loop": false,
+   "start_frame": 0,
+   "frames": 6,
+   "frame": {
+    "w": 46,
+    "h": 27
+   },
+   "sheets": [
+    {
+     "file": "front.png",
+     "first_frame": 0,
+     "frames": 6,
+     "columns": 3,
+     "rows": 2
+    }
+   ],
+   "offset": {
+    "x": -8,
+    "y": -7
+   }
+  }
+ ]
+}
