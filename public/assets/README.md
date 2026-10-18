@@ -47,7 +47,7 @@ O repositório é privado. Antes de publicar o jogo ou o build, confirme as lice
 - `public/assets/village/props/*.png`: peças do Feudal reduzidas para ~2/3 e cortadas pelo alfa.
 - `src/world/village/assetCatalog.ts`: recortes em pixels nativos dos sheets do Harmonious (cada componente conexo vira um frame), tamanhos das peças e máscaras do platô e do lago.
 
-Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (precisa de Pillow, numpy e scipy). O layout do mapa fica em `src/world/village/villageMap.ts` e é escrito à mão.
+Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (precisa de Pillow, numpy e scipy). O mapa hoje está em branco: `src/world/village/villageMap.ts` só guarda o tamanho e o ponto de partida.
 
 ## Editar a vila no Tiled
 
@@ -55,7 +55,8 @@ Regenerar depois de mexer nos packs: `python3 scripts/build-village-assets.py` (
 
 - Camadas de tile: `chao` (grama e terra) e `sobreposicao` (caminhos e canteiro). Tileset `ground`: o atlas de 64 px.
 - Camadas de objeto: `imagens` (platô, lago e água), `chao_objetos` (sob o personagem), `objetos` (árvores, casas e rochas, ordenados pelo y da base) e `colisao` (retângulos sólidos). A camada `spawn` marca o ponto de partida.
-- Tileset `vila-arte`: uma imagem por tile (recortes em `village/tiles/` e `village/props/`).
+- Tileset `vila-arte`: uma imagem por tile (recortes em `village/tiles/` e `village/props/`). A paleta traz toda a arte do catálogo, mesmo sem uso no mapa, para montar o mapa do zero.
+- Hoje o mapa está em branco: as camadas existem, mas sem nenhum tile, objeto ou colisão.
 
 O jogo lê o mapa de `src/world/village/villageMap.ts`, não deste arquivo. Para o `.tmj` refletir o código, gere de novo: `scripts/build-village-assets.py` (recortes) e depois `scripts/export-village-tiled.cjs` (ver o cabeçalho do script para compilar o TypeScript antes).
 

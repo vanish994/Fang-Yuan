@@ -81,7 +81,8 @@ A pasta `scripts/` e o arquivo `setup_spriteship_079.py` são o instalador de sk
 
 ## Mapa
 
-A cena principal é a **Vila Inicial da Montanha** (`src/world/village/villageMap.ts`): um platô gramado com falésia ao sul, casas e objetos em volta de uma praça, canteiro a oeste, lago ao sudeste e floresta densa em volta. Trilhas levam à montanha (norte), ao lago (sul e leste) e à orla oeste.
+A cena principal é a **Vila Inicial da Montanha** (`src/world/village/villageMap.ts`). Hoje o mapa está **em branco**: sem tiles, objetos nem colisões, só com o tamanho (60×44 tiles de 64 px) e o ponto de partida. A montagem começa a partir daí.
 
-- Os dados do mapa são código TypeScript (sem Phaser), e o próprio `buildVillageMap()` valida o layout (sem colisão sobre água ou falésia e sem sólidos sobrepostos).
-- Os recortes dos packs vêm de `scripts/build-village-assets.py`. Ver `public/assets/README.md`.
+- Os dados do mapa são código TypeScript (sem Phaser). O mapa anterior, gerado por procedimento, está no histórico do git.
+- Para montar o mapa no Tiled, abra `public/assets/village/vila-inicial-da-montanha.tmj`. A paleta `vila-arte` traz toda a arte do catálogo. Ver `public/assets/README.md`.
+- Os recortes dos packs vêm de `scripts/build-village-assets.py`.

@@ -24,7 +24,7 @@ const OUT = path.join(REPO, 'public/assets/village/vila-inicial-da-montanha.tmj'
 const { buildVillageMap, TILE, MAP_COLS, MAP_ROWS } = require(path.join(jsDir, 'villageMap.js'));
 const cat = require(path.join(jsDir, 'assetCatalog.js'));
 
-const map = buildVillageMap(2024);
+const map = buildVillageMap();
 
 // Tileset de arte: cada imagem usada vira um tile da coleção (gid = firstgid + id).
 const art = [];
@@ -44,11 +44,19 @@ for (const sh of cat.HARMONIOUS_SHEETS) for (const f of sh.frames) frameInfo.set
 const GROUND_FIRST = 1;
 const ART_FIRST = GROUND_FIRST + 12;
 
+// Paleta completa: toda a arte do catálogo entra na coleção, mesmo sem uso no mapa,
+// para o Tiled poder pintar o mapa do zero. Ordem fixa (ids estáveis).
+for (const sh of cat.HARMONIOUS_SHEETS) for (const f of sh.frames) artGid(HM_BASE + f.name + '.png', f.w, f.h);
+for (const [name, p] of Object.entries(cat.FEUDAL_PROPS)) artGid(FEUDAL + name + '.png', p.w, p.h);
+artGid(HM_BASE + 'lake-water.png', 32, 32);
+artGid('../tilesets/harmonious-seasons/Cliffs/Cliffs_Grass.png', 960, 480);
+artGid('../tilesets/harmonious-seasons/Water/WaterEdges/Deep_Water_Grass.png', 672, 320);
+
 let nextObj = 1;
 const newObj = (o) => ({ id: nextObj++, rotation: 0, visible: true, ...o });
 const tileData = (grid) => grid.flat().map((i) => (i < 0 ? 0 : i + GROUND_FIRST));
 
-// Imagens do platô, do lago e da água. Em objetos de tile, y é a base (borda inferior).
+// Imagens inteiras (platô, lago) e água. Em objetos de tile, y é a base (borda inferior).
 const imagesObjs = [];
 for (const im of map.images) {
   let image, w, h;
