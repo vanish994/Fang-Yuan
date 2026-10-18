@@ -36,32 +36,30 @@ for f in m.get("files", []):
         print("\t".join((p, f["sha256"], str(f["sizeBytes"]))))
 PY
 
-while IFS="$(printf '\t')" read -r rel expected_sha expected_size; do
+# Download and verify every file before changing the repository, so network or checksum
+# failures cannot leave a partial installation.
+while IFS="$(printf '\\t')" read -r rel expected_sha expected_size; do
   [ -n "$rel" ] || continue
-  target=".agents/$rel"
-  if [ -e "$target" ] || [ -L "$target" ]; then
-    echo "ERROR: target already exists; preserving it and stopping: $target" >&2
-    echo "Review the existing installation and use the official update guide before updating." >&2
-    exit 2
-  fi
-done < "$TMP_DIR/files.tsv"
-
-while IFS="$(printf '\t')" read -r rel expected_sha expected_size; do
-  [ -n "$rel" ] || continue
-  mkdir -p "$(dirname ".agents/$rel")"
-  curl -fsSL "${BASE_URL}/releases/${VERSION}/$rel" -o "$TMP_DIR/file"
-  actual_sha="$(python3 - "$TMP_DIR/file" <<'PY'
+  mkdir -p "$TMP_DIR/verified/$(dirname "$rel")"
+  curl -fsSL "${BASE_URL}/releases/${VERSION}/$rel" -o "$TMP_DIR/verified/$rel"
+  actual_sha="$(python3 - "$TMP_DIR/verified/$rel" <<'PY'
 import hashlib, sys
 print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())
 PY
 )"
-  actual_size="$(wc -c < "$TMP_DIR/file" | tr -d ' ')"
+  actual_size="$(wc -c < "$TMP_DIR/verified/$rel" | tr -d ' ')"
   if [ "$actual_sha" != "$expected_sha" ] || [ "$actual_size" != "$expected_size" ]; then
     echo "ERROR: checksum/size mismatch for $rel; refusing to install." >&2
     exit 3
   fi
-  cp "$TMP_DIR/file" ".agents/$rel"
-  echo "Installed and verified: .agents/$rel"
+  echo "Verified: $rel"
+done < "$TMP_DIR/files.tsv"
+
+while IFS="$(printf '\\t')" read -r rel expected_sha expected_size; do
+  [ -n "$rel" ] || continue
+  mkdir -p "$(dirname ".agents/$rel")"
+  cp "$TMP_DIR/verified/$rel" ".agents/$rel"
+  echo "Installed: .agents/$rel"
 done < "$TMP_DIR/files.tsv"
 
 echo "SpriteShip $VERSION skill files installed and verified."
