@@ -226,10 +226,10 @@ Essas decisões descrevem a adaptação do jogo. Ao documentar Gu adicionais, se
 
 - Fang Yuan possui uma passiva especial chamada **Cigarra da Primavera e Outono**. Ela é uma mecânica própria desta adaptação de RPG inspirada na obra; não deve ser tratada como um Gu comum equipado em um dos quatro slots.
 - **Gatilho:** quando Fang Yuan morre em combate e a passiva não está em recarga, há uma pequena chance de ativação.
-- **Sucesso:** Fang Yuan retorna à vida. A passiva entra imediatamente em uma recarga muito longa e não pode tentar ativar novamente enquanto estiver em recarga.
+- **Sucesso:** Fang Yuan retorna à vida com **50% da vida máxima**. A passiva entra imediatamente em uma recarga muito longa e não pode tentar ativar novamente enquanto estiver em recarga.
 - **Falha:** a morte é resolvida normalmente, sem ressurreição. Como a recarga foi definida para começar após uma ativação bem-sucedida, uma tentativa falha não inicia a recarga.
 - A passiva não garante sobrevivência e não substitui os sistemas normais de morte e derrota.
-- **A definir:** chance de ativação, duração exata da recarga, estado de vida e recursos ao reviver, regras de segurança contra ativações repetidas e efeitos visuais/sonoros.
+- **A definir:** chance de ativação, duração exata da recarga, estado dos demais recursos ao reviver, regras de segurança contra ativações repetidas e efeitos visuais/sonoros.
 - A ativação e a recarga devem ser resolvidas pelo motor de regras, não apenas por animações ou lógica visual.
 
 ## 7. Refinamento e receitas
