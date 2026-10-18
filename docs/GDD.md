@@ -256,6 +256,32 @@ Uma missão deve especificar:
 
 Evitar missões que sejam apenas “elimine X inimigos” quando houver oportunidade para exploração, investigação, negociação ou preparação.
 
+## 10. Interface de menu e preparação — Definido
+
+O menu principal do personagem terá abas separadas para organizar a preparação e a progressão, com navegação adequada a telas pequenas.
+
+### 10.1 Aba de Gu / Equipamento
+
+- Exibe os quatro slots funcionais de Gu equipados: **Gu de ataque ativo**, **Gu passivo**, **Gu de movimento** e **Gu de apoio**.
+- Mostra os Gu disponíveis no inventário e permite equipar ou trocar Gu **somente fora de combate**.
+- Apresenta efeitos, custos, requisitos, compatibilidade com o slot e outras condições relevantes de cada Gu antes de equipá-lo.
+- A interface deve destacar quando um slot está vazio ou quando um Gu não pode ser equipado, explicando o motivo.
+
+### 10.2 Aba de Cultivo / Avanço de Rank
+
+- Mostra o Rank e o estágio de cultivo atuais, o próximo avanço disponível e os requisitos necessários.
+- Exibe separadamente o custo em pedras primordiais e, para rupturas de Rank, os materiais específicos exigidos.
+- Antes de iniciar uma ruptura, informa a chance de sucesso conhecida e os riscos de falha conforme as regras definidas no jogo.
+- A subida de estágio ou Rank é iniciada manualmente pelo jogador; cumprir os requisitos não avança o cultivo automaticamente.
+- Não permitir iniciar um avanço quando os requisitos não forem atendidos; explicar claramente o que falta.
+- A interface não deve inventar ou ocultar valores: chances, custos e efeitos devem vir dos dados e regras autoritativos do jogo.
+
+### 10.3 Organização e uso
+
+- As abas de Gu/Equipamento e Cultivo/Avanço de Rank ficam acessíveis pelo menu do personagem.
+- A navegação deve ser simples e responsiva para uso em celular.
+- A abertura do menu não pausa automaticamente o mundo nem o combate; o comportamento exato do mundo enquanto o menu está aberto permanece **A definir**. A troca de Gu continua bloqueada durante combate.
+
 ## 11. Combate
 
 ### 11.1 Modelo principal — Definido
