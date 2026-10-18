@@ -50,8 +50,11 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = village.cols * CELL_SIZE;
     const mapHeight = village.rows * CELL_SIZE;
     registerVillageFrames(this);
-    this.buildGroundLayer(village.ground, KEYS.villageBase, 0);
-    this.buildGroundLayer(village.overlay, KEYS.villageBase, 0.2);
+    const groundLayers = [
+      this.buildGroundLayer(village.ground, KEYS.villageBase),
+      this.buildGroundLayer(village.overlay, KEYS.villageBase),
+    ];
+    this.bakeGround(groundLayers, mapWidth, mapHeight);
     for (const img of village.images) {
       this.add
         .image(img.x, img.y, img.texture, img.frame)
@@ -146,13 +149,32 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Uma camada de tiles do atlas base, com a matriz de índices dada (-1 é vazio). */
-  private buildGroundLayer(data: number[][], textureKey: string, depth: number): void {
+  private buildGroundLayer(data: number[][], textureKey: string): Phaser.Tilemaps.TilemapLayer {
     const map = this.make.tilemap({ data, tileWidth: CELL_SIZE, tileHeight: CELL_SIZE });
     const tileset = map.addTilesetImage('base', textureKey, CELL_SIZE, CELL_SIZE, 0, 0);
     if (!tileset) {
       throw new Error(`Tileset '${textureKey}' não foi carregado.`);
     }
-    map.createLayer(0, tileset, 0, 0)?.setDepth(depth);
+    // Camada de CPU (não GPU): é a que o RenderTexture.draw grava de forma confiável.
+    const layer = map.createLayer(0, tileset, 0, 0, false);
+    if (!(layer instanceof Phaser.Tilemaps.TilemapLayer)) {
+      throw new Error('Camada de chão não foi criada como TilemapLayer.');
+    }
+    return layer;
+  }
+
+  /**
+   * Grava as camadas de chão numa única textura do tamanho do mapa, em pixels nativos.
+   * Desenhar cada tile separado deixava frestas (fundo preto) entre os tiles quando a escala
+   * da tela não é inteira (celular). Uma textura só não tem essas frestas.
+   * Não há objetos entre o chão e a sobreposição, então tudo fica no depth 0.
+   */
+  private bakeGround(layers: Phaser.Tilemaps.TilemapLayer[], width: number, height: number): void {
+    const rt = this.add.renderTexture(0, 0, width, height).setOrigin(0, 0).setDepth(0);
+    rt.draw(layers, 0, 0);
+    for (const layer of layers) {
+      layer.destroy();
+    }
   }
 
   /** Retângulo sólido invisível para a colisão do personagem (corpo estático). */
