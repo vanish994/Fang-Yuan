@@ -183,15 +183,13 @@ Os slots têm funções distintas. O Gu passivo pode aumentar atributos, como a 
 
 ### 6.4 Aquisição
 
-Possíveis métodos, a confirmar por arco e por Gu:
-- recompensa narrativa;
-- compra ou troca;
-- exploração e descoberta;
-- refinamento;
-- obtenção por encontro ou missão;
-- recompensa de sistemas específicos.
+Métodos de aquisição definidos para o sistema geral:
+- **Compra na vila:** comerciantes podem vender Gu, mas os preços devem ser altos para que comprar um Gu seja uma decisão econômica importante, não uma aquisição trivial. Disponibilidade, preço por Rank e estoque ficam **A definir**.
+- **Descoberta na natureza:** Gu podem aparecer de forma aleatória em áreas exploráveis. A ocorrência deve depender da região e de regras de distribuição configuráveis, evitando que todos os Gu apareçam em qualquer lugar.
+- **Captura estratégica:** alguns Gu encontrados na natureza podem perceber a aproximação de Fang Yuan e fugir ou se afastar antes de serem capturados. Nesses encontros, o jogador precisará observar o comportamento do Gu e usar posicionamento, escolha de rota, terreno e habilidades apropriadas para tentar alcançá-lo. Nem todo Gu selvagem precisa fugir; o comportamento deve variar conforme a espécie e o encontro.
+- **Outros métodos:** recompensas narrativas, refinamento, missões e encontros especiais podem fornecer Gu específicos.
 
-Evitar que todos os Gu sejam simplesmente capturados após uma luta; os métodos devem respeitar a natureza de cada Gu no universo.
+Os Gu selvagens devem ser tratados como encontros de exploração, não como itens que entram automaticamente no inventário ao tocar neles. O método de captura, as condições de sucesso e as diferenças por tipo de Gu serão definidos individualmente. Distinguir sempre as regras canônicas da obra das adaptações criadas para a jogabilidade.
 
 
 ### 6.5 Gu iniciais e aquisição na campanha — Proposta definida para o início
