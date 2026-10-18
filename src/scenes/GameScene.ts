@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 import {
   BUTTON_COLORS,
   COLORS,
-  GAME_HEIGHT,
-  GAME_WIDTH,
   TOUCH_BUTTONS,
   WORLD_ZOOM,
 } from '../config/gameConfig';
