@@ -122,7 +122,7 @@ Os materiais exigidos devem fazer sentido para o Rank e para a ambientação, po
 - Recompensas devem considerar risco, dificuldade e esforço; não criar uma fonte repetível e ilimitada que torne o cultivo trivial.
 - A economia precisa equilibrar o gasto de pedras no cultivo com seu uso como moeda de troca.
 - **A ruptura é uma ação manual:** cumprir os requisitos não avança o personagem automaticamente; o jogador escolhe quando iniciar a tentativa.
-- **A tentativa de ruptura tem chance de falha.** A fórmula e os fatores que influenciam a chance (por exemplo, aptidão, Rank ou preparação) ainda são **A definir**; não presumir valores nem implementar uma fórmula arbitrária.
+- **A tentativa de ruptura tem chance de falha.** A chance depende de fatores permanentes do personagem e da preparação usada para a tentativa, com fatores exatos e fórmula ainda **A definir**. **Cada tentativa é independente das anteriores:** falhas passadas não aumentam nem reduzem a chance de sucesso da próxima tentativa. Não presumir valores nem implementar uma fórmula arbitrária.
 - **Falha na ruptura:** as pedras primordiais investidas na tentativa são perdidas. Além disso, existe uma chance de perder os materiais especiais usados na ruptura. A probabilidade de perda dos materiais e se ela varia por Rank permanecem **A definir**.
 - Não adicionar outras penalidades à falha sem uma decisão de design explícita.
 - Em caso de sucesso, o personagem avança para o estágio Inicial do Rank seguinte.
