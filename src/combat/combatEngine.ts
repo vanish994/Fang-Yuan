@@ -2,6 +2,8 @@ import { COMBAT_CONFIG, GU_CATALOG, GU_SLOTS, STARTING_EQUIPMENT, type CombatSet
 import type { ActionResult, CombatEvent, Direction, Enemy, GuId, GuSlot, Point } from './types';
 import { AgentBrain } from '../agents/agentBrain';
 import type { MobDefinition } from './mobCatalog';
+import type { CultivationState } from '../entities/cultivation';
+import { cultivationCombatStats, type CultivationCombatStats } from '../entities/cultivationCombat';
 
 const vectors: Record<Direction, Point> = {
   up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
@@ -17,7 +19,6 @@ interface Projectile {
 export class CombatEngine {
   readonly enemies = new Map<string, Enemy>();
   readonly equipment: Record<GuSlot, GuId | null> = { ...STARTING_EQUIPMENT };
-  // Apenas para experimentar os slots no protótipo; não equivale a obtenção na história.
   readonly testInventory = new Set<GuId>(Object.keys(GU_CATALOG) as GuId[]);
   readonly hero: Point & { health: number; maxHealth: number; alive: boolean };
   essence: number;
@@ -25,6 +26,7 @@ export class CombatEngine {
   autoTarget = false;
   combatUntil = 0;
   speedBonusUntil = 0;
+  private cultivationStats: CultivationCombatStats;
   private readonly cooldowns = new Map<string, number>();
   private readonly projectiles: Projectile[] = [];
   private readonly processedHits = new Set<string>();
@@ -35,10 +37,25 @@ export class CombatEngine {
   private readonly enemyStats = new Map<string, CombatSettings['enemy']>();
   private readonly roaming = new Set<string>();
 
-  constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0) {
-    this.hero = { x, y, health: config.hero.maxHealth, maxHealth: config.hero.maxHealth, alive: true };
-    this.essence = config.hero.maxEssence;
+  constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0,
+    cultivation?: CultivationState) {
+    this.cultivationStats = cultivationCombatStats(cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} });
+    this.hero = { x, y, health: this.cultivationStats.maxHealth, maxHealth: this.cultivationStats.maxHealth, alive: true };
+    this.essence = this.cultivationStats.maxEssence;
   }
+
+  /** Atualiza os atributos derivados do cultivo sem reiniciar a sessão de combate. */
+  applyCultivation(state: CultivationState): void {
+    const previousRatio = this.hero.maxHealth > 0 ? this.hero.health / this.hero.maxHealth : 1;
+    this.cultivationStats = cultivationCombatStats(state);
+    this.hero.maxHealth = this.cultivationStats.maxHealth;
+    this.hero.health = this.hero.alive
+      ? Math.max(1, Math.min(this.hero.maxHealth, Math.round(this.hero.maxHealth * previousRatio)))
+      : 0;
+    this.essence = Math.min(this.cultivationStats.maxEssence, this.essence);
+  }
+
+  get attack(): number { return this.cultivationStats.attack; }
 
   addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
     mob?: Readonly<MobDefinition>): Enemy {
@@ -58,7 +75,6 @@ export class CombatEngine {
     return enemy;
   }
 
-  /** Descarrega somente encontros da área, preservando vida, essência, equipamento e recompensas da sessão. */
   clearAreaEnemies(): void {
     this.enemies.clear();
     this.agentBrains.clear();
@@ -75,7 +91,7 @@ export class CombatEngine {
   }
 
   get defense(): number {
-    return this.config.hero.defense + (this.equipment.passive === 'stone-skin' ? this.config.stoneSkin.defenseBonus : 0);
+    return this.cultivationStats.defense + (this.equipment.passive === 'stone-skin' ? this.config.stoneSkin.defenseBonus : 0);
   }
   get essenceRegen(): number {
     return this.config.hero.baseEssenceRegenPerSecond +
@@ -143,7 +159,7 @@ export class CombatEngine {
     }
     if (this.cooldownRemaining('basic', now)) return deny('Ataque em recarga.');
     this.cooldowns.set('basic', now + this.config.basic.cooldownMs);
-    return { ok: true, events: this.damageEnemy(enemy, this.config.basic.damage, now) };
+    return { ok: true, events: this.damageEnemy(enemy, this.attack, now) };
   }
 
   castMoonlight(now: number, direction: Direction): ActionResult {
@@ -157,7 +173,6 @@ export class CombatEngine {
     return { ok: true, events: [{ type: 'moonlight', x: this.hero.x, y: this.hero.y - 12 }] };
   }
 
-  /** Movimento instantâneo pelo corredor livre, sem atravessar floresta ou acumular bônus. */
   dash(now: number, direction: Direction, isFree: (x: number, y: number) => boolean): ActionResult {
     if (!this.hero.alive || this.equipment.movement !== 'whirlwind') return deny('Equipe o Gu de movimento.');
     if (this.cooldownRemaining('dash', now)) return deny('Dash em recarga.');
@@ -179,7 +194,6 @@ export class CombatEngine {
     return { ok: true, events: [{ type: 'dash', x: from.x, y: from.y }] };
   }
 
-  /** Mesmo golpe letal, mesma ID: processado no máximo uma vez, inclusive na ressurreição. */
   hitHero(amount: number, now: number, hitId: string, random: () => number = Math.random): CombatEvent[] {
     if (!this.hero.alive || this.processedHits.has(hitId)) return [];
     this.processedHits.add(hitId);
@@ -203,11 +217,11 @@ export class CombatEngine {
     return events;
   }
 
-  /** Fluxo provisório de retorno; penalidade por morte ainda não tem valor aprovado. */
   respawn(x: number, y: number): boolean {
     if (this.hero.alive) return false;
     this.hero.x = x; this.hero.y = y;
     this.hero.health = this.hero.maxHealth;
+    this.essence = this.cultivationStats.maxEssence;
     this.hero.alive = true;
     this.combatUntil = 0;
     this.speedBonusUntil = 0;
@@ -218,9 +232,8 @@ export class CombatEngine {
 
   tick(now: number, deltaMs: number, isFree: (x: number, y: number) => boolean = () => true): CombatEvent[] {
     const dt = Math.max(0, Math.min(deltaMs, 100)) / 1000;
-    if (this.hero.alive) this.essence = Math.min(this.config.hero.maxEssence, this.essence + this.essenceRegen * dt);
+    if (this.hero.alive) this.essence = Math.min(this.cultivationStats.maxEssence, this.essence + this.essenceRegen * dt);
     const events: CombatEvent[] = [];
-    // Varredura de segmento: hitbox mecânica não depende do frame desenhado.
     for (const projectile of [...this.projectiles]) {
       const v = vectors[projectile.direction];
       const desired = Math.min(this.config.moonlight.speed * dt, this.config.moonlight.range - projectile.traveled);
@@ -244,7 +257,7 @@ export class CombatEngine {
       for (const { enemy } of hits) {
         projectile.hit.add(enemy.id);
         events.push(...this.damageEnemy(enemy, this.config.moonlight.damage, now));
-        if (enemy.alive) { stopped = true; break; } // Cadáver atravessado; primeiro sobrevivente bloqueia.
+        if (enemy.alive) { stopped = true; break; }
       }
       projectile.x += v.x * step; projectile.y += v.y * step; projectile.traveled += step;
       if (stopped || blocked || projectile.traveled >= this.config.moonlight.range) {
@@ -252,8 +265,6 @@ export class CombatEngine {
       }
     }
     if (!this.hero.alive) return events;
-    // Alertas são compartilhados pelos agentes de grupo; dano e recarga continuam
-    // sendo julgados exclusivamente por este motor (nunca pela IA).
     const packAlert = [...this.enemies.values()].some(enemy => enemy.alive
       && this.agentBrains.get(enemy.id)?.traits.pack
       && distance(enemy, this.hero) <= this.enemyStats.get(enemy.id)!.aggroRange)
