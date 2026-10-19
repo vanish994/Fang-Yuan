@@ -1,34 +1,67 @@
-# Balanceamento inicial — cultivo de Fang Yuan
+# Balanceamento de Fang Yuan
 
-**Estado: provisório para este protótipo e aplicado em `src/entities/cultivationBalance.ts`.** Valores podem ser aprimorados em revisões futuras. Não há XP nem níveis. O estado-base de Fang Yuan é **Rank 1, estágio Inicial, com 0 pedras espirituais e sem materiais**; a campanha jogável recebe um crédito único de **1.000.000 de pedras espirituais de teste** por save, sem alterar a essência primordial.
+**Estado: v0.2 em implementação.** O balanceamento é responsabilidade do projeto e deve ser aplicado no código, não apenas documentado. O GDD continua sendo a fonte das regras de design; estes números são valores de gameplay e podem ser recalibrados após playtest.
 
-Os números abaixo são os custos e probabilidades ativos no motor de cultivo. As colunas Inicial→Médio, Médio→Superior e Superior→Pico são **custos em pedras espirituais**. A coluna Pico→Rank seguinte é o custo de pedras para uma ruptura, além dos materiais. O Rank 9 Pico é o limite.
+Não há XP nem níveis. O cultivo usa exatamente **9 Ranks × 4 estágios**: Inicial, Médio, Superior e Pico. O Rank 9 Pico é o limite. Os custos de cultivo ativos permanecem os definidos na implementação atual; esta versão adiciona a curva de poder e a primeira calibração de combate.
 
-| Rank atual | Inicial→Médio | Médio→Superior | Superior→Pico | Pico→próximo Rank | Materiais exigidos* | Sucesso da ruptura | Perda por tipo de material na falha |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 20 | 35 | 55 | 90 | 1 | 80% | 10% |
-| 2 | 45 | 75 | 115 | 180 | 2 | 75% | 15% |
-| 3 | 90 | 150 | 230 | 360 | 3 | 70% | 20% |
-| 4 | 180 | 300 | 460 | 720 | 4 | 65% | 25% |
-| 5 | 360 | 600 | 920 | 1.440 | 5 | 60% | 30% |
-| 6 | 720 | 1.200 | 1.840 | 2.880 | 6 | 55% | 35% |
-| 7 | 1.440 | 2.400 | 3.680 | 5.760 | 7 | 50% | 40% |
-| 8 | 2.880 | 4.800 | 7.360 | 11.520 | 8 | 45% | 45% |
-| 9 | 5.760 | 9.600 | 14.720 | — | — | — | — |
+## Curva de poder — 36 estágios
 
-\*Quantidade total por Rank aprovada para o protótipo. Os tipos de item e inimigos que os deixam cair **ainda não estão definidos**: `ruptura-rank-N` é somente um ID técnico neutro, sem item canônico ou fonte no mapa. Cada tipo exigido tem seu próprio sorteio de perda se a ruptura falhar.
+`power` é relativo a Rank 1 Inicial = 1,00. Não é XP nem um atributo visível ao jogador. Serve como orçamento para converter Rank/estágio em atributos quando a ficha de combate aplicar o cultivo.
 
-## Regras definidas
+| Rank | Inicial | Médio | Superior | Pico |
+|---|---:|---:|---:|---:|
+| 1 | 1,00 | 1,08 | 1,16 | 1,25 |
+| 2 | 1,38 | 1,48 | 1,59 | 1,72 |
+| 3 | 1,90 | 2,04 | 2,19 | 2,35 |
+| 4 | 2,60 | 2,78 | 2,97 | 3,18 |
+| 5 | 3,50 | 3,75 | 4,02 | 4,30 |
+| 6 | 4,75 | 5,10 | 5,45 | 5,85 |
+| 7 | 6,45 | 6,90 | 7,35 | 7,85 |
+| 8 | 8,70 | 9,30 | 9,90 | 10,55 |
+| 9 | 11,70 | 12,50 | 13,30 | 14,20 |
 
-- São 9 Ranks com 4 estágios: Inicial, Médio, Superior, Pico. Sem XP/nível.
-- A moeda do cultivo se chama **pedras espirituais**; é o mesmo recurso anteriormente chamado de pedras primordiais, não uma segunda moeda.
-- Subir de estágio consome pedras espirituais; estágios superiores exigem mais.
-- Passar de Pico ao próximo Rank exige pedras e materiais de inimigos e pode falhar.
-- Na falha, as pedras investidas são sempre perdidas. A perda de **cada tipo** de material é sorteada separadamente. Tentativas não recebem bônus por falhas anteriores.
-- **Fontes futuras das pedras espirituais:** drop direto de inimigos e troca dos itens dropados pelos inimigos por pedras. Ainda não há taxas de drop, itens aceitos nem valores de troca definidos.
+A implementação está em `src/entities/cultivationPower.ts` e possui teste cobrindo os 36 estados.
 
-## O que ainda falta no mundo
+## Combate v0.2
 
-O motor já está ligado à ficha: exibe o próximo custo, recursos possuídos, chance e motivo do bloqueio; o botão só permite avanço quando há recursos. O crédito de teste é gravado junto com o saldo e com uma marca de concessão, para não reaparecer após gastar ou recarregar. Ele **não é um drop nem uma nova moeda**. Criaturas de teste deixam pedras e material de ruptura do Rank 1; a troca de drops por pedras e fontes de materiais dos Ranks superiores ainda não foram implementadas. Por isso, muitas pedras permitem testar os estágios, mas não removem a exigência de materiais para rupturas. A progressão é salva localmente no navegador, sem servidor. O sprite do Mar Primordial está disponível apenas na aba Avanço e representa a essência primordial, um recurso diferente das pedras espirituais.
+Objetivo: **difícil, mas justo**. O jogador deve morrer por decisão, posicionamento ou falta de preparação — não por números impossíveis.
 
-> O GDD em `docs/GDD-ATUALIZADO.md` foi atualizado para refletir a decisão de cultivar sem XP e distinguir os valores aprovados para o protótipo das regras canônicas.
+- Fang Yuan R1 Inicial: 100 HP, 2 DEF, ataque básico 14, Gu da Lua 26.
+- Ataque básico: 600 ms de recarga, alcance 62 px.
+- Gu da Lua: 26 de dano, 16 de essência, 1.800 ms de recarga.
+- Fauna Tier 1 continua sendo a porta de entrada; animais comuns devem cair em poucos golpes.
+- Tier 2 exige preparação e posicionamento.
+- Tier 3 já deve exigir domínio do combate, Gu e/ou vantagem de terreno.
+- Chefes não podem ter defesa maior que o dano do ataque básico de R1 sem uma mecânica explícita que explique isso. A primeira calibração reduz HP/DEF dos chefes para evitar o estado anterior em que o dano básico ficava efetivamente em 1.
+- Habilidades de chefe ainda são marcadas como planejadas no catálogo; portanto, os valores atuais não fingem que essas mecânicas já existem.
+
+### TTK de referência
+
+Considerando o dano atual como `max(1, ataque - defesa)`, a referência de balanceamento é:
+
+- Tier 1: aproximadamente 3–10 ataques básicos.
+- Tier 2: aproximadamente 10–25 ataques básicos.
+- Tier 3: aproximadamente 30–50 ataques básicos.
+- Chefes: dezenas de ataques básicos, mas com Gu, posicionamento e futuras fases/mecânicas reduzindo o tempo real de combate. Nenhum chefe deve virar uma luta de vários minutos baseada somente em HP.
+
+## Cultivo e economia
+
+Os custos atuais continuam:
+
+| Rank | Inicial→Médio | Médio→Superior | Superior→Pico | Ruptura |
+|---|---:|---:|---:|---:|
+| 1 | 20 | 35 | 55 | 90 |
+| 2 | 45 | 75 | 115 | 180 |
+| 3 | 90 | 150 | 230 | 360 |
+| 4 | 180 | 300 | 460 | 720 |
+| 5 | 360 | 600 | 920 | 1.440 |
+| 6 | 720 | 1.200 | 1.840 | 2.880 |
+| 7 | 1.440 | 2.400 | 3.680 | 5.760 |
+| 8 | 2.880 | 4.800 | 7.360 | 11.520 |
+| 9 | 5.760 | 9.600 | 14.720 | — |
+
+As chances e materiais de ruptura permanecem como estão no motor até um playtest específico de economia. A próxima etapa do balanceamento é substituir os IDs técnicos `ruptura-rank-N` por materiais obtidos de criaturas/áreas e medir renda por hora, custo por avanço e risco de morte.
+
+## Regra de trabalho
+
+Não vamos inflar HP/DEF para criar dificuldade. Toda alteração deve ser validada contra TTK, dano recebido, custo em essência, disponibilidade de recursos, risco/recompensa e progressão de Rank. Depois dos testes de combate, a economia será recalibrada para que a progressão seja exigente sem virar grind vazio.
