@@ -3,6 +3,7 @@ import type { ActionResult, CombatEvent, Direction, Enemy, GuId, GuSlot, Point }
 import { AgentBrain } from '../agents/agentBrain';
 import type { MobDefinition } from './mobCatalog';
 import type { CultivationState } from '../entities/cultivation';
+import { CharacterCultivation } from '../entities/characterCultivation';
 import { cultivationCombatStats, type CultivationCombatStats } from '../entities/cultivationCombat';
 
 const vectors: Record<Direction, Point> = {
@@ -15,7 +16,6 @@ interface Projectile {
   x: number; y: number; direction: Direction; traveled: number; hit: Set<string>;
 }
 
-/** Regras independentes de Phaser, de sprites e da camada visual. Tempos em milissegundos. */
 export class CombatEngine {
   readonly enemies = new Map<string, Enemy>();
   readonly equipment: Record<GuSlot, GuId | null> = { ...STARTING_EQUIPMENT };
@@ -27,6 +27,7 @@ export class CombatEngine {
   combatUntil = 0;
   speedBonusUntil = 0;
   private cultivationStats: CultivationCombatStats;
+  private readonly unsubscribeCultivation: () => void;
   private readonly cooldowns = new Map<string, number>();
   private readonly projectiles: Projectile[] = [];
   private readonly processedHits = new Set<string>();
@@ -42,9 +43,9 @@ export class CombatEngine {
     this.cultivationStats = cultivationCombatStats(cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} });
     this.hero = { x, y, health: this.cultivationStats.maxHealth, maxHealth: this.cultivationStats.maxHealth, alive: true };
     this.essence = this.cultivationStats.maxEssence;
+    this.unsubscribeCultivation = CharacterCultivation.subscribe(state => this.applyCultivation(state));
   }
 
-  /** Atualiza os atributos derivados do cultivo sem reiniciar a sessão de combate. */
   applyCultivation(state: CultivationState): void {
     const previousRatio = this.hero.maxHealth > 0 ? this.hero.health / this.hero.maxHealth : 1;
     this.cultivationStats = cultivationCombatStats(state);
@@ -55,6 +56,7 @@ export class CombatEngine {
     this.essence = Math.min(this.cultivationStats.maxEssence, this.essence);
   }
 
+  destroy(): void { this.unsubscribeCultivation(); }
   get attack(): number { return this.cultivationStats.attack; }
 
   addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
@@ -76,19 +78,12 @@ export class CombatEngine {
   }
 
   clearAreaEnemies(): void {
-    this.enemies.clear();
-    this.agentBrains.clear();
-    this.enemyHomes.clear();
-    this.enemyStats.clear();
-    this.roaming.clear();
-    this.projectiles.length = 0;
-    this.selectedId = null;
-    this.combatUntil = 0;
+    this.enemies.clear(); this.agentBrains.clear(); this.enemyHomes.clear();
+    this.enemyStats.clear(); this.roaming.clear(); this.projectiles.length = 0;
+    this.selectedId = null; this.combatUntil = 0;
   }
 
-  agentMemory(id: string): Readonly<AgentBrain['memory']> | null {
-    return this.agentBrains.get(id)?.memory ?? null;
-  }
+  agentMemory(id: string): Readonly<AgentBrain['memory']> | null { return this.agentBrains.get(id)?.memory ?? null; }
 
   get defense(): number {
     return this.cultivationStats.defense + (this.equipment.passive === 'stone-skin' ? this.config.stoneSkin.defenseBonus : 0);
@@ -105,8 +100,7 @@ export class CombatEngine {
 
   select(id: string | null): boolean {
     if (id && !this.enemies.get(id)?.alive) return false;
-    this.selectedId = id;
-    return true;
+    this.selectedId = id; return true;
   }
   get target(): Enemy | null {
     const manual = this.selectedId ? this.enemies.get(this.selectedId) : null;
@@ -122,26 +116,22 @@ export class CombatEngine {
       return deny('Gu incompatível ou indisponível.');
     if (id && Object.entries(this.equipment).some(([key, value]) => key !== slot && value === id))
       return deny('Gu já equipado.');
-    this.equipment[slot] = id;
-    return { ok: true, events: [] };
+    this.equipment[slot] = id; return { ok: true, events: [] };
   }
 
   private damageEnemy(enemy: Enemy, amount: number, now: number): CombatEvent[] {
     if (!enemy.alive) return [];
     const damage = Math.min(enemy.health, Math.max(1, Math.floor(amount - enemy.defense)));
-    enemy.health -= damage;
-    this.engage(now);
+    enemy.health -= damage; this.engage(now);
     const events: CombatEvent[] = [{ type: 'damage', targetId: enemy.id, amount: damage, x: enemy.x, y: enemy.y }];
     if (enemy.health <= 0) {
       enemy.alive = false;
       if (this.selectedId === enemy.id) this.selectedId = null;
       events.push({ type: 'defeat', targetId: enemy.id, x: enemy.x, y: enemy.y });
       if (!enemy.rewarded && !this.processedRewards.has(enemy.id)) {
-        enemy.rewarded = true;
-        this.processedRewards.add(enemy.id);
+        enemy.rewarded = true; this.processedRewards.add(enemy.id);
         events.push({ type: 'reward', targetId: enemy.id, stoneReward: this.config.enemy.lootStones,
-          materialId: this.config.enemy.lootMaterialId,
-          materialQuantity: this.config.enemy.lootMaterialQuantity });
+          materialId: this.config.enemy.lootMaterialId, materialQuantity: this.config.enemy.lootMaterialQuantity });
       }
     }
     return events;
@@ -168,8 +158,7 @@ export class CombatEngine {
     if (this.essence < this.config.moonlight.essenceCost) return deny('Essência primordial insuficiente.');
     this.essence -= this.config.moonlight.essenceCost;
     this.cooldowns.set('moonlight', now + this.config.moonlight.cooldownMs);
-    this.engage(now);
-    this.projectiles.push({ x: this.hero.x, y: this.hero.y - 12, traveled: 0, direction, hit: new Set() });
+    this.engage(now); this.projectiles.push({ x: this.hero.x, y: this.hero.y - 12, traveled: 0, direction, hit: new Set() });
     return { ok: true, events: [{ type: 'moonlight', x: this.hero.x, y: this.hero.y - 12 }] };
   }
 
@@ -177,57 +166,38 @@ export class CombatEngine {
     if (!this.hero.alive || this.equipment.movement !== 'whirlwind') return deny('Equipe o Gu de movimento.');
     if (this.cooldownRemaining('dash', now)) return deny('Dash em recarga.');
     if (this.essence < this.config.movement.essenceCost) return deny('Essência primordial insuficiente.');
-    const v = vectors[direction];
-    let traveled = 0;
+    const v = vectors[direction]; let traveled = 0;
     for (let d = 4; d <= this.config.movement.distance; d += 4) {
-      if (!isFree(this.hero.x + v.x * d, this.hero.y + v.y * d)) break;
-      traveled = d;
+      if (!isFree(this.hero.x + v.x * d, this.hero.y + v.y * d)) break; traveled = d;
     }
     if (traveled === 0) return deny('Caminho bloqueado.');
-    const from = { ...this.hero };
-    this.hero.x += v.x * traveled;
-    this.hero.y += v.y * traveled;
-    this.essence -= this.config.movement.essenceCost;
-    this.cooldowns.set('dash', now + this.config.movement.cooldownMs);
-    this.speedBonusUntil = now + this.config.movement.speedBonusMs;
-    this.engage(now);
+    const from = { ...this.hero }; this.hero.x += v.x * traveled; this.hero.y += v.y * traveled;
+    this.essence -= this.config.movement.essenceCost; this.cooldowns.set('dash', now + this.config.movement.cooldownMs);
+    this.speedBonusUntil = now + this.config.movement.speedBonusMs; this.engage(now);
     return { ok: true, events: [{ type: 'dash', x: from.x, y: from.y }] };
   }
 
   hitHero(amount: number, now: number, hitId: string, random: () => number = Math.random): CombatEvent[] {
     if (!this.hero.alive || this.processedHits.has(hitId)) return [];
-    this.processedHits.add(hitId);
-    this.recentHits.push(hitId);
+    this.processedHits.add(hitId); this.recentHits.push(hitId);
     if (this.recentHits.length > 512) this.processedHits.delete(this.recentHits.shift()!);
     const damage = Math.min(this.hero.health, Math.max(1, Math.floor(amount - this.defense)));
-    this.hero.health -= damage;
-    this.engage(now);
+    this.hero.health -= damage; this.engage(now);
     const events: CombatEvent[] = [{ type: 'damage', targetId: 'hero', amount: damage, x: this.hero.x, y: this.hero.y }];
     if (this.hero.health <= 0) {
       if (!this.cooldownRemaining('cicada', now) && random() < this.config.cicada.chance) {
         this.hero.health = Math.max(1, Math.ceil(this.hero.maxHealth * this.config.cicada.restoredHealthRatio));
         this.cooldowns.set('cicada', now + this.config.cicada.cooldownMs);
         events.push({ type: 'resurrect', targetId: 'hero', x: this.hero.x, y: this.hero.y });
-      } else {
-        this.hero.health = 0;
-        this.hero.alive = false;
-        events.push({ type: 'hero-death', targetId: 'hero', x: this.hero.x, y: this.hero.y });
-      }
+      } else { this.hero.health = 0; this.hero.alive = false; events.push({ type: 'hero-death', targetId: 'hero', x: this.hero.x, y: this.hero.y }); }
     }
     return events;
   }
 
   respawn(x: number, y: number): boolean {
     if (this.hero.alive) return false;
-    this.hero.x = x; this.hero.y = y;
-    this.hero.health = this.hero.maxHealth;
-    this.essence = this.cultivationStats.maxEssence;
-    this.hero.alive = true;
-    this.combatUntil = 0;
-    this.speedBonusUntil = 0;
-    this.selectedId = null;
-    this.projectiles.length = 0;
-    return true;
+    this.hero.x = x; this.hero.y = y; this.hero.health = this.hero.maxHealth; this.essence = this.cultivationStats.maxEssence;
+    this.hero.alive = true; this.combatUntil = 0; this.speedBonusUntil = 0; this.selectedId = null; this.projectiles.length = 0; return true;
   }
 
   tick(now: number, deltaMs: number, isFree: (x: number, y: number) => boolean = () => true): CombatEvent[] {
@@ -237,13 +207,10 @@ export class CombatEngine {
     for (const projectile of [...this.projectiles]) {
       const v = vectors[projectile.direction];
       const desired = Math.min(this.config.moonlight.speed * dt, this.config.moonlight.range - projectile.traveled);
-      let step = desired;
-      let blocked = false;
+      let step = desired; let blocked = false;
       for (let d = 4; d <= desired + 3; d += 4) {
         const sample = Math.min(d, desired);
-        if (!isFree(projectile.x + v.x * sample, projectile.y + 12 + v.y * sample)) {
-          step = Math.max(0, sample - 4); blocked = true; break;
-        }
+        if (!isFree(projectile.x + v.x * sample, projectile.y + 12 + v.y * sample)) { step = Math.max(0, sample - 4); blocked = true; break; }
       }
       const hits = [...this.enemies.values()].filter(enemy => enemy.alive && !projectile.hit.has(enemy.id))
         .map(enemy => {
@@ -255,63 +222,41 @@ export class CombatEngine {
         .sort((a, b) => a.along - b.along || a.enemy.id.localeCompare(b.enemy.id));
       let stopped = false;
       for (const { enemy } of hits) {
-        projectile.hit.add(enemy.id);
-        events.push(...this.damageEnemy(enemy, this.config.moonlight.damage, now));
+        projectile.hit.add(enemy.id); events.push(...this.damageEnemy(enemy, this.config.moonlight.damage, now));
         if (enemy.alive) { stopped = true; break; }
       }
       projectile.x += v.x * step; projectile.y += v.y * step; projectile.traveled += step;
-      if (stopped || blocked || projectile.traveled >= this.config.moonlight.range) {
-        this.projectiles.splice(this.projectiles.indexOf(projectile), 1);
-      }
+      if (stopped || blocked || projectile.traveled >= this.config.moonlight.range) this.projectiles.splice(this.projectiles.indexOf(projectile), 1);
     }
     if (!this.hero.alive) return events;
-    const packAlert = [...this.enemies.values()].some(enemy => enemy.alive
-      && this.agentBrains.get(enemy.id)?.traits.pack
-      && distance(enemy, this.hero) <= this.enemyStats.get(enemy.id)!.aggroRange)
-      ? { x: this.hero.x, y: this.hero.y } : null;
-    const packLosses = [...this.enemies.values()].filter(enemy => !enemy.alive
-      && this.agentBrains.get(enemy.id)?.traits.pack).length;
+    const packAlert = [...this.enemies.values()].some(enemy => enemy.alive && this.agentBrains.get(enemy.id)?.traits.pack
+      && distance(enemy, this.hero) <= this.enemyStats.get(enemy.id)!.aggroRange) ? { x: this.hero.x, y: this.hero.y } : null;
+    const packLosses = [...this.enemies.values()].filter(enemy => !enemy.alive && this.agentBrains.get(enemy.id)?.traits.pack).length;
     for (const enemy of this.enemies.values()) {
       if (!enemy.alive) continue;
-      const stats = this.enemyStats.get(enemy.id)!;
-      const brain = this.agentBrains.get(enemy.id)!;
-      const decision = brain.decide(now, { self: enemy, home: this.enemyHomes.get(enemy.id)!,
-        healthRatio: enemy.health / enemy.maxHealth, player: this.hero,
-        packAlert: brain.traits.pack ? packAlert : null,
-        alliesFallen: brain.traits.pack ? packLosses : 0 });
+      const stats = this.enemyStats.get(enemy.id)!; const brain = this.agentBrains.get(enemy.id)!;
+      const decision = brain.decide(now, { self: enemy, home: this.enemyHomes.get(enemy.id)!, healthRatio: enemy.health / enemy.maxHealth,
+        player: this.hero, packAlert: brain.traits.pack ? packAlert : null, alliesFallen: brain.traits.pack ? packLosses : 0 });
       if (decision.action === 'attack' || decision.action === 'chase') this.engage(now);
       if (decision.action === 'attack') {
         if (now - enemy.lastAttackAt < stats.attackCooldownMs) continue;
-        enemy.lastAttackAt = now;
-        const strike = this.hitHero(stats.damage, now, `${enemy.id}:${now}`);
-        events.push(...strike);
-        if (strike.some(event => event.type === 'resurrect' || event.type === 'hero-death')) break;
-        continue;
+        enemy.lastAttackAt = now; const strike = this.hitHero(stats.damage, now, `${enemy.id}:${now}`); events.push(...strike);
+        if (strike.some(event => event.type === 'resurrect' || event.type === 'hero-death')) break; continue;
       }
-      let target = decision.target;
-      let stoppingDistance = decision.action === 'chase' ? stats.attackRange : 2;
+      let target = decision.target; let stoppingDistance = decision.action === 'chase' ? stats.attackRange : 2;
       if (decision.action === 'flee' && target) {
         const awayX = target.x - enemy.x, awayY = target.y - enemy.y;
-        target = { x: enemy.x + awayX * 128, y: enemy.y + awayY * 128 };
-        stoppingDistance = 0;
+        target = { x: enemy.x + awayX * 128, y: enemy.y + awayY * 128 }; stoppingDistance = 0;
       }
       if (decision.action === 'wander' && this.roaming.has(enemy.id) && decision.direction) {
-        const v = vectors[decision.direction];
-        target = { x: enemy.x + v.x * stats.speed * dt * 0.4,
-          y: enemy.y + v.y * stats.speed * dt * 0.4 };
-        if (distance(target, this.enemyHomes.get(enemy.id)!) > 32) {
-          brain.stop(); continue;
-        }
-        stoppingDistance = 0;
+        const v = vectors[decision.direction]; target = { x: enemy.x + v.x * stats.speed * dt * 0.4, y: enemy.y + v.y * stats.speed * dt * 0.4 };
+        if (distance(target, this.enemyHomes.get(enemy.id)!) > 32) { brain.stop(); continue; } stoppingDistance = 0;
       }
       if (!target) continue;
-      const gap = distance(enemy, target);
-      if (gap <= stoppingDistance) continue;
+      const gap = distance(enemy, target); if (gap <= stoppingDistance) continue;
       const step = Math.min(stats.speed * dt, gap - stoppingDistance);
-      const nx = enemy.x + (target.x - enemy.x) / gap * step;
-      const ny = enemy.y + (target.y - enemy.y) / gap * step;
-      if (isFree(nx, ny)) { enemy.x = nx; enemy.y = ny; }
-      else brain.stop();
+      const nx = enemy.x + (target.x - enemy.x) / gap * step, ny = enemy.y + (target.y - enemy.y) / gap * step;
+      if (isFree(nx, ny)) { enemy.x = nx; enemy.y = ny; } else brain.stop();
     }
     return events;
   }
