@@ -23,7 +23,10 @@ const session = moduleURL('entities/characterCultivation', {
 const intent = moduleURL('ui/advanceIntent');
 const sea = moduleURL('ui/primordialSea');
 const combatConfig = moduleURL('combat/combatConfig');
-const combatEngine = moduleURL('combat/combatEngine', { './combatConfig': combatConfig });
+const agentBrain = moduleURL('agents/agentBrain');
+const combatEngine = moduleURL('combat/combatEngine', {
+  './combatConfig': combatConfig, '../agents/agentBrain': agentBrain,
+});
 const sheet = moduleURL('ui/characterSheet', {
   '../entities/characterProfile': profile,
   '../entities/cultivationBalance': balance,

@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import {
-  AREA_SIZE, CHUNK_SIZE, TILE_SIZE, TILES_PER_SIDE, WORLD_SIZE,
-  buildGroundChunk, buildForestTrees, canTraverseTiles, isSolidForestTile,
-  isWalkableTile, walkableDestination, type GroundLayer,
-} from './world/qingMaoGround';
+import { TILE_SIZE, WORLD_SIZE } from './world/qingMaoGround';
+import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaMobDefinitions, areaNpcDefinitions,
+  type AreaId, type Side } from './world/initialWorld';
+import { generateArea, type GeneratedArea } from './world/areaGenerator';
+import { renderArea } from './world/areaRenderer';
 import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigation';
 import { FangYuan, registerWalkAnimations, WALK_SPEED } from './entities/FangYuan';
 import { directionVector, shouldTurnForSegment, type CardinalDirection } from './entities/directions';
@@ -13,12 +13,13 @@ import { CombatEngine } from './combat/combatEngine';
 import { TEST_ENEMY_OFFSETS } from './combat/combatConfig';
 import type { ActionResult, CombatEvent, Direction } from './combat/types';
 import { CombatHUD } from './ui/combatHUD';
+import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
-
-const LAYERS: ReadonlyArray<{ layer: GroundLayer; atlas: string }> = [
-  { layer: 'base', atlas: 'ground' },
-  { layer: 'detail', atlas: 'ground-details' },
-];
+import { createTestNpcViews, preloadNpcSprites, registerNpcAnimations,
+  updateTestNpcViews, type NpcViewRecord } from './entities/npcView';
+import type { MobDefinition } from './combat/mobCatalog';
+import { bossFrame } from './combat/bossSprites';
+import { mobFrame } from './combat/mobSprites';
 
 class QingMaoScene extends Phaser.Scene {
   private player!: FangYuan;
@@ -26,11 +27,19 @@ class QingMaoScene extends Phaser.Scene {
   private characterSheet?: CharacterSheet;
   private combat!: CombatEngine;
   private combatHUD?: CombatHUD;
+  private minimap?: MinimapView;
   private enemyViews = new Map<string, Phaser.GameObjects.Container>();
+  private staticEnemyViews = new Map<string, { sprite: Phaser.GameObjects.Sprite; facing: Direction;
+    x: number; y: number; frame: (id: string, direction: Direction) => number }>();
+  private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
   private pendingRewards: CombatEvent[] = [];
   private nextRewardRetryAt = 0;
   private worldObjects!: Phaser.GameObjects.Layer;
+  private currentArea!: GeneratedArea;
+  private disposeArea?: () => void;
+  private readonly defeatedInArea = new Set<string>();
+  private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
   private destination?: Phaser.GameObjects.Arc;
   private chunkGuide?: Phaser.GameObjects.Graphics;
@@ -48,22 +57,32 @@ class QingMaoScene extends Phaser.Scene {
       frameWidth: TILE_SIZE, frameHeight: TILE_SIZE,
     });
     this.load.image('forest-trees', 'assets/qing-mao/trees.png');
+    this.load.spritesheet('water', 'assets/qing-mao/WaterTileset.PNG', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('ruins', 'assets/qing-mao/Ruins.PNG', { frameWidth: 32, frameHeight: 32 });
+    this.load.image('rocks', 'assets/qing-mao/Rocks%201.2.PNG');
+    this.load.image('bushes', 'assets/qing-mao/Bushes%201.1.PNG');
+    this.load.image('logs', 'assets/qing-mao/Tree%20Stumps%20and%20Logs%201.2.PNG');
+    this.load.image('mushrooms', 'assets/qing-mao/Mushrooms.png');
     this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-32.png', {
       frameWidth: TILE_SIZE, frameHeight: TILE_SIZE,
+    });
+    preloadNpcSprites(this);
+    // Atlas: 15 mobs (12 em jogo + 3 artes reservadas) × 4 direções, quadros 32×32.
+    this.load.spritesheet('mob-static-4dir', 'assets/mobs/mob-static-4dir-32.png', {
+      frameWidth: 32, frameHeight: 32,
+    });
+    // Atlas fornecido: 4 bosses × (baixo, esquerda, cima, direita), quadro 48×48.
+    this.load.spritesheet('boss-static-4dir', 'assets/bosses/boss-static-4dir-48.png', {
+      frameWidth: 48, frameHeight: 48,
     });
   }
 
   create(): void {
-    // VilaGuYue: Ground → Ground_Details → Elevation_Back → Structures_Back →
-    // World_Objects_YSort (Trees, NPCs, Enemies, Props) → Structures_Front →
-    // Foreground → Shadows → Effects → Collision. Só solo, árvores e colisão
-    // têm conteúdo nesta camada; árvores e Fang Yuan dividem o Y-sort.
-    this.createGround();
-    this.worldObjects = this.add.layer().setName('World_Objects_YSort').setDepth(2);
-    this.createTrees();
-
+    // Uma Area é carregada por vez; seus nove chunks compartilham dados e seed.
+    this.worldObjects = this.add.layer().setName('ENTITIES_Y_SORT').setDepth(6);
     this.physics.world.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     registerWalkAnimations(this);
+    registerNpcAnimations(this);
     this.player = new FangYuan(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
@@ -71,17 +90,17 @@ class QingMaoScene extends Phaser.Scene {
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y);
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
-    this.createEnemies();
-    this.createCollision();
+    this.minimap = new MinimapView(this.combatHUD.root);
+    this.loadArea('vila_gu_yue', this.player.x, this.player.y);
     this.cameras.main.setZoom(2).setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.onResize);
 
     this.chunkGuide = this.add.graphics().lineStyle(2, 0xf5d492, 0.75).setDepth(2000).setVisible(false);
-    for (let row = 0; row < AREA_SIZE; row++) {
-      for (let col = 0; col < AREA_SIZE; col++) {
-        this.chunkGuide.strokeRect(col * CHUNK_SIZE * TILE_SIZE, row * CHUNK_SIZE * TILE_SIZE,
-          CHUNK_SIZE * TILE_SIZE, CHUNK_SIZE * TILE_SIZE);
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        this.chunkGuide.strokeRect(col * 16 * TILE_SIZE, row * 16 * TILE_SIZE,
+          16 * TILE_SIZE, 16 * TILE_SIZE);
       }
     }
     this.input.keyboard?.on('keydown-C', () => this.chunkGuide?.setVisible(!this.chunkGuide.visible));
@@ -93,42 +112,69 @@ class QingMaoScene extends Phaser.Scene {
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.onResize);
+      this.npcViews = [];
+      this.staticEnemyViews.clear();
+      this.disposeArea?.();
       this.characterSheet?.destroy();
       this.characterSheet = undefined;
+      this.minimap?.destroy();
+      this.minimap = undefined;
       this.combatHUD?.destroy();
       this.combatHUD = undefined;
     });
   }
 
-  /** Marcadores geométricos de inimigos de teste: nenhum sprite de inimigo existe no pack. */
+  /** Bosses e 12 mobs usam atlas direcionais; seis alvos de teste mantêm seus marcadores. */
   private createEnemies(): void {
-    TEST_ENEMY_OFFSETS.forEach(([dx, dy], index) => {
-      const x = this.player.x + dx;
-      const y = this.player.y + dy;
+    const spawn = (id: string, x: number, y: number, color: number, labelText: string,
+      mob?: Readonly<MobDefinition>) => {
       if (!this.isFree(x, y)) return;
-      const enemy = this.combat.addEnemy(`Criatura ${index + 1}`, x, y);
-      const marker = this.add.circle(0, -13, 13, 0x9a433e).setStrokeStyle(2, 0xf4ce8d)
-        .setInteractive({ useHandCursor: true });
-      marker.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
+      const enemy = this.combat.addEnemy(id, x, y, mob?.health, mob);
+      const boss = mob?.tier === 'boss';
+      const hasArt = boss ? this.textures.exists('boss-static-4dir')
+        : !!mob && this.textures.exists('mob-static-4dir');
+      const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
+        mobFrame(mob?.spriteId ?? instanceId, direction);
+      const graphic = hasArt
+        ? this.add.sprite(0, 0, boss ? 'boss-static-4dir' : 'mob-static-4dir', frame(id, 'down'))
+          .setOrigin(0.5, 1).setInteractive({ useHandCursor: true })
+        : this.add.circle(0, -13, 13, color).setStrokeStyle(2, 0xf4ce8d)
+          .setInteractive({ useHandCursor: true });
+      graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
         event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.id}`);
+        if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
       });
-      const label = this.add.text(0, -39, 'INIMIGO · TESTE', {
+      // Identificação do boss abaixo da arte: acima ficaria sob Menu/tela cheia no celular.
+      const label = this.add.text(0, boss ? 14 : -39, labelText, {
         fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
       }).setOrigin(0.5);
-      const back = this.add.rectangle(0, -29, 28, 4, 0x291e1d);
-      const hp = this.add.rectangle(-14, -29, 28, 4, 0xe7876e).setOrigin(0, 0.5).setName('hp');
-      const view = this.add.container(x, y, [marker, label, back, hp]).setDepth(y);
+      const barY = boss ? 28 : -29;
+      const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d);
+      const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e).setOrigin(0, 0.5).setName('hp');
+      const view = this.add.container(x, y, [graphic, label, back, hp]).setDepth(y);
       this.worldObjects.add(view);
       this.enemyViews.set(enemy.id, view);
-    });
+      if (hasArt) this.staticEnemyViews.set(enemy.id, { sprite: graphic as Phaser.GameObjects.Sprite,
+        facing: 'down', x, y, frame });
+    };
+    if (this.currentArea.definition.id === 'floresta_exterior') {
+      TEST_ENEMY_OFFSETS.forEach(([dx, dy], index) =>
+        spawn(`Criatura ${index + 1}`, 24.5 * TILE_SIZE + dx, 24.5 * TILE_SIZE + dy,
+          0x9a433e, 'INIMIGO · TESTE'));
+    }
+    for (const mob of areaMobDefinitions(this.currentArea.definition)) {
+      if (this.defeatedInArea.has(`${this.currentArea.definition.id}:${mob.id}`)) continue;
+      const color = mob.tier === 'boss' ? 0xb37e35
+        : mob.tier === 3 ? 0x873367 : mob.tier === 2 ? 0x9a543e : 0x81634a;
+      spawn(mob.id, mob.x, mob.y, color, `${mob.name} · TESTE`, mob);
+    }
   }
 
   private isFree = (x: number, y: number): boolean => {
     return x >= 8 && y >= 10 && x < WORLD_SIZE - 8 && y < WORLD_SIZE - 2 &&
       [-7, 7].every(dx => [-7, 0].every(dy =>
-        isWalkableTile(Math.floor((x + dx) / TILE_SIZE), Math.floor((y + dy) / TILE_SIZE))));
+        this.currentArea.isFreeTile(Math.floor((x + dx) / TILE_SIZE), Math.floor((y + dy) / TILE_SIZE))));
   };
 
   private onCombatAction(action: string): void {
@@ -140,6 +186,8 @@ class QingMaoScene extends Phaser.Scene {
     }
     if (action === 'respawn') {
       if (this.combat.respawn(24.5 * TILE_SIZE, 24.5 * TILE_SIZE)) {
+        if (this.currentArea.definition.id !== 'vila_gu_yue')
+          this.loadArea('vila_gu_yue', 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
         this.waypoints = [];
         this.destination?.destroy(); this.destination = undefined;
         this.player.move(null);
@@ -203,8 +251,10 @@ class QingMaoScene extends Phaser.Scene {
         this.tweens.add({ targets: trail, alpha: 0, duration: 280, onComplete: () => trail.destroy() });
       }
       if (event.type === 'defeat' && event.targetId) {
+        this.defeatedInArea.add(`${this.currentArea.definition.id}:${event.targetId}`);
         this.enemyViews.get(event.targetId)?.destroy();
         this.enemyViews.delete(event.targetId);
+        this.staticEnemyViews.delete(event.targetId);
       }
     }
     if (this.pendingRewards.length && this.time.now >= this.nextRewardRetryAt) this.flushRewards();
@@ -226,48 +276,66 @@ class QingMaoScene extends Phaser.Scene {
     }
   }
 
-  private createGround(): void {
-    for (let chunkY = 0; chunkY < AREA_SIZE; chunkY++) {
-      for (let chunkX = 0; chunkX < AREA_SIZE; chunkX++) {
-        const data = buildGroundChunk(chunkX, chunkY);
-        const offsetX = chunkX * CHUNK_SIZE * TILE_SIZE;
-        const offsetY = chunkY * CHUNK_SIZE * TILE_SIZE;
-        for (const [depth, { layer, atlas }] of LAYERS.entries()) {
-          const map = this.make.tilemap({ data: data[layer], tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
-          const tiles = map.addTilesetImage(atlas, atlas, TILE_SIZE, TILE_SIZE);
-          if (!tiles) throw new Error(`Tileset não carregado: ${atlas}`);
-          map.createLayer(0, tiles, offsetX, offsetY)
-            ?.setName(layer === 'base' ? 'Ground' : 'Ground_Details').setDepth(depth);
-        }
-      }
-    }
+  /** Troca a unidade de gameplay; não reinicia o cultivo nem o motor de Gu. */
+  private loadArea(id: AreaId, x: number, y: number): void {
+    this.waypoints = [];
+    this.destination?.destroy(); this.destination = undefined;
+    this.player.move(null);
+    for (const view of this.enemyViews.values()) view.destroy();
+    this.enemyViews.clear(); this.staticEnemyViews.clear();
+    for (const npc of this.npcViews) npc.view.destroy();
+    this.npcViews = [];
+    this.projectileViews.forEach(view => view.destroy()); this.projectileViews = [];
+    this.disposeArea?.();
+    this.combat.clearAreaEnemies();
+    this.currentArea = generateArea(INITIAL_WORLD[id]);
+    this.minimap?.setArea(this.currentArea);
+    this.minimap?.update(x, y);
+    (this.player.body as Phaser.Physics.Arcade.Body).reset(x, y);
+    this.combat.hero.x = x; this.combat.hero.y = y;
+    this.disposeArea = renderArea(this, this.currentArea, this.worldObjects, this.player);
+    this.createEnemies();
+    this.npcViews = createTestNpcViews(this, this.worldObjects, this.isFree,
+      message => this.combatHUD?.say(message), areaNpcDefinitions(this.currentArea.definition));
+    this.combatHUD?.say(`Área: ${this.currentArea.definition.name} · risco ${RISK_LABELS[this.currentArea.definition.risk]}`);
   }
 
-  /** World_Objects_YSort/Trees: cada imagem reúne um mosaico de 3×4 tiles. */
-  private createTrees(): void {
-    const atlas = this.textures.get('forest-trees');
-    for (let variant = 0; variant < 3; variant++) {
-      if (!atlas.has(`large-${variant}`)) {
-        atlas.add(`large-${variant}`, 0, variant * 3 * TILE_SIZE, 0, 3 * TILE_SIZE, 4 * TILE_SIZE);
-      }
+  /** Entrada bidirecional nos portões; nunca troca de área pela emenda de um chunk. */
+  private checkAreaTransition(now: number): boolean {
+    if (now < this.nextAreaTransitionAt || !this.combat.hero.alive) return false;
+    const x = this.player.x / TILE_SIZE, y = this.player.y / TILE_SIZE;
+    let side: Side | null = null;
+    if (y >= 21 && y <= 27) {
+      if (x >= AREA_TILES - 2 && this.currentArea.definition.exits.east) side = 'east';
+      else if (x <= 2 && this.currentArea.definition.exits.west) side = 'west';
     }
-    for (const tree of buildForestTrees()) {
-      this.worldObjects.add(this.add.image(tree.x, tree.y, 'forest-trees', `large-${tree.variant}`)
-        .setName('Trees').setOrigin(0, 0).setDepth(tree.y + 4 * TILE_SIZE));
+    if (!side && x >= 21 && x <= 27) {
+      if (y >= AREA_TILES - 2 && this.currentArea.definition.exits.south) side = 'south';
+      else if (y <= 2 && this.currentArea.definition.exits.north) side = 'north';
     }
+    if (!side) return false;
+    const destination = this.currentArea.definition.exits[side];
+    if (!destination || INITIAL_WORLD[destination].exits[OPPOSITE[side]] !== this.currentArea.definition.id)
+      throw new Error(`Saída sem retorno: ${this.currentArea.definition.id} → ${destination}`);
+    const nx = side === 'east' ? 2.5 : side === 'west' ? AREA_TILES - 2.5 : 24.5;
+    const ny = side === 'south' ? 2.5 : side === 'north' ? AREA_TILES - 2.5 : 24.5;
+    this.nextAreaTransitionAt = now + 850;
+    this.loadArea(destination, nx * TILE_SIZE, ny * TILE_SIZE);
+    return true;
   }
 
-  /** Collision: a navegação veda a mata inteira; o tilemap invisível é proteção física. */
-  private createCollision(): void {
-    const solid = Array.from({ length: TILES_PER_SIDE }, (_, y) =>
-      Array.from({ length: TILES_PER_SIDE }, (_, x) => isSolidForestTile(x, y) ? 11 : -1));
-    const map = this.make.tilemap({ data: solid, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
-    const tiles = map.addTilesetImage('ground', 'ground', TILE_SIZE, TILE_SIZE);
-    if (!tiles) throw new Error('Tileset de colisão não carregado');
-    const collision = map.createLayer(0, tiles);
-    if (!collision) throw new Error('Camada de colisão não criada');
-    collision.setName('Collision').setCollision(11).setVisible(false);
-    this.physics.add.collider(this.player, collision);
+  private walkableDestination(x: number, y: number): WorldPoint | null {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x >= WORLD_SIZE || y >= WORLD_SIZE)
+      return null;
+    if (this.isFree(x, y)) return { x, y };
+    let nearest: WorldPoint | null = null, best = Infinity;
+    for (let row = 0; row < AREA_TILES; row++) for (let col = 0; col < AREA_TILES; col++) {
+      const point = { x: (col + 0.5) * TILE_SIZE, y: (row + 0.5) * TILE_SIZE };
+      if (!this.isFree(point.x, point.y)) continue;
+      const distance = (point.x - x) ** 2 + (point.y - y) ** 2;
+      if (distance < best) { nearest = point; best = distance; }
+    }
+    return nearest;
   }
 
   private walkTo(x: number, y: number): void {
@@ -276,10 +344,13 @@ class QingMaoScene extends Phaser.Scene {
     this.waypoints = [];
     this.destination?.destroy();
     this.destination = undefined;
-    const goal = walkableDestination(x, y);
+    const goal = this.walkableDestination(x, y);
     const route = goal && shortestWorldWaypoints(
-      { x: this.player.x, y: this.player.y }, goal, TILES_PER_SIDE, TILE_SIZE,
-      isWalkableTile, canTraverseTiles, previousDirection ?? this.player.facingDirection,
+      { x: this.player.x, y: this.player.y }, goal, AREA_TILES, TILE_SIZE,
+      (tx, ty) => this.currentArea.isFreeTile(tx, ty),
+      (tx, ty, nx, ny) => Math.abs(tx - nx) + Math.abs(ty - ny) === 1
+        && this.currentArea.isFreeTile(tx, ty) && this.currentArea.isFreeTile(nx, ny),
+      previousDirection ?? this.player.facingDirection,
       previousDirection !== null,
     );
     // Cancele imediatamente a velocidade anterior; o novo toque parte da posição real.
@@ -292,13 +363,32 @@ class QingMaoScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    if (this.checkAreaTransition(time)) return;
+    this.minimap?.update(this.player.x, this.player.y);
     this.combat.hero.x = this.player.x;
     this.combat.hero.y = this.player.y;
+    updateTestNpcViews(this.npcViews, time, delta, this.isFree, Math.random, position => {
+      const nearby = [...this.combat.enemies.values()].filter(enemy => enemy.alive
+        && enemy.id.startsWith('mob-') && Math.hypot(enemy.x - position.x, enemy.y - position.y) < 85)
+        .sort((a, b) => Math.hypot(a.x - position.x, a.y - position.y)
+          - Math.hypot(b.x - position.x, b.y - position.y))[0];
+      return nearby ? { x: nearby.x, y: nearby.y } : null;
+    });
     this.handleCombatEvents(this.combat.tick(time, delta, this.isFree));
     for (const [id, view] of this.enemyViews) {
       const enemy = this.combat.enemies.get(id);
       if (!enemy?.alive) continue;
       view.setPosition(enemy.x, enemy.y).setDepth(enemy.y);
+      const art = this.staticEnemyViews.get(id);
+      if (art) {
+        const dx = enemy.x - art.x, dy = enemy.y - art.y;
+        if (Math.abs(dx) + Math.abs(dy) > 0.1) {
+          art.facing = Math.abs(dx) >= Math.abs(dy)
+            ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up';
+          art.sprite.setFrame(art.frame(id, art.facing));
+        }
+        art.x = enemy.x; art.y = enemy.y;
+      }
       const hp = view.getByName('hp') as Phaser.GameObjects.Rectangle;
       hp.width = 28 * enemy.health / enemy.maxHealth;
     }
