@@ -10,7 +10,8 @@ export class CombatHUD {
   readonly root: HTMLElement;
   private readonly health: HTMLProgressElement;
   private readonly essence: HTMLProgressElement;
-  private readonly stats: HTMLElement;
+  private readonly healthValue: HTMLOutputElement;
+  private readonly essenceValue: HTMLOutputElement;
   private readonly target: HTMLElement;
   private readonly feedback: HTMLElement;
   private readonly actions = new Map<string, HTMLButtonElement>();
@@ -22,16 +23,15 @@ export class CombatHUD {
   constructor(private readonly engine: CombatEngine, onAction: (action: string) => void) {
     const root = document.createElement('div');
     root.className = 'combat-hud';
-    root.innerHTML = `<section class="combat-top" aria-label="Estado de combate">
-      <div class="combat-topline"><strong>Fang Yuan</strong><span>Estado de combate</span></div>
+    root.innerHTML = `<section class="combat-top" aria-label="Vida e essência primordial">
       <div class="combat-bars">
-        <label>Vida <progress id="combat-health" max="100" value="100"></progress></label>
-        <label>Essência primordial <progress id="combat-essence" max="100" value="100"
-          aria-label="Essência primordial"></progress></label>
-        <small id="combat-stats"></small>
+        <label><span>Vida</span><progress id="combat-health" max="100" value="100"></progress>
+          <output id="combat-health-value" for="combat-health">100/100</output></label>
+        <label><span>Essência primordial</span><progress id="combat-essence" max="100" value="100"></progress>
+          <output id="combat-essence-value" for="combat-essence">100/100</output></label>
       </div>
-      <div class="combat-target"><strong id="combat-target-name">Alvo: nenhum</strong>
-      <button type="button" data-action="auto" aria-pressed="false">Alvo auto: desligado</button></div>
+      <div class="combat-target"><strong id="combat-target-name" hidden></strong>
+        <button type="button" data-action="auto" aria-pressed="false">Auto: não</button></div>
     </section>
     <div class="combat-feedback" role="status" aria-live="polite"></div>
     <div class="combat-joystick" aria-label="Direcional de movimento" role="group"><span class="joystick-knob">✥</span></div>
@@ -46,7 +46,8 @@ export class CombatHUD {
     this.root = root;
     this.health = root.querySelector('#combat-health')!;
     this.essence = root.querySelector('#combat-essence')!;
-    this.stats = root.querySelector('#combat-stats')!;
+    this.healthValue = root.querySelector('#combat-health-value')!;
+    this.essenceValue = root.querySelector('#combat-essence-value')!;
     this.target = root.querySelector('#combat-target-name')!;
     this.feedback = root.querySelector('.combat-feedback')!;
     this.auto = root.querySelector('[data-action="auto"]')!;
@@ -85,19 +86,17 @@ export class CombatHUD {
     this.health.value = engine.hero.health;
     this.essence.max = engine.config.hero.maxEssence;
     this.essence.value = engine.essence;
-    this.stats.textContent = `${Math.ceil(engine.hero.health)}/${engine.hero.maxHealth} PV · ${Math.floor(engine.essence)}/${engine.config.hero.maxEssence} essência primordial · Def ${engine.defense}`;
+    this.healthValue.textContent = `${Math.ceil(engine.hero.health)}/${engine.hero.maxHealth}`;
+    this.essenceValue.textContent = `${Math.floor(engine.essence)}/${engine.config.hero.maxEssence}`;
     const target = engine.target;
     const targetDescription = target ? `Alvo: ${target.id} · ${target.health}/${target.maxHealth} PV`
       : 'Alvo: nenhum — toque num inimigo';
-    const compact = window.innerWidth <= 600 ||
-      (window.innerHeight <= 420 && window.innerWidth <= 900);
-    this.target.textContent = compact
-      ? target ? `${target.id} · ${target.health} PV` : 'Alvo: nenhum'
-      : targetDescription;
+    this.target.hidden = !target;
+    this.target.textContent = target ? `${target.id} · ${target.health} PV` : '';
     this.target.setAttribute('aria-label', targetDescription);
     this.target.title = targetDescription;
     const autoState = engine.autoTarget ? 'ligado' : 'desligado';
-    this.auto.textContent = compact ? `Auto: ${autoState}` : `Alvo auto: ${autoState}`;
+    this.auto.textContent = `Auto: ${engine.autoTarget ? 'sim' : 'não'}`;
     this.auto.setAttribute('aria-label', `Alvo automático: ${autoState}`);
     this.auto.setAttribute('aria-pressed', String(engine.autoTarget));
     const basic = this.actions.get('basic')!;

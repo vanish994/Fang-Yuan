@@ -1,6 +1,6 @@
 # Balanceamento inicial — cultivo de Fang Yuan
 
-**Estado: aprovado para este protótipo e aplicado em `src/entities/cultivationBalance.ts`.** Valores podem ser aprimorados em revisões futuras. Não há XP nem níveis. Fang Yuan começa no **Rank 1, estágio Inicial, com 0 pedras espirituais e sem materiais**.
+**Estado: provisório para este protótipo e aplicado em `src/entities/cultivationBalance.ts`.** Valores podem ser aprimorados em revisões futuras. Não há XP nem níveis. O estado-base de Fang Yuan é **Rank 1, estágio Inicial, com 0 pedras espirituais e sem materiais**; a campanha jogável recebe um crédito único de **1.000.000 de pedras espirituais de teste** por save, sem alterar a essência primordial.
 
 Os números abaixo são os custos e probabilidades ativos no motor de cultivo. As colunas Inicial→Médio, Médio→Superior e Superior→Pico são **custos em pedras espirituais**. A coluna Pico→Rank seguinte é o custo de pedras para uma ruptura, além dos materiais. O Rank 9 Pico é o limite.
 
@@ -29,6 +29,6 @@ Os números abaixo são os custos e probabilidades ativos no motor de cultivo. A
 
 ## O que ainda falta no mundo
 
-O motor já está ligado à ficha: exibe o próximo custo, recursos possuídos, chance e motivo do bloqueio; o botão só permite avanço quando há recursos. A sessão inicia com zero recursos. **Os drops diretos e a troca de drops por pedras ainda não existem no mapa**, então a ascensão fica bloqueada durante a exploração atual. Os métodos de recebimento de recursos do modelo já aceitam as fontes que forem adicionadas depois. Inventário completo, coleta, inimigos e troca permanecem para outras camadas; não há compra fictícia nem botão de geração gratuita de recursos. O progresso de cultivo (Rank, estágio, pedras e materiais) é salvo localmente no navegador, sem servidor. O spritesheet do Mar Primordial não está disponível neste checkout; não foi criada uma animação substituta.
+O motor já está ligado à ficha: exibe o próximo custo, recursos possuídos, chance e motivo do bloqueio; o botão só permite avanço quando há recursos. O crédito de teste é gravado junto com o saldo e com uma marca de concessão, para não reaparecer após gastar ou recarregar. Ele **não é um drop nem uma nova moeda**. Criaturas de teste deixam pedras e material de ruptura do Rank 1; a troca de drops por pedras e fontes de materiais dos Ranks superiores ainda não foram implementadas. Por isso, muitas pedras permitem testar os estágios, mas não removem a exigência de materiais para rupturas. A progressão é salva localmente no navegador, sem servidor. O sprite do Mar Primordial está disponível apenas na aba Avanço e representa a essência primordial, um recurso diferente das pedras espirituais.
 
 > O GDD em `docs/GDD-ATUALIZADO.md` foi atualizado para refletir a decisão de cultivar sem XP e distinguir os valores aprovados para o protótipo das regras canônicas.

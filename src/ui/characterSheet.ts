@@ -1,6 +1,6 @@
 import { characterSheetState, FANG_YUAN_PROFILE } from '../entities/characterProfile';
 import { breakthroughMaterialName } from '../entities/cultivationBalance';
-import { CharacterCultivation } from '../entities/characterCultivation';
+import { CharacterCultivation, TEST_STONE_GRANT } from '../entities/characterCultivation';
 import type { CardinalDirection } from '../entities/directions';
 import { AdvanceIntent } from './advanceIntent';
 import type { CombatEngine } from '../combat/combatEngine';
@@ -133,6 +133,9 @@ export class CharacterSheet {
     requiredElement<HTMLElement>('character-area').textContent = FANG_YUAN_PROFILE.area;
     requiredElement<HTMLElement>('character-storage-note').textContent = cultivation.persistent ? ''
       : 'Armazenamento indisponível neste navegador: o progresso desta sessão não será salvo.';
+    requiredElement<HTMLElement>('character-test-stones').textContent = cultivation.hasTestStones
+      ? `Modo de teste: +${TEST_STONE_GRANT.toLocaleString('pt-BR')} pedras espirituais concedidas uma vez. Não são essência primordial.`
+      : '';
     this.renderCultivation();
     this.renderSea();
     for (const slot of GU_SLOTS) {
@@ -285,7 +288,7 @@ export class CharacterSheet {
     this.intent.resetIfStale(this.cultivation.revision);
     this.rank.textContent = String(state.rank);
     this.stage.textContent = state.stage;
-    this.stones.textContent = String(state.spiritStones);
+    this.stones.textContent = state.spiritStones.toLocaleString('pt-BR');
     this.materials.textContent = String(Object.values(state.materials).reduce((sum, count) => sum + count, 0));
     this.materialRow.hidden = next.kind !== 'rank';
     this.chanceRow.hidden = next.kind !== 'rank';

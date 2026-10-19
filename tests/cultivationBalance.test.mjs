@@ -23,7 +23,7 @@ const sessionURL = moduleURL('characterCultivation', {
   './cultivationBalance': balanceURL,
   './cultivation': cultivationURL,
 });
-const { CharacterCultivation, CULTIVATION_STORAGE_KEY } = await import(sessionURL);
+const { CharacterCultivation, CULTIVATION_STORAGE_KEY, TEST_STONE_GRANT } = await import(sessionURL);
 const { CULTIVATION_RULES, breakthroughMaterialId, breakthroughMaterialName } =
   await import(balanceURL);
 
@@ -50,6 +50,47 @@ test('tabela aprovada cobre exatamente nove Ranks e os oito limites entre Ranks'
     });
     assert.match(breakthroughMaterialName(rank), new RegExp(`Rank ${rank}$`));
   });
+});
+
+test('crédito de teste dá 1 milhão uma vez a saves novos e antigos, sem afetar cultivo ou drops', () => {
+  assert.equal(TEST_STONE_GRANT, 1_000_000);
+  const storage = memoryStorage();
+  const newGame = new CharacterCultivation(storage);
+  assert.equal(newGame.state.spiritStones, 0); // regra-base permanece sem recursos gratuitos.
+  assert.equal(newGame.grantTestStonesOnce(), true);
+  assert.equal(newGame.state.spiritStones, TEST_STONE_GRANT);
+  assert.equal(newGame.hasTestStones, true);
+  assert.equal(newGame.grantTestStonesOnce(), false);
+  assert.equal(new CharacterCultivation(storage).grantTestStonesOnce(), false);
+  newGame.advance();
+  assert.equal(new CharacterCultivation(storage).state.spiritStones, TEST_STONE_GRANT - 20);
+  assert.equal(new CharacterCultivation(storage).grantTestStonesOnce(), false);
+
+  const oldSave = memoryStorage();
+  oldSave.setItem(CULTIVATION_STORAGE_KEY, JSON.stringify({ version: 1,
+    state: { rank: 2, stage: 'Médio', spiritStones: 47,
+      materials: { 'ruptura-rank-1': 3 } } }));
+  const migrated = new CharacterCultivation(oldSave);
+  assert.equal(migrated.grantTestStonesOnce(), true);
+  assert.deepEqual(migrated.state, { rank: 2, stage: 'Médio', spiritStones: TEST_STONE_GRANT + 47,
+    materials: { 'ruptura-rank-1': 3 } });
+  assert.equal(new CharacterCultivation(oldSave).grantTestStonesOnce(), false);
+  const saved = JSON.parse(oldSave.getItem(CULTIVATION_STORAGE_KEY));
+  assert.equal(saved.testStonesGranted, true); // saldo e marca gravados no mesmo save.
+  const source = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
+  assert.match(source, /this\.cultivation = new CharacterCultivation\(\);\s*this\.cultivation\.grantTestStonesOnce\(\);/);
+});
+
+test('sem localStorage gravável o crédito de teste funciona só nesta sessão', () => {
+  const storage = memoryStorage();
+  storage.setItem = () => { throw new Error('bloqueado'); };
+  const session = new CharacterCultivation(storage);
+  assert.equal(session.grantTestStonesOnce(), true);
+  assert.equal(session.state.spiritStones, TEST_STONE_GRANT);
+  assert.equal(session.persistent, false);
+  assert.equal(session.grantTestStonesOnce(), false);
+  session.advance();
+  assert.equal(session.state.spiritStones, TEST_STONE_GRANT - 20);
 });
 
 test('ficha parte com zero recursos e mostra próximo custo; avanços usam o modelo real', () => {
