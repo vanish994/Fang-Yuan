@@ -213,6 +213,12 @@ test('loot de inimigos é uma transação única salva; falha de storage não pu
   assert.equal(empty(engine.basicAttack(1000)).length, 0);
 });
 
+test('controles de toque são circulares, translúcidos e preservam áreas de toque', () => {
+  const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(css, /\.combat-joystick\s*\{[^}]*border-image:\s*none;[^}]*border-radius:\s*50%;[^}]*background:\s*#[0-9a-f]{8};/s);
+  assert.match(css, /\.combat-actions button\s*\{[^}]*width:\s*72px;[^}]*height:\s*72px;[^}]*border-image:\s*none;[^}]*border-radius:\s*50%;[^}]*background:\s*#[0-9a-f]{8};/s);
+});
+
 test('HUD captura toques informativos e drops pendentes respeitam o intervalo de retry', () => {
   const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
@@ -254,6 +260,10 @@ test('HUD mobile tem barras, alvo e controle; equipagem fica somente no inventá
   assert.match(html, /combat-joystick/);
   assert.match(html, /combat-health/);
   assert.match(html, /combat-essence/);
+  assert.match(html, /combat-health-value/);
+  assert.match(html, /combat-essence-value/);
+  assert.match(html, /id="combat-target-name" hidden/);
+  assert.doesNotMatch(html, /combat-topline|combat-stats/);
   assert.doesNotMatch(html, /combat-sea|sea-sprite|mar-primordial-11x128/);
   assert.match(html, /essência primordial/i);
   assert.doesNotMatch(html, /combat-slots|combat-gear|GU_SLOTS|GU_CATALOG/);

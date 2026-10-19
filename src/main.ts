@@ -67,6 +67,7 @@ class QingMaoScene extends Phaser.Scene {
     this.player = new FangYuan(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
+    this.cultivation.grantTestStonesOnce();
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y);
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));

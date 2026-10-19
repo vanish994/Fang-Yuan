@@ -20,8 +20,8 @@ test('sprite fornecido do Mar Primordial tem 11 quadros reais de 128 px', () => 
   assert.doesNotMatch(beforeAdvance, /id="character-sea"/);
   assert.doesNotMatch(afterAdvance.split('</section>')[1], /id="character-sea"/);
   const hud = readFileSync(new URL('../src/ui/combatHUD.ts', import.meta.url), 'utf8');
-  assert.match(hud, /Vida <progress id="combat-health"/);
-  assert.match(hud, /Essência primordial <progress id="combat-essence"/);
+  assert.match(hud, /<span>Vida<\/span><progress id="combat-health"/);
+  assert.match(hud, /<span>Essência primordial<\/span><progress id="combat-essence"/);
   assert.doesNotMatch(hud, /combat-sea|sea-sprite|primordialSeaOffset/);
   assert.doesNotMatch(html, /Essência primeva/);
 });

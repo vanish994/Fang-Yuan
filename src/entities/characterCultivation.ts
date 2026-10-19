@@ -6,6 +6,8 @@ import {
 } from './cultivation';
 
 export const CULTIVATION_STORAGE_KEY = 'fang-yuan.cultivation.v1';
+/** Crédito somente do protótipo para experimentar os custos; não faz parte da história. */
+export const TEST_STONE_GRANT = 1_000_000;
 const SAVE_VERSION = 1;
 
 /** Adaptador mínimo: no navegador usa localStorage; testes usam memória. */
@@ -18,7 +20,12 @@ function browserStorage(): CultivationStorage | null {
   try { return globalThis.localStorage ?? null; } catch { return null; }
 }
 
-function load(storage: CultivationStorage | null): CultivationState | null {
+interface StoredCultivation {
+  state: CultivationState;
+  testStonesGranted: boolean;
+}
+
+function load(storage: CultivationStorage | null): StoredCultivation | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(CULTIVATION_STORAGE_KEY);
@@ -28,7 +35,9 @@ function load(storage: CultivationStorage | null): CultivationState | null {
     const record = saved as Record<string, unknown>;
     if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) return null;
     const state = record.state;
-    return { ...state, materials: { ...state.materials } };
+    // Saves anteriores não trazem a marca; recebem o bônus só na próxima abertura do jogo.
+    return { state: { ...state, materials: { ...state.materials } },
+      testStonesGranted: record.testStonesGranted === true };
   } catch { return null; }
 }
 
@@ -39,11 +48,14 @@ export class CharacterCultivation {
   private current: CultivationState;
   private version = 0;
   private inFlight = false;
-  private readonly storage: CultivationStorage | null;
+  private storage: CultivationStorage | null;
+  private testStonesGranted = false;
 
   constructor(storage: CultivationStorage | null = browserStorage()) {
     this.storage = storage;
-    this.current = load(storage) ?? { ...INITIAL_CULTIVATION, materials: {} };
+    const saved = load(storage);
+    this.current = saved?.state ?? { ...INITIAL_CULTIVATION, materials: {} };
+    this.testStonesGranted = saved?.testStonesGranted ?? false;
   }
 
   get state(): CultivationState {
@@ -52,18 +64,37 @@ export class CharacterCultivation {
 
   get revision(): number { return this.version; }
   get persistent(): boolean { return this.storage !== null; }
+  get hasTestStones(): boolean { return this.testStonesGranted; }
 
   get requirement(): AdvanceRequirement {
     return advanceRequirement(this.current, CULTIVATION_RULES);
   }
 
-  private commit(next: CultivationState): void {
+  private commit(next: CultivationState, testStonesGranted = this.testStonesGranted): void {
     if (this.storage) {
-      // Grava antes de publicar o novo estado: falha de armazenamento não gasta recursos.
-      this.storage.setItem(CULTIVATION_STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: next }));
+      // Grava saldo e marca do bônus juntos: falha não duplica nem publica créditos parciais.
+      this.storage.setItem(CULTIVATION_STORAGE_KEY,
+        JSON.stringify({ version: SAVE_VERSION, state: next, testStonesGranted }));
     }
     this.current = next;
+    this.testStonesGranted = testStonesGranted;
     this.version++;
+  }
+
+  /** Concedido na entrada do jogo, inclusive sobre um save antigo, apenas uma vez por save. */
+  grantTestStonesOnce(): boolean {
+    if (this.testStonesGranted) return false;
+    const amount = Math.min(TEST_STONE_GRANT, Number.MAX_SAFE_INTEGER - this.current.spiritStones);
+    if (amount <= 0) return false;
+    const next = { ...this.current, spiritStones: this.current.spiritStones + amount };
+    try {
+      this.commit(next, true);
+    } catch {
+      // Sem localStorage gravável, permite testar na sessão sem fingir persistência.
+      this.storage = null;
+      this.commit(next, true);
+    }
+    return true;
   }
 
   receiveStones(amount: number): void {

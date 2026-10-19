@@ -103,7 +103,6 @@
       .combat-bars label { display: grid; grid-template-columns: 1fr; gap: 2px; margin: 2px 0; font-size: 11px; }
       .combat-bars progress { width: 100%; height: 10px; accent-color: #b74444; }
       .combat-bars label:nth-child(2) progress { accent-color: #6bbbbb; }
-      .combat-bars small { display: block; color: #c9cdb7; font-size: 10px; line-height: 1.4; }
       .combat-target { display: flex; align-items: center; gap: 6px; justify-content: space-between; margin-top: 4px; }
       .combat-target strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
       .combat-target button { flex: none; color: #f8e2b6; background: #374b31; border: 1px solid #b99a5e;
@@ -227,39 +226,43 @@
       .gu-intrinsic strong { color: #f9e3b0; font: 16px Georgia, serif; }
       .gu-intrinsic small { color: #d2cfdd; line-height: 1.5; }
       .combat-hud button, .combat-joystick { pointer-events: auto; touch-action: none; }
-      .combat-top { padding: 8px 10px; border-width: 9px;
-        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch; }
-      .combat-topline { display: flex; align-items: center; justify-content: space-between;
-        margin: -3px 0 7px; padding: 3px 9px; min-height: 20px;
-        background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
-        color: #492840; }
-      .combat-topline strong { font: bold 13px Georgia, serif; }
-      .combat-topline span { font-size: 10px; }
-      .combat-bars label { display: grid; grid-template-columns: minmax(74px, 114px) minmax(0, 1fr);
-        align-items: center; gap: 6px; font-size: 11px; color: #f9e3bd; }
-      .combat-bars progress { border: 1px solid #9b7992; border-radius: 0; background: #181d37; }
+      .combat-top { width: min(270px, calc(100vw - 24px)); padding: 6px 8px; border-width: 7px;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
+      .combat-bars label { display: grid; grid-template-columns: 103px minmax(0, 1fr) 39px;
+        align-items: center; gap: 5px; margin: 0 0 3px; font-size: 10px; color: #f9e3bd; }
+      .combat-bars label:last-child { margin-bottom: 0; }
+      .combat-bars output { text-align: right; white-space: nowrap; font: 10px Arial, sans-serif;
+        color: #f6e4bb; }
+      .combat-bars progress { height: 8px; border: 1px solid #9b7992;
+        border-radius: 0; background: #181d37; }
       .combat-bars progress::-webkit-progress-bar { background: #181d37; }
       #combat-health::-webkit-progress-value { background: #bb5c76; }
       #combat-essence::-webkit-progress-value { background: #76bdc2; }
       #combat-health::-moz-progress-bar { background: #bb5c76; }
       #combat-essence::-moz-progress-bar { background: #76bdc2; }
-      .combat-target { padding-top: 6px; border-top: 1px solid #735e7a; }
-      .combat-target button { min-height: 40px; border: 0; border-radius: 0; padding: 4px 9px;
-        color: #482b40; font-weight: bold;
+      .combat-target { padding-top: 3px; border-top: 1px solid #735e7a; margin-top: 4px;
+        min-height: 25px; justify-content: flex-end; }
+      .combat-target strong { flex: 1; min-width: 0; font-size: 10px; }
+      .combat-target button { min-height: 25px; border: 0; border-radius: 0; padding: 2px 6px;
+        color: #482b40; font-size: 10px; font-weight: bold;
         background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         image-rendering: pixelated; }
       .combat-target button[aria-pressed="true"] { filter: brightness(1.18); }
       .combat-feedback { padding: 4px 9px; border-width: 7px;
         border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
-      .combat-joystick { border: 12px solid transparent; border-radius: 0;
-        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
-        background: #121630; image-rendering: pixelated; }
-      .joystick-knob { border: 0; border-radius: 0; color: #4d2b45;
-        background: url('./assets/ui/header.png') center / 100% 100% no-repeat; }
-      .combat-actions button { min-width: 68px; min-height: 68px; border: 9px solid transparent;
-        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
-        border-radius: 0; color: #f9d9a5; background: #121630;
-        box-shadow: 0 3px 8px #080c24ac; image-rendering: pixelated; }
+      /* Controles flutuantes: círculo discreto e translúcido, sem moldura de painel. */
+      .combat-joystick { box-sizing: border-box; border: 2px solid #f3d9a780;
+        border-image: none; border-radius: 50%; background: #12163080;
+        box-shadow: inset 0 0 0 5px #fff0d70b, 0 4px 16px #080c2470;
+        image-rendering: auto; }
+      .joystick-knob { box-sizing: border-box; border: 1px solid #f3d9a7aa;
+        border-radius: 50%; color: #ffe6b6; background: #433653c9;
+        box-shadow: 0 2px 8px #080c2480; }
+      .combat-actions button { box-sizing: border-box; width: 72px; height: 72px;
+        min-width: 72px; min-height: 72px; padding: 4px; border: 2px solid #f3d9a78c;
+        border-image: none; border-radius: 50%; color: #f9d9a5; background: #121630a3;
+        box-shadow: inset 0 0 0 3px #fff0d70b, 0 4px 12px #080c2480;
+        image-rendering: auto; }
       .combat-actions .gu-icon { width: 40px; height: 40px; background-size: 80px 80px; }
       .combat-actions .gu-icon[data-gu="liquor-worm"] { background-position: -40px 0; }
       .combat-actions .gu-icon[data-gu="stone-skin"] { background-position: 0 -40px; }
@@ -271,14 +274,14 @@
         color: #eed7ae; font-size: 11px; border-width: 7px;
         border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
       .combat-top { top: max(112px, calc(env(safe-area-inset-top) + 112px)); }
-      .combat-feedback { top: max(280px, calc(env(safe-area-inset-top) + 280px)); }
+      .combat-feedback { top: max(220px, calc(env(safe-area-inset-top) + 220px)); }
       @media (max-width: 600px) {
         .combat-top { top: max(82px, calc(env(safe-area-inset-top) + 82px)); }
-        .combat-feedback { top: max(250px, calc(env(safe-area-inset-top) + 250px)); }
+        .combat-feedback { top: max(190px, calc(env(safe-area-inset-top) + 190px)); }
       }
       @media (max-height: 420px) {
         .combat-top { top: 6px; }
-        .combat-feedback { top: 180px; }
+        .combat-feedback { top: 105px; }
       }
       @media (max-width: 600px) {
         .combat-target button { padding: 4px 6px; font-size: 10px; }
@@ -286,23 +289,15 @@
       /* Na paisagem baixa, o HUD não deve cobrir o personagem no centro do mapa. */
       @media (max-height: 420px) {
         .combat-top { left: max(6px, env(safe-area-inset-left));
-          width: min(275px, calc(50vw - 44px - env(safe-area-inset-left))); }
+          width: min(260px, calc(50vw - 44px - env(safe-area-inset-left))); }
         .map-label { left: calc(max(6px, env(safe-area-inset-left)) +
-          min(275px, calc(50vw - 44px - env(safe-area-inset-left))) + 18px); }
-      }
-      @media (max-height: 420px) and (max-width: 900px) {
-        .combat-bars small { font-size: 9px; }
+          min(260px, calc(50vw - 44px - env(safe-area-inset-left))) + 18px); }
       }
       @media (max-height: 420px) and (max-width: 700px) {
         .map-label { display: none; }
       }
       @media (max-height: 420px) and (max-width: 620px) {
-        .combat-top { padding: 4px 8px; border-width: 7px; border-image-width: 7px; }
-        .combat-topline { margin: -2px 0 3px; padding: 2px 4px; min-height: 18px; }
-        .combat-bars small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .combat-target { padding-top: 3px; margin-top: 2px; }
-        .combat-target button { min-height: 34px; }
-        .combat-feedback { left: max(6px, env(safe-area-inset-left)); top: 150px; }
+        .combat-feedback { left: max(6px, env(safe-area-inset-left)); }
       }
       /* O jogo usa paisagem no celular; em retrato não oferecemos controles cortados. */
       .rotate-overlay { display: none; }
@@ -397,6 +392,7 @@
             <div><dt>Materiais de ruptura</dt><dd id="character-materials">0</dd></div>
             <div><dt>Aptidão / capacidade da abertura</dt><dd class="sheet-pending">A definir</dd></div>
           </dl>
+          <p class="sheet-note" id="character-test-stones"></p>
           <p class="sheet-note">Aptidão e capacidade da abertura ainda não têm regras definidas. A essência primordial usada pelos Gu é diferente das pedras espirituais.</p>
         </section>
         <section class="sheet-section" aria-label="Próximo avanço">
