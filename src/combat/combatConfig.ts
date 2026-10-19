@@ -16,14 +16,17 @@ export interface CombatSettings {
   combatLockMs: number;
 }
 
-/** Apenas Cigarra: chance/vida vêm do GDD. Demais números são provisórios do protótipo. */
+/**
+ * Balance v0.2: R1 deve derrotar fauna comum sem transformar Gu da Lua em botão de vitória.
+ * Os valores de Cigarra continuam os definidos pelo GDD; o restante é balanceamento de combate.
+ */
 export const COMBAT_CONFIG: CombatSettings = {
   hero: { maxHealth: 100, defense: 2, maxEssence: 100, baseEssenceRegenPerSecond: 1 },
   enemy: { maxHealth: 36, defense: 1, damage: 8, attackRange: 32, aggroRange: 96,
     speed: 32, attackCooldownMs: 1450, lootStones: 8,
     lootMaterialId: 'ruptura-rank-1', lootMaterialQuantity: 1 },
-  basic: { damage: 12, range: 62, cooldownMs: 600 },
-  moonlight: { damage: 22, range: 224, width: 26, speed: 320,
+  basic: { damage: 14, range: 62, cooldownMs: 600 },
+  moonlight: { damage: 26, range: 224, width: 26, speed: 320,
     essenceCost: 16, cooldownMs: 1800 },
   liquorWorm: { bonusEssenceRegenPerSecond: 2 },
   stoneSkin: { defenseBonus: 4 },
