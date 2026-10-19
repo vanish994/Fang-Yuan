@@ -2,7 +2,7 @@
 
 **Projeto:** Fang-Yuan  
 **Documento:** GDD principal  
-**Versão:** 0.2 — progressão por XP/nível e decisões consolidadas  
+**Versão:** 0.3 — cultivo por pedras espirituais; parâmetros do protótipo identificados
 **Idioma:** Português  
 **Estado:** Revisão consolidada. Decisões explícitas são requisitos; pontos marcados como A definir continuam pendentes.
 
@@ -16,7 +16,7 @@ O jogo não será um MMORPG. A experiência principal será uma campanha de RPG;
 
 ### 1.1 Pilares de design
 
-1. **Fidelidade ao universo:** usar os conceitos próprios da obra — Gu, mestres Gu, abertura, essência primeva, pedras primevas, receitas, refinamento, caminhos e reinos de cultivo.
+1. **Fidelidade ao universo:** usar os conceitos próprios da obra — Gu, mestres Gu, abertura, essência primordial, pedras espirituais, receitas, refinamento, caminhos e reinos de cultivo.
 2. **Preparação e estratégia:** vencer depende de combinação de Gu, recursos, informação e decisões, não apenas de atributos altos.
 3. **Liberdade com consequências:** recursos são limitados; escolhas de preparação e gasto devem importar.
 4. **Exploração recompensadora:** mapas, áreas secretas, materiais, encontros e personagens incentivam a descoberta.
@@ -26,7 +26,7 @@ O jogo não será um MMORPG. A experiência principal será uma campanha de RPG;
 
 ## 2. Identidade e escopo
 
-- **Gênero:** RPG de ação/exploração com sistemas estratégicos de cultivo e Gu. A forma exata do combate permanece como decisão de design a validar no protótipo.
+- **Gênero:** RPG de ação/exploração com sistemas estratégicos de cultivo e Gu. O combate em tempo real no mapa está em protótipo funcional; seu balanceamento ainda precisa de validação.
 - **Protagonista:** Fang Yuan.
 - **Câmera:** 2D top-down.
 - **Arte:** pixel art, com cenários modulares e áreas conectadas.
@@ -64,7 +64,7 @@ A terminologia deve respeitar a obra. Usar nomes consistentes em português e, q
 Conceitos centrais a representar:
 - Mestre Gu e Gu.
 - Abertura e aptidão.
-- Essência primeva e pedras primevas.
+- Essência primordial e pedras espirituais.
 - Refinamento e receitas.
 - Rank e estágio de cultivo.
 - Caminhos e especializações existentes no universo da obra.
@@ -75,28 +75,15 @@ Não introduzir novos elementos ou regras universais sem documentá-los como con
 
 ## 5. Sistema de cultivo e progressão
 
-### 5.1 Princípio central — Definido
+### 5.1 Regra aprovada: sem XP nem níveis
 
-A progressão principal de Fang Yuan é simples e baseada em **XP e níveis**. O personagem ganha XP por combate, missões, exploração e outras atividades configuradas; ao atingir os requisitos de XP, sobe de nível. O sistema deve ser fácil de compreender e de implementar, sem simular cada detalhe do cultivo da novel.
+A progressão de Fang Yuan é feita **manualmente** por Rank e estágio, com **pedras espirituais**. Não há XP nem nível numérico, nem avanço automático ao acumular recursos. As pedras espirituais são a única moeda usada nos custos de cultivo (nomes anteriores para esta moeda não criam um segundo recurso); **essência primordial** é outro recurso, reservado à ativação de Gu.
 
-Os níveis representam a progressão de cultivo. **Rank e estágio de cultivo são uma camada de leitura narrativa do nível**, não uma segunda barra de experiência independente. O jogo não deve exigir que o jogador gaste pedras primevas para cada subida normal de nível.
+A sessão inicial de teste começa em **Rank 1, Inicial, 0 pedras espirituais e nenhum material**. O saldo e os materiais devem ser verificados pelo motor de regras antes de qualquer gasto. O jogador consulta os requisitos e confirma a operação antes de tentar; avanços repetidos com a mesma confirmação não podem gastar recursos duas vezes.
 
-Fluxo principal:
+### 5.2 Nove Ranks e quatro estágios — regra aprovada
 
-**Combate / missões / exploração → XP → nível → Rank/estágio correspondente → acesso gradual a conteúdo, Gu e desafios.**
-
-Pedras primevas continuam importantes como moeda, recurso de comércio e recurso para custos especiais definidos neste GDD. Não devem ser confundidas com XP nem com essência primeva.
-
-### 5.2 Ranks e estágios — Definido
-
-O jogo terá **9 Ranks de Mestre Gu**, cada um dividido em quatro estágios:
-
-1. Inicial
-2. Médio
-3. Superior
-4. Pico
-
-Isso produz 36 faixas de progressão (9 Ranks × 4 estágios). Os intervalos de níveis que correspondem a cada Rank/estágio devem ser configuráveis em dados. A tabela numérica exata de níveis e XP necessários ainda é **A definir**.
+Cada um dos **9 Ranks** tem exatamente quatro estágios nesta ordem: **Inicial → Médio → Superior → Pico**. O Rank 9, Pico é o limite: não existe ruptura para Rank 10. Transições até Pico exigem exclusivamente pedras espirituais e não possuem sorteio de falha. Custos maiores nos estágios seguintes são configurados por Rank.
 
 | Rank | Estágios |
 |---|---|
@@ -110,45 +97,42 @@ Isso produz 36 faixas de progressão (9 Ranks × 4 estágios). Os intervalos de 
 | Rank 8 | Inicial, Médio, Superior, Pico |
 | Rank 9 | Inicial, Médio, Superior, Pico |
 
-A interface deve mostrar simultaneamente o nível numérico e sua representação como Rank/estágio. A passagem normal entre níveis é automática ao atingir o XP exigido. O Rank 9 é o limite definido; progressão além dele não deve ser presumida.
+### 5.3 Ruptura de Rank — regra aprovada, parâmetros revisáveis
 
-### 5.3 Ruptura entre Ranks — Definido com parâmetros pendentes
+De Pico para Inicial do próximo Rank (somente Ranks 1–8), a tentativa manual exige pedras espirituais e materiais de inimigos. O custo, a lista de materiais, a chance de sucesso e a chance de perda de materiais na falha são dados configuráveis. Cada tentativa é independente das anteriores.
 
-A transição do estágio Pico de um Rank para o estágio Inicial do Rank seguinte é uma **ruptura especial**, distinta de uma subida normal de nível. Ela mantém o risco e a preparação característicos do universo sem tornar toda a progressão desnecessariamente complexa.
+- Sucesso: pedras e materiais exigidos são consumidos; inicia-se o próximo Rank, estágio Inicial.
+- Falha: **todas as pedras investidas são perdidas**. Para cada **tipo de material** exigido, um sorteio independente determina se a quantidade investida daquele tipo é perdida; os materiais não perdidos permanecem com o personagem.
+- Não existem penalidades adicionais de falha aprovadas. O Rank 9, Pico nunca pode tentar ruptura.
 
-- A ruptura é iniciada manualmente pelo jogador quando os requisitos de nível e conteúdo forem cumpridos.
-- A tentativa exige pedras primevas e materiais específicos de avanço, conforme dados configuráveis por Rank.
-- A tentativa tem chance de sucesso baseada em fatores permanentes do personagem e na preparação utilizada. A fórmula e os valores exatos permanecem **A definir**.
-- Cada tentativa é independente das anteriores: falhas passadas não aumentam nem reduzem a chance da próxima.
-- Em caso de falha, as pedras primevas investidas são perdidas e existe uma chance de perder os materiais especiais utilizados. A probabilidade exata permanece **A definir**.
-- Não adicionar outras penalidades à falha sem decisão explícita.
-- Em caso de sucesso, o personagem passa ao estágio Inicial do Rank seguinte.
-- Os parâmetros de ruptura devem ser dados/configuração, não fórmulas espalhadas pelo código.
+### 5.4 Valores iniciais do protótipo — aprovados para teste, NÃO canônicos/definitivos
 
-A ruptura não deve criar uma segunda barra de XP nem exigir o gasto de pedras primevas em cada nível comum. XP e nível continuam sendo a progressão principal; a ruptura é uma barreira especial nos limites entre Ranks.
+Esta tabela é uma **configuração provisória centralizada** em `src/entities/cultivationBalance.ts`, aprovada para o protótipo e sujeita a rebalanceamento. Não descreve custos da novel. Cada ruptura exige uma quantidade provisória de material identificada tecnicamente como `ruptura-rank-N`; o item e o inimigo que o solta ainda não foram escolhidos. Veja também [`BALANCEAMENTO.md`](../BALANCEAMENTO.md).
 
-### 5.4 XP, níveis e atributos
+| Rank atual | Inicial→Médio | Médio→Superior | Superior→Pico | Pico→próximo Rank | Materiais* | Sucesso | Perda por tipo na falha |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 20 | 35 | 55 | 90 | 1 | 80% | 10% |
+| 2 | 45 | 75 | 115 | 180 | 2 | 75% | 15% |
+| 3 | 90 | 150 | 230 | 360 | 3 | 70% | 20% |
+| 4 | 180 | 300 | 460 | 720 | 4 | 65% | 25% |
+| 5 | 360 | 600 | 920 | 1.440 | 5 | 60% | 30% |
+| 6 | 720 | 1.200 | 1.840 | 2.880 | 6 | 55% | 35% |
+| 7 | 1.440 | 2.400 | 3.680 | 5.760 | 7 | 50% | 40% |
+| 8 | 2.880 | 4.800 | 7.360 | 11.520 | 8 | 45% | 45% |
+| 9 | 5.760 | 9.600 | 14.720 | — | — | — | — |
 
-- XP é obtida por fontes configuráveis, com recompensas proporcionais à dificuldade, ao risco e ao esforço.
-- Os requisitos de XP aumentam conforme o nível, evitando progressão trivial por repetição de inimigos fracos.
-- A progressão deve ser testável e balanceável por dados; não codificar tabelas extensas de XP diretamente nas cenas.
-- Os níveis concedem melhorias moderadas de atributos e liberam a faixa correspondente de Rank/estágio.
-- Gu, preparação, recursos e decisões táticas devem ter grande influência no estilo de jogo e no resultado dos combates; nível alto não deve substituir estratégia.
-- Atributos exatos, valores por nível, curva de XP e recompensas por atividade ficam **A definir**.
-- Evitar duas progressões independentes que dupliquem os mesmos benefícios: nível é a mecânica numérica; Rank/estágio é sua representação de cultivo, com ruptura especial entre Ranks.
+\*Quantidade por Rank no protótipo; os materiais concretos não estão definidos.
 
-### 5.5 Aptidão, abertura e essência primeva
+### 5.5 Abertura, Mar Primordial e essência primordial
 
-A aptidão e a abertura continuam relevantes para a identidade do universo e podem afetar eficiência, capacidade ou opções de cultivo, mas suas regras detalhadas precisam ser especificadas antes da implementação. Não devem recriar uma barra de XP paralela nem substituir o nível como progressão principal.
+**Terminologia e origem definidas:** a energia dos Gu é **essência primordial**, não mana. Ela vem do **Mar Primordial na abertura (dantian)** de Fang Yuan; não se confunde com as pedras espirituais, usadas como moeda de cultivo. A aptidão e as regras de capacidade/evolução da abertura ainda estão **A definir**. A reserva do combate começa com capacidade e recuperação **provisórias** (veja §11.6): sua implementação atual não pretende definir a capacidade conforme Rank ou aptidão e não persiste a energia ao recarregar a página. Não há progressão paralela de XP.
 
-A essência primeva é o recurso usado para ativar Gu e outras ações compatíveis. Ela é separada de:
-- **XP:** mede o progresso até o próximo nível.
-- **Nível / Rank / estágio:** representa a progressão do personagem.
-- **Pedras primevas:** moeda e recurso econômico, usado em transações e nos custos especiais de ruptura.
-- **Essência primeva:** energia disponível para ativar Gu.
+### 5.6 Estado da implementação e dependências pendentes
 
-Custos, capacidade, recuperação e relação com Rank/estágio ficam **A definir**. O motor deve validar custos e impedir essência negativa.
- 
+O motor de cultivo é independente da interface Phaser, valida saldo e inventário mínimo de materiais e persiste **Rank, estágio, pedras e materiais** localmente no navegador após cada alteração. A ficha móvel mostra o próximo custo, chance e resultado, exigindo confirmação antes do gasto. Inimigos de teste no mapa deixam pedras e material de ruptura; o inventário completo e a troca dos drops por pedras na vila continuam pendentes. A persistência é local à campanha de teste e não substitui autoridade de servidor em um eventual modo competitivo.
+
+O **spritesheet do Mar Primordial foi enviado pelo usuário** e está em `public/assets/ui/mar-primordial-11x128.png` (1408 × 128 px, 11 quadros horizontais de 128 × 128 px, do mar vazio ao cheio). É exibido **somente na seção de avanço de estágio/Rank do menu de personagem**, com o quadro selecionado pela razão entre essência primordial atual e capacidade máxima do **mesmo estado de combate** usado para custos e regeneração; o HUD da tela de jogo usa apenas uma barra de essência primordial, igual à barra de vida, com valor exato em números. A imagem no menu tem somente 11 níveis. O desenho representa visualmente o mar dentro da abertura/dantian; não determina por si só capacidade, aptidão, acertos ou recuperação. Não é um substituto criado nem arte do pack de cenário Mixel.
+
 ## 6. Sistema de Gu
 
 ### 6.1 Princípios
@@ -164,7 +148,7 @@ Cada definição de Gu deverá incluir, conforme aplicável:
 - caminho;
 - tipo e função;
 - efeitos ativos e passivos;
-- custo de essência primeva;
+- custo de essência primordial;
 - requisitos para uso;
 - duração, alcance e alvo;
 - condições de ativação e encerramento;
@@ -210,16 +194,23 @@ Os Gu selvagens devem ser tratados como encontros de exploração, não como ite
 #### Liquor Worm — Gu de apoio
 
 - O **Liquor Worm (Verme do Licor)** poderá ser obtido no início da campanha, no final de uma caverna explorável com vários inimigos pelo caminho.
-- **Adaptação de gameplay específica do projeto:** equipado no slot de apoio, concede recuperação passiva de essência primeva.
+- **Adaptação de gameplay específica do projeto:** equipado no slot de apoio, concede recuperação passiva de essência primordial.
 - Esta função de regeneração é uma adaptação para o RPG; não deve ser apresentada como descrição literal de sua habilidade canônica. A relação exata com a função da obra deverá ser documentada nas notas de fidelidade.
 - Valor da recuperação, limites, condições e eventuais custos ficam **A definir**.
 
-#### Jade Skin Gu — Gu passivo
+#### Stone Skin Gu — Gu passivo (nome indicado pelo usuário)
 
-- O **Jade Skin Gu (Gu da Pele de Jade)** é planejado para o slot passivo.
+- O ícone enviado para o slot passivo foi identificado pelo usuário como **Stone Skin Gu (Pele de Pedra)**; substitui a referência anterior a Jade Skin neste protótipo, sem tratar as duas espécies como equivalentes canônicas.
 - **Adaptação de gameplay específica do projeto:** aumenta a defesa enquanto estiver equipado, de acordo com valores de balanceamento configuráveis.
 - O método e o momento de obtenção ainda ficam **A definir**.
-- O aumento defensivo, sua magnitude e eventuais condições precisam ser definidos antes da implementação. Não presumir que o efeito passivo do jogo reproduza literalmente todas as regras da obra.
+- O aumento defensivo, sua magnitude e eventuais condições definitivas precisam ser aprovados após testar o valor provisório do protótipo. Não presumir que o efeito passivo do jogo reproduza literalmente todas as regras da obra.
+
+#### Whirlwind Gu — Gu de movimento (nome provisório)
+
+- O usuário descreveu o quarto ícone como um Gu relacionado a “redemoinho” e pediu ajuda com a grafia. **Whirlwind Gu / Gu do Redemoinho** é um rótulo provisório na interface, não confirmação de nome canônico ou aquisição narrativa.
+- No protótipo, equipa-se no slot de movimento e habilita o dash com bônus curto de velocidade. Os parâmetros seguem provisórios na configuração de combate.
+
+O spritesheet enviado pelo usuário em `public/assets/ui/gu-icons-2x2-64.png` mede **128 × 128 px**, com quatro quadros de **64 × 64 px**: Moonlight (superior esquerdo), Liquor (superior direito), Stone Skin (inferior esquerdo) e Whirlwind/Redemoinho (inferior direito). A aba Inventário / Gu apresenta os quatro ícones na coleção de teste e ao lado dos slots equipados; ações ativas mostram Moonlight e Whirlwind no HUD. Os ícones não criam automaticamente Gu adquiridos ou novas habilidades: apenas Moonlight começa equipado. A arte visual é separada das hitboxes e valores mecânicos.
 
 Essas decisões descrevem a adaptação do jogo. Ao documentar Gu adicionais, separar sempre efeito canônico confirmado de mecânica criada para o RPG.
 
@@ -231,7 +222,7 @@ Essas decisões descrevem a adaptação do jogo. Ao documentar Gu adicionais, se
 - **Sucesso:** Fang Yuan retorna à vida com **50% da vida máxima**. A passiva entra imediatamente em uma recarga muito longa e não pode tentar ativar novamente enquanto estiver em recarga.
 - **Falha:** a morte é resolvida normalmente, sem ressurreição. Como a recarga foi definida para começar após uma ativação bem-sucedida, uma tentativa falha não inicia a recarga.
 - A passiva não garante sobrevivência e não substitui os sistemas normais de morte e derrota.
-- **A definir:** duração exata da recarga, estado dos demais recursos ao reviver, regras de segurança contra ativações repetidas e efeitos visuais/sonoros.
+- **A definir para a versão final:** duração exata da recarga e estado dos demais recursos ao reviver. No protótipo, os demais recursos permanecem inalterados, a recarga dura 10 minutos e a ID do golpe evita resolver duas vezes o mesmo dano letal; são escolhas provisórias, não cânone.
 - A ativação e a recarga devem ser resolvidas pelo motor de regras, não apenas por animações ou lógica visual.
 
 ## 7. Refinamento e receitas
@@ -255,16 +246,17 @@ As fórmulas e regras de refinamento devem ser orientadas por dados. O sistema p
 
 A economia deve reforçar a necessidade de preparação. Recursos e materiais precisam ter usos claros e fontes controladas.
 
-### 8.1 Pedras primevas: obtenção e perda na morte
+### 8.1 Pedras espirituais: obtenção e perda na morte
 
-- **Terminologia:** o GDD usa o termo **pedras primevas** para o recurso equivalente às pedras primordiais da obra. Elas funcionam tanto como recurso de cultivo quanto como moeda de troca; não devem ser confundidas com essência primeva.
-- **Drops de inimigos:** inimigos podem deixar pedras primevas como saque, além de outros drops definidos por espécie e dificuldade.
-- **Troca na vila:** o jogador pode entregar drops obtidos de inimigos a um NPC/comerciante da vila e receber pedras primevas em troca. Os itens aceitos e as taxas de troca serão definidos pelo balanceamento.
-- **Penalidade por morte:** quando Fang Yuan morre em combate e a Cigarra da Primavera e Outono não o ressuscita, ele perde uma parte das pedras primevas que carrega. A quantidade ou percentual perdido, o destino das pedras perdidas e as regras para recuperá-las permanecem **A definir**.
+- **Terminologia:** o jogo chama **pedras espirituais** a moeda de cultivo e comércio (correspondente às pedras primevas da obra). Este é um só recurso, distinto da essência primordial.
+- **Drops de inimigos:** inimigos podem deixar pedras espirituais como saque, além de outros drops definidos por espécie e dificuldade.
+- **Troca na vila:** o jogador pode entregar drops obtidos de inimigos a um NPC/comerciante da vila e receber pedras espirituais em troca. Os itens aceitos e as taxas de troca serão definidos pelo balanceamento.
+- **Penalidade por morte:** quando Fang Yuan morre em combate e a Cigarra da Primavera e Outono não o ressuscita, ele perde uma parte das pedras espirituais que carrega. A quantidade ou percentual perdido, o destino das pedras perdidas e as regras para recuperá-las permanecem **A definir**.
+- **Ainda não implementada:** sem valor aprovado, o protótipo não retira pedras na morte; permite retorno ao centro com vida cheia e preserva pedras e materiais. Isso não substitui a regra planejada de penalidade.
 - A penalidade deve ser clara para o jogador e não pode retirar mais pedras do que ele possui. A ressurreição bem-sucedida pela Cigarra precisa ser tratada como um resultado diferente da morte normal; se ela evita totalmente a penalidade, isso será confirmado no balanceamento.
 
 Categorias iniciais:
-- pedras primevas;
+- pedras espirituais;
 - materiais de refinamento;
 - plantas e recursos naturais;
 - itens consumíveis;
@@ -313,7 +305,7 @@ Evitar missões que sejam apenas “elimine X inimigos” quando houver oportuni
 
 ## 10. Interface de menu e preparação — Definido
 
-O menu principal do personagem terá abas separadas para organizar a preparação e a progressão, com navegação adequada a telas pequenas.
+No celular, o jogo é apresentado em **paisagem**; em retrato há um aviso para girar o aparelho, sem tentar forçar rotação onde o navegador não permite. Um botão discreto ao lado do Menu alterna tela cheia quando a API do navegador estiver disponível e tenta travar a orientação em paisagem ao entrar. Falhas da API são comunicadas, e a rotação manual permanece possível. O menu do personagem apresenta duas abas operantes, **Avanço** e **Inventário / Gu**, com navegação por toque ou teclado em telas pequenas. Ambas usam a moldura, cabeçalho e retrato do pack de GUI Tiny RPG - Mana Soul (CC0); o HUD de combate compartilha essa linguagem visual, sem usar os tiles de cenário para simular interface.
 
 ### 10.1 Aba de Gu / Equipamento
 
@@ -325,7 +317,7 @@ O menu principal do personagem terá abas separadas para organizar a preparaçã
 ### 10.2 Aba de Cultivo / Avanço de Rank
 
 - Mostra o Rank e o estágio de cultivo atuais, o próximo avanço disponível e os requisitos necessários.
-- Exibe o XP necessário para o próximo nível e, para rupturas de Rank, os custos em pedras primevas e materiais específicos exigidos.
+- Exibe o custo em pedras espirituais do próximo estágio e, para rupturas de Rank, pedras, materiais, chance de sucesso e risco de perda dos materiais.
 - Antes de iniciar uma ruptura, informa a chance de sucesso conhecida e os riscos de falha conforme as regras definidas no jogo.
 - A subida de estágio ou Rank é iniciada manualmente pelo jogador; cumprir os requisitos não avança o cultivo automaticamente.
 - Não permitir iniciar um avanço quando os requisitos não forem atendidos; explicar claramente o que falta.
@@ -353,7 +345,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
   1. **Gu de ataque ativo:** Gu ativado manualmente para executar um ataque ou habilidade ofensiva.
   2. **Gu passivo:** Gu cujo efeito funciona automaticamente. Pode ser ofensivo, como um Gu que aumenta a força, ou fornecer outro benefício passivo compatível.
   3. **Gu de movimento:** Gu que concede mobilidade especial, incluindo o dash quando aplicável. O botão de dash só aparece se houver um Gu de movimento equipado que permita essa ação.
-  4. **Gu de apoio:** Gu voltado a suporte, como o Verme do Licor, que pode acelerar a recuperação de essência primeva, ou um Gu de cura, conforme suas regras.
+  4. **Gu de apoio:** Gu voltado a suporte, como o Verme do Licor, que pode acelerar a recuperação de essência primordial, ou um Gu de cura, conforme suas regras.
 - Os quatro espaços são **slots de equipamento por função**, não quatro atalhos livremente intercambiáveis durante o combate. **Gu equipados só podem ser trocados fora de combate**; durante uma luta, a configuração fica bloqueada. O jogo deve comunicar claramente quando o personagem ainda está em combate e não pode trocar seus Gu.
 - Cada Gu equipado deve respeitar suas próprias condições, custos, recargas e compatibilidade com o slot correspondente.
 - **Mira híbrida:** o jogador pode tocar em um inimigo para selecioná-lo manualmente ou acionar uma opção para selecionar automaticamente o inimigo mais próximo. A seleção automática não deve substituir a seleção manual sem uma ação explícita do jogador.
@@ -363,7 +355,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 
 - **Ataque básico:** ação de combate disponível sem depender da ativação de um Gu. Seu dano, alcance, velocidade e possíveis custos ficam **A definir**.
 - **Gu ativos:** habilidades acionadas manualmente pelo jogador, conforme as regras e limitações de cada Gu.
-- **Ataques especiais combinados:** técnicas que exigem uma combinação específica de Gu. Cada combinação deve declarar seus requisitos, efeito, custo total de essência primeva, alcance, condições, recarga e possíveis riscos. Não presumir que qualquer par de Gu possa ser combinado.
+- **Ataques especiais combinados:** técnicas que exigem uma combinação específica de Gu. Cada combinação deve declarar seus requisitos, efeito, custo total de essência primordial, alcance, condições, recarga e possíveis riscos. Não presumir que qualquer par de Gu possa ser combinado.
 - As combinações devem acrescentar decisões táticas, sem tornar obsoletos os Gu individuais ou o ataque básico.
 
 ### 11.4 Controles de combate para celular — Definido
@@ -373,22 +365,49 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - **Botão de Gu de ataque:** permite ativar o Gu de ataque selecionado, respeitando seus custos, alcance, recarga e condições. Os 4 espaços de acesso rápido continuam sendo atalhos para os Gu.
 - **Botão de dash:** só aparece quando Fang Yuan possui um Gu de movimento que conceda essa ação. Sem um Gu de movimento compatível, o botão fica oculto e o dash não pode ser usado.
 - **Efeito do dash:** ao ativá-lo, Fang Yuan realiza uma arrancada rápida na direção do movimento. Ao terminar a arrancada, recebe também um bônus temporário e curto de velocidade de movimento, para facilitar a fuga, perseguição ou reposicionamento. O bônus é parte do efeito do Gu de movimento, não um efeito visual.
-- **Balanceamento do dash:** distância da arrancada, intensidade e duração do bônus de velocidade, custo de essência primeva e recarga permanecem **A definir**. O bônus não deve se acumular indefinidamente com ativações sucessivas; a regra de reaplicação/empilhamento será definida no balanceamento.
+- **Balanceamento do dash:** distância da arrancada, intensidade e duração do bônus de velocidade, custo de essência primordial e recarga permanecem **A definir**. O bônus não deve se acumular indefinidamente com ativações sucessivas; a regra de reaplicação/empilhamento será definida no balanceamento.
 - Os controles devem funcionar em tela sensível ao toque e não podem cobrir desnecessariamente o alvo selecionado ou informações essenciais de combate.
 
-### 11.4 Regras gerais
+### 11.5 Regras gerais
 
 - O motor de regras é a autoridade sobre custos, acertos, dano, efeitos, recargas e resultados.
-- O custo de essência primeva é validado antes da execução; não permitir essência negativa.
+- O custo de essência primordial é validado antes da execução; não permitir essência negativa.
 - Cada efeito especifica alvo, duração, prioridade, empilhamento, remoção e interação com outros efeitos.
 - Movimento, colisão, alcance, linha de visão, interrupções e condições de acerto devem ser explícitos e testáveis.
 - Animações e efeitos visuais não podem alterar resultados mecânicos.
 - O servidor validará ações e resultados nas partidas competitivas.
 - Não introduzir turnos ou ativação automática de Gu ativos sem decisão explícita.
 
-### 11.6 Decisões pendentes
+### 11.6 Implementação do protótipo — funcional, **não canônica**
 
-Continuam **A definir**: quantidade total de Gu que podem ser carregados ou equipados; condições exatas para o jogo considerar o combate encerrado e liberar a troca de Gu; valores do ataque básico; fórmula exata de distância do dash por Rank, custo e recarga dos Gu de movimento; evasão; recuperação de essência primeva; recargas; fórmulas de acerto e dano; alcance e linha de visão; fuga e derrota.
+`src/combat/combatEngine.ts` resolve dano, morte, aquisição de recompensa, recargas, Gu e IA em tempo real sem depender de Phaser; `src/combat/combatConfig.ts` reúne todos os valores **provisórios** abaixo. O mapa usa toque para selecionar inimigo manualmente; a alternância de seleção automática procura o inimigo vivo mais próximo, mas não substitui a seleção manual. Ataque básico requer alvo em alcance e caminho livre. A Lua pode ser lançada na direção do alvo selecionado ou da orientação atual, sem alvo obrigatório. Sua hitbox desloca-se no motor, separada do desenho do projétil; segue atravessando o inimigo abatido e para no primeiro sobrevivente, no obstáculo ou ao atingir o alcance. Uma instância do projétil registra as IDs já atingidas para não causar dano duplicado.
+
+| Regra provisória (unidades) | Valor nesta versão |
+|---|---:|
+| Vida / defesa / essência máximas de Fang Yuan | 100 / 2 / 100 |
+| Regeneração base de essência | 1 por segundo |
+| Criatura de teste: vida / defesa / dano | 36 / 1 / 8 |
+| Criatura: alcance de ataque / detecção / velocidade / recarga | 32 px / 96 px / 32 px/s / 1,45 s |
+| Ataque básico: dano / alcance / recarga | 12 / 62 px / 0,6 s |
+| Lua: dano / alcance / largura da hitbox / velocidade | 22 / 224 px / 26 px / 320 px/s |
+| Lua: custo / recarga | 16 essência / 1,8 s |
+| Stone Skin / Liquor Worm equipados | +4 defesa / +2 essência por segundo |
+| Whirlwind Gu (**nome provisório**): distância / custo / recarga | 96 px / 20 essência / 5 s |
+| Gu de movimento: bônus após dash / duração | ×1,5 velocidade / 1,8 s (sem acumular) |
+| Cigarra: chance / vida restaurada (**definido no GDD**) | 5% / 50% da vida máxima |
+| Cigarra: recarga após sucesso (**provisória**) | 10 minutos |
+| Bloqueio de troca após combate / golpe detectado | 5 s sem ameaça/ação hostil |
+| Drop por criatura de teste (garantido, **provisório**) | 8 pedras + 1 `ruptura-rank-1` |
+
+Dano provisório = `máximo(1, dano bruto − defesa)` limitado à vida atual. Ataques básicos não gastam essência; Lua e dash cobram o custo apenas ao executar. Regeneração não ultrapassa o máximo; ataques e dash recusam essência insuficiente. Inimigos se aproximam e atacam perto do personagem; o bloqueio de equipagem expira após 5 s sem inimigos detectando o personagem nem ação ofensiva. A Cigarra é **intrínseca, não ocupa slot**, começa a recarga **só no sucesso**, não consome essência extra e não duplica a resolução do mesmo golpe. Na falha de ressurreição, o jogador pode retornar ao centro sem penalidade monetária até que a regra de perda seja definida.
+
+Os quatro slots funcionais são ataque, passivo, movimento e apoio: Moonlight vem inicialmente equipado; as demais opções são **inventário de teste** acessível exclusivamente pela aba **Inventário / Gu** do menu, não aquisição efetiva ou distribuição narrativa. A aba mostra o efeito/custo provisório do Gu selecionado e bloqueia a troca durante combate ou derrota; tentativas bloqueadas são recusadas pelo motor, não apenas pela interface. Stone Skin aplica defesa somente equipado; Liquor Worm altera regeneração somente equipado; dash só existe com Whirlwind Gu de teste e percorre corredor livre cardinal, seguido de bônus temporário real. Equipagem não é persistida. Inimigos e corte lunar usam **geometria provisória no motor**, não sprites inventados. O atlas existente segue exclusivo do cenário Mixel; Fang Yuan mantém seus frames de caminhada. Não há sprites próprios de ataque ou inimigos neste checkout; a imagem do **Mar Primordial** veio do usuário e é usada apenas na interface.
+
+A morte do inimigo gera recompensa **uma vez**, em uma transação única de pedras e materiais no `fang-yuan.cultivation.v1` existente; se o armazenamento falhar, fica pendente na sessão e a interface avisa, sem publicar metade da recompensa. A ficha atualiza os recursos recebidos, que continuam após recarregar a página. Taxa/itens de troca na vila, aquisição permanente dos demais Gu, persistência de vida/essência/recargas/equipamento, economia de morte e mecânica competitiva não estão implementados. No mobile, joystick cardinal à esquerda convive com o toque até o pixel desejado; botões de ataque básico, Lua e dash (visível apenas com Gu equipado), barras de vida e essência primordial de mesmo formato, estado do alvo, custo, recargas, feedback e status da Cigarra aparecem no HUD, **sem slots de equipagem sobre o mapa**. Os quatro slots equipáveis aparecem só na aba Inventário / Gu. A aba Avanço concentra o próximo estágio/Rank, requisitos, confirmação do gasto e o sprite do Mar Primordial com a quantidade exata da reserva.
+
+### 11.7 Decisões pendentes
+
+Continuam **A definir** para balanceamento definitivo: capacidade/inventário e aquisição de Gu; duração e critério final do bloqueio de troca; danos, velocidade, custo, regeneração, distância do dash por Rank e recargas; evasão, fórmulas de acerto, linha de visão detalhada e colisão para novos terrenos; AI e drops por espécie; recuperação após derrota e penalidade de pedras; persistência do combate, recursos ao reviver e validação em rede. A tabela anterior é apenas referência configurável do protótipo, não decisão canônica.
 
 ## 12. Competitivo online
 
@@ -470,7 +489,7 @@ Responsável pela autenticação, criação e validação das partidas competiti
 
 ### Fase 2 — Primeiro ciclo de jogo
 - implementar ficha básica de Fang Yuan;
-- modelar essência primeva e abertura;
+- modelar essência primordial e abertura;
 - adicionar um conjunto pequeno e representativo de Gu;
 - implementar inventário e coleta;
 - demonstrar um encontro com começo, decisões e resultado.
@@ -514,7 +533,7 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 
 1. **Narrativa:** adaptação fiel da novel por arcos ou história alternativa mantendo Fang Yuan como protagonista?
 2. **Combate — parcialmente definido:** tempo real no mapa top-down, com Gu ativos acionados pelo jogador e Gu passivos ativados automaticamente. Faltam definir ataque básico, movimento, alvo, alcance, recargas, recuperação de essência e fórmulas de dano.
-3. **Balanceamento do cultivo:** quais serão os custos de pedras primordiais por estágio, os materiais de ruptura por Rank e os benefícios de atributos?
+3. **Balanceamento do cultivo:** o protótipo usa os valores provisórios da seção 5.4. Permanecem pendentes os materiais concretos, sua origem, taxas de obtenção e quaisquer benefícios de atributos.
 4. **Gestão de Gu:** quantos Gu podem ser carregados, equipados ou ativados, e quais custos isso gera?
 5. **Falha e risco:** qual é a chance-base de sucesso da ruptura, quais fatores a modificam e qual é a chance de perder materiais especiais em caso de falha?
 6. **Competitivo:** duelo individual, equipes, formato assíncrono ou partidas em tempo real?
@@ -526,23 +545,23 @@ Estas questões devem ser respondidas antes de fechar o design detalhado:
 - Não misturar o projeto com outros RPGs ou MMORPGs.
 - Não substituir conceitos canônicos por sistemas genéricos sem aprovação.
 - Distinguir fatos definidos, propostas e decisões pendentes.
-- Não inventar regras de cultivo, Gu ou história como se fossem canônicas. A progressão principal é por XP e níveis; Rank/estágio mapeiam faixas de nível, e a ruptura manual entre Ranks exige pedras primevas e materiais específicos. O combate é em tempo real no mapa top-down, com Gu ativos acionados pelo jogador e Gu passivos ativados automaticamente conforme suas condições.
+- Não inventar regras de cultivo, Gu ou história como se fossem canônicas. A progressão aprovada é por Rank/estágio sem XP ou níveis; avanços manuais gastam pedras espirituais, e a ruptura entre Ranks exige também materiais. O combate é em tempo real no mapa top-down, com Gu ativos acionados pelo jogador e Gu passivos ativados automaticamente conforme suas condições.
 - Antes de alterar arquitetura, inspecionar o código atual e preservar o que funciona.
 - Implementar mudanças pequenas, verificáveis e documentadas.
 - Nunca modificar ou substituir instruções de agentes existentes sem autorização explícita.
 - Quando uma lacuna impedir a implementação correta, documentar a questão e apresentar alternativas com consequências técnicas e de design.
 
 
-## 20. Atualização de decisões — versão 0.2
+## 20. Atualização de decisões — versão 0.3
 
 Esta revisão consolida a direção atual do projeto:
 
-- **Cultivo por XP e níveis:** ganhar XP e subir de nível é a progressão principal e deve permanecer simples.
-- **Ranks de cultivo:** os 9 Ranks, cada um com Inicial, Médio, Superior e Pico, mapeiam a progressão numérica. A curva de XP e os intervalos de níveis ainda serão balanceados.
-- **Ruptura especial:** nos limites entre Ranks, o jogador inicia uma tentativa manual com custo em pedras primevas e materiais; tentativas são independentes, falhas consomem as pedras investidas e podem perder materiais. Não aplicar punições adicionais não aprovadas.
+- **Cultivo sem XP/nível:** avançar manualmente por pedras espirituais entre os quatro estágios de cada um dos 9 Ranks. O balanceamento da seção 5.4 é provisório do jogo, não regra canônica da obra.
+- **Ranks de cultivo:** Inicial, Médio, Superior e Pico por Rank; Rank 9 Pico é o limite máximo.
+- **Ruptura especial:** nos limites entre Ranks, o jogador inicia uma tentativa manual com custo em pedras espirituais e materiais; tentativas são independentes, falhas consomem as pedras investidas e podem perder materiais. Não aplicar punições adicionais não aprovadas.
 - **Quatro funções de Gu equipados:** ataque ativo, passivo, movimento e apoio. A troca é permitida apenas fora de combate.
 - **Combate em tempo real:** acontece no mapa top-down; Gu ativos são acionados manualmente e Gu passivos funcionam conforme suas condições. O motor de regras é a autoridade para custos, acertos, dano e efeitos.
-- **Gu iniciais planejados:** Moonlight Gu é recebido na vila e dispara um corte em meia-lua com hitbox real; Liquor Worm é encontrado ao final de uma caverna com inimigos e concede regeneração passiva de essência como adaptação do jogo; Jade Skin Gu aumenta defesa enquanto equipado.
+- **Gu iniciais planejados:** Moonlight Gu é recebido na vila e dispara um corte em meia-lua com hitbox real; Liquor Worm é encontrado ao final de uma caverna com inimigos e concede regeneração passiva de essência como adaptação do jogo; Stone Skin Gu aumenta defesa enquanto equipado. Whirlwind Gu é nome provisório para o Gu de movimento ilustrado como “redemoinho”.
 - **Gu selvagens e comércio:** Gu podem ser vendidos por preços altos na vila e também encontrados na natureza. Alguns Gu selvagens podem fugir, exigindo uma abordagem de captura estratégica; detalhes de captura ainda serão especificados.
-- **Pedras primevas:** podem vir de drops e da troca de itens obtidos de inimigos na vila. Ao morrer sem ativação da Cigarra, Fang Yuan perde parte das pedras que carrega; percentual e recuperação continuam pendentes.
+- **Pedras espirituais:** podem vir de drops e da troca de itens obtidos de inimigos na vila. Ao morrer sem ativação da Cigarra, Fang Yuan perde parte das pedras que carrega; percentual e recuperação continuam pendentes.
 - **Fidelidade e adaptação:** separar efeitos canônicos confirmados das mecânicas criadas para o RPG. Não inventar informações como se fossem cânone.
