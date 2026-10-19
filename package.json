@@ -2,13 +2,14 @@
   "name": "fang-yuan",
   "version": "0.1.0",
   "private": true,
-  "description": "Jogo 2D feito com Phaser 4 + TypeScript + Vite",
+  "description": "Base limpa para RPG 2D com Phaser 4, TypeScript e Vite",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "phaser": "^4.2.1"

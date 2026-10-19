@@ -1,87 +1,29 @@
-# Fang-Yuan
+# Fang Yuan
 
-Projeto de RPG inspirado em *Reverend Insanity* (*Gu Zhen Ren*).
+Protótipo mobile-first em **modo paisagem** de RPG 2D top-down em **Phaser 4, TypeScript e Vite**. O [GDD](docs/GDD-ATUALIZADO.md) orienta o desenvolvimento.
 
-## Documento principal
+## Rodar
 
-O Game Design Document (GDD) é a fonte de verdade para as decisões de design:
-
-- [Abrir o GDD](docs/GDD.md)
-
-Antes de implementar sistemas ou propor mudanças, agentes de IA devem ler o GDD e respeitar as decisões marcadas como **Definido**. As decisões **A definir** devem continuar abertas até serem aprovadas.
-
-Jogo 2D feito com **Phaser 4**, **TypeScript** e **Vite**.
-
-## Requisitos
-
-- Node.js 22 (ver `.nvmrc`); mínimo `20.19` ou `22.12`
-- npm
-
-## Começando
+Requer Node.js 22 (`.nvmrc`) e npm:
 
 ```bash
-npm install      # instala as dependências (phaser, vite, typescript)
-npm run dev      # servidor de desenvolvimento em http://localhost:5173
+npm ci
+npm run dev
 ```
 
-Outros comandos:
+`npm test` valida mapa, caminho, cultivo, combate e recompensas; `npm run build` valida os tipos e gera o build.
 
-| Comando             | O que faz                                              |
-| ------------------- | ------------------------------------------------------ |
-| `npm run dev`       | Sobe o Vite com hot reload                             |
-| `npm run typecheck` | Verifica tipos com `tsc --noEmit`                      |
-| `npm run build`     | Checa tipos e gera o build de produção em `dist/`      |
-| `npm run preview`   | Serve o build de `dist/` localmente (porta 4173)       |
+## Estado atual
 
-## Estrutura
+- **VilaGuYue / Qing Mao:** **3 × 3 chunks** de **16 × 16 tiles** cada. Tile de **32 × 32 px**; área total de **1536 × 1536 px**. `Ground` e `Ground_Details` mantêm a grama lisa, sem estrada ou relevo. Uma **floresta densa** fecha os quatro lados com faixa contínua de pelo menos 7 tiles, borda irregular e mosaicos de árvores Mixel de 3 × 4 tiles sobrepostos em `World_Objects_YSort/Trees`. O centro segue caminhável entre os chunks. `Collision` impede atravessar a mata; tocar numa árvore leva à clareira caminhável mais próxima, não ao limite do mundo.
+- **Tileset exclusivo do cenário:** `Top-Down RPG 32x32 by Mixel v1.7.zip` em `docs/`. O jogo usa os atlas de solo, detalhes e árvores desse pack (`public/assets/qing-mao/`); não usa o pacote `basic_tileset_and_assets_standard_v3.0` no cenário. A licença Mixel permite usar assets no jogo, mas proíbe redistribuição/revenda como pack; veja `LICENSE.txt` dentro do ZIP.
+- **Fang Yuan:** o ZIP `docs/fang-yuan-walk-4dir-6frames.zip` fornece 6 quadros por direção na ordem **baixo, esquerda, direita, cima**, originalmente 64 px. A cópia em `public/assets/characters/fang-yuan-walk-32.png` foi reduzida por *nearest neighbor* para quadros **32 × 32 px**; o original foi preservado. O ZIP registra advertências de QA: a arte ainda precisa de revisão visual.
+- **Ficha básica:** o botão **Menu** abre um painel mobile para consultar a identidade, a área e o movimento/orientação atuais de Fang Yuan; pode ser fechado pelo botão ou pela tecla Esc. Começa em **Rank 1 · Inicial**, com **0 pedras espirituais e nenhum material**; aptidão e capacidade da abertura seguem **não configuradas**; a essência primordial de combate tem valores provisórios e vem do Mar Primordial na abertura (dantian), cujo sprite aparece apenas na seção de avanço do menu. Na tela do jogo, a energia é exibida só em uma barra igual à de vida. `src/entities/characterProfile.ts` guarda a identidade e o estado inicial; `src/ui/characterSheet.ts` apresenta a ficha sem acoplar os dados a Phaser. A moldura, o cabeçalho, o retrato e o botão de fechar usam peças do pack de UI **[Tiny RPG - Mana Soul GUI](https://tiopalada.itch.io/tiny-rpg-mana-soul-gui)** de Gabriel “tiopalada” Lima, encontrado na pasta `Sprite` do Drive; licença **CC0 1.0** (não é asset do cenário).
+- **Cultivo (decisão mais recente):** **não há XP nem nível**. São 9 Ranks, cada um com 4 estágios (Inicial, Médio, Superior, Pico). A subida de estágio custa pedras espirituais em quantidades crescentes; a ruptura de Rank exige pedras e materiais obtidos de inimigos, pode falhar, sempre consome as pedras na falha e sorteia a perda de cada tipo de material separadamente. O motor puro `src/entities/cultivation.ts` implementa as regras; o balanceamento aprovado para o protótipo fica em `src/entities/cultivationBalance.ts` e [`BALANCEAMENTO.md`](BALANCEAMENTO.md). A ficha mostra recursos, próximo custo e chance de ruptura; antes de gastar, exige um toque de preparação e outro de confirmação. Requisitos, gastos e sorteios são validados no motor, com proteção contra confirmações repetidas. Rank, estágio, pedras e materiais são persistidos em `localStorage` na campanha do navegador; não existe inventário completo ou servidor nesta etapa. **Fontes de pedras espirituais:** drop direto de inimigos de teste já está ativo e persistido; troca dos itens que deixarem por pedras continua planejada, sem taxas ou valores definidos. O material de ruptura Rank 1 também cai dos inimigos de teste. O [GDD](docs/GDD-ATUALIZADO.md) foi atualizado para documentar esta decisão; a tabela é provisória do jogo, não canônica da novel. O usuário enviou o sprite do **Mar Primordial** (`public/assets/ui/mar-primordial-11x128.png`, 11 quadros de 128 × 128 px); o nível exibido acompanha a essência primordial atual, sem criar uma nova energia ou regra de aptidão.
+- **Menu e HUD do pack de GUI:** HUD, ações e ficha compartilham as peças CC0 de moldura 9-slice/cabeçalho do pack citado acima. A ficha tem duas abas acessíveis: **Avanço** (Rank, custos, confirmação e sprite do Mar Primordial) e **Inventário / Gu** (quatro slots equipáveis, efeitos e aviso de bloqueio durante combate). Os Gu adicionais seguem sendo apenas opções de teste, não obtidos na campanha; a Cigarra é intrínseca e não ocupa slot. Os slots não ficam sobre o mapa. O spritesheet de Gu enviado pelo usuário (`public/assets/ui/gu-icons-2x2-64.png`) fornece os quatro ícones do inventário e os ícones de Lua e dash no HUD; arte e hitboxes continuam independentes.
+- **Combate no mapa:** inimigos de teste (marcadores geométricos, sem sprite disponível) se aproximam e atacam. Toque no inimigo para selecionar alvo ou ligue o alvo automático. Use **Básico** ou **Lua**; a Lua tem hitbox independente, atravessa inimigos abatidos e para no primeiro sobrevivente. Há barras de vida e essência primordial, defesa e recargas no HUD; os quatro slots funcionais e sua equipagem fora de combate estão no inventário do menu. Moonlight começa equipado; Stone Skin, Liquor Gu e Whirlwind Gu (nome provisório do Gu do Redemoinho) são **apenas inventário de teste**. Equipe movimento para revelar o botão de dash, com custo, recarga e bônus curto de velocidade. A Cigarra é intrínseca, tenta ressuscitar em 5% das mortes com 50% da vida máxima, entrando em recarga longa só no sucesso. Inimigos deixam pedras e material numa gravação única da sessão de cultivo. Valores além de 5%/50% são provisórios e estão em `src/combat/combatConfig.ts` e no [GDD](docs/GDD-ATUALIZADO.md). Sem penalidade de pedras por morte até aprovação da regra.
+- **Controles:** direcional cardinal à esquerda para mover continuamente, ou toque no chão (clique com mouse) para definir o destino. No gramado livre, Fang Yuan segue o **caminho mais curto até o ponto tocado** (distância Manhattan), em um ou dois trechos retos, sem diagonais. Parado, começa pela perna menor; ao retocar enquanto anda, prefere continuar na direção atual quando possível. Correções de menos de 8 px não mudam sua orientação. Um novo toque cancela imediatamente a velocidade e o trajeto anteriores. A câmera acompanha o personagem. No celular, o jogo é apresentado em **paisagem**; em retrato há um aviso para girar o aparelho. O botão discreto **⛶**, ao lado do Menu, alterna tela cheia quando o navegador permite; no mobile tenta travar a orientação em paisagem após entrar em tela cheia, sem impedir a rotação manual quando a API não existe. **C** mostra os limites dos chunks para depuração no teclado.
+- A ordem de camadas planejada para **VilaGuYue** é `Ground → Ground_Details → Elevation_Back → Structures_Back → World_Objects_YSort (Trees / NPCs / Enemies / Props) → Structures_Front → Foreground → Shadows → Effects → Collision`. Nesta etapa `Ground`, `Ground_Details`, `Trees`, `Enemies`, efeitos procedurais de combate e `Collision` estão preenchidas; as demais permanecem reservadas.
+- `src/world/qingMaoGround.ts` guarda o solo, a máscara global da floresta e as posições determinísticas das árvores; `src/world/cardinalNavigation.ts` calcula os caminhos cardinais; `src/entities/FangYuan.ts` anima o personagem; `src/main.ts` monta as camadas e recebe toques.
 
-```
-.
-├── index.html            # Página que hospeda o canvas do Phaser
-├── vite.config.ts        # Configuração do Vite (servidor/preview)
-├── tsconfig.json         # Configuração do TypeScript
-├── public/               # Arquivos estáticos copiados como estão (ex.: public/assets/)
-└── src/
-    ├── main.ts           # Cria o Phaser.Game e registra as cenas
-    ├── config/
-    │   └── gameConfig.ts # Constantes globais (resolução, cores)
-    └── scenes/
-        ├── BootScene.ts  # Carregamento de assets e tela de loading
-        └── GameScene.ts  # Cena principal (por enquanto, um protótipo com setas)
-```
-
-### Como adicionar uma nova cena
-
-1. Crie `src/scenes/MinhaCena.ts` estendendo `Phaser.Scene` com uma `key` única.
-2. Registre-a no array `scene` em `src/main.ts`.
-3. Troque de cena com `this.scene.start('MinhaCena')`.
-
-### Assets
-
-Os assets do projeto estão em `public/assets/` (personagem, HUD e três tilesets). Veja `public/assets/README.md` para a organização, o status das licenças e como carregá-los no `preload()` da cena:
-
-```ts
-this.load.image('grass', 'assets/tilesets/free-asset-pack/1. Grass and dirt.png');
-```
-
-## Controles
-
-- **Computador:** setas ou WASD para mover; `J` ataque básico, `K` habilidade ativa, `Shift` dash.
-- **Celular/tablet:** joystick flutuante no lado esquerdo (a base aparece onde você tocou). No lado direito: **ATK** (ataque básico, o maior botão), **DASH** e **HAB** (habilidade ativa), todos redondos e próximos ao polegar. Em celular na vertical, a tela pede para girar o aparelho.
-- A habilidade ativa é o corte em meia-lua do **Moonlight Gu**, na direção em que o personagem está virado, com cooldown provisório de 4 s. Por enquanto é só visual: dano e hitbox entram com os inimigos.
-
-## Notas
-
-- A resolução base é 1280×720, com escala `FIT` centralizada (ver `src/config/gameConfig.ts` e `src/main.ts`).
-- O `vite.config.ts` libera o host do preview e faz bind em `0.0.0.0`, para funcionar em ambientes de preview/contêiner.
-
-## Ferramentas de agente (SpriteShip)
-
-A pasta `scripts/` e o arquivo `setup_spriteship_079.py` são o instalador de skills do SpriteShip 0.7.9 para agentes de código. Eles não fazem parte do jogo e não são usados pelo build.
-
-## Mapa
-
-A cena principal é a **Vila Inicial da Montanha** (`src/world/village/villageMap.ts`): um platô gramado com falésia ao sul, casas e objetos em volta de uma praça, canteiro a oeste, lago ao sudeste e floresta densa em volta. Trilhas levam à montanha (norte), ao lago (sul e leste) e à orla oeste.
-
-- Os dados do mapa são código TypeScript (sem Phaser), e o próprio `buildVillageMap()` valida o layout (sem colisão sobre água ou falésia e sem sólidos sobrepostos).
-- Os recortes dos packs vêm de `scripts/build-village-assets.py`. Ver `public/assets/README.md`.
+Ainda sem relevo, transições de área, aquisição narrativa dos Gu adicionais, sprites de inimigos/ataque, troca comercial de drops ou penalidade de pedras na derrota. Consulte o GDD para limites e decisões pendentes.
