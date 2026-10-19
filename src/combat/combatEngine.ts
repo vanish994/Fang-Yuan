@@ -1,5 +1,7 @@
 import { COMBAT_CONFIG, GU_CATALOG, GU_SLOTS, STARTING_EQUIPMENT, type CombatSettings } from './combatConfig';
 import type { ActionResult, CombatEvent, Direction, Enemy, GuId, GuSlot, Point } from './types';
+import { AgentBrain } from '../agents/agentBrain';
+import type { MobDefinition } from './mobCatalog';
 
 const vectors: Record<Direction, Point> = {
   up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
@@ -28,18 +30,48 @@ export class CombatEngine {
   private readonly processedHits = new Set<string>();
   private readonly recentHits: string[] = [];
   private readonly processedRewards = new Set<string>();
+  private readonly agentBrains = new Map<string, AgentBrain>();
+  private readonly enemyHomes = new Map<string, Point>();
+  private readonly enemyStats = new Map<string, CombatSettings['enemy']>();
+  private readonly roaming = new Set<string>();
 
   constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0) {
     this.hero = { x, y, health: config.hero.maxHealth, maxHealth: config.hero.maxHealth, alive: true };
     this.essence = config.hero.maxEssence;
   }
 
-  addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth): Enemy {
+  addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
+    mob?: Readonly<MobDefinition>): Enemy {
     if (this.enemies.has(id)) throw new Error(`Inimigo duplicado: ${id}`);
-    const enemy: Enemy = { id, x, y, health, maxHealth: health,
-      defense: this.config.enemy.defense, alive: true, rewarded: false, lastAttackAt: -Infinity };
+    const settings = mob ? { ...this.config.enemy, maxHealth: health, defense: mob.defense,
+      damage: mob.damage, speed: mob.speed, aggroRange: mob.aggroRange,
+      attackRange: mob.attackRange, attackCooldownMs: mob.attackCooldownMs } : this.config.enemy;
+    const enemy: Enemy = { id, name: mob?.name, x, y, health, maxHealth: health,
+      defense: settings.defense, alive: true, rewarded: false, lastAttackAt: -Infinity };
     this.enemies.set(id, enemy);
+    this.enemyHomes.set(id, { x, y });
+    this.enemyStats.set(id, settings);
+    this.agentBrains.set(id, new AgentBrain({ kind: 'enemy', vision: settings.aggroRange,
+      attackRange: settings.attackRange, memoryMs: mob?.memoryMs ?? 0,
+      fear: mob?.fear ?? 0, pack: mob?.pack ?? false }));
+    if (mob) this.roaming.add(id);
     return enemy;
+  }
+
+  /** Descarrega somente encontros da área, preservando vida, essência, equipamento e recompensas da sessão. */
+  clearAreaEnemies(): void {
+    this.enemies.clear();
+    this.agentBrains.clear();
+    this.enemyHomes.clear();
+    this.enemyStats.clear();
+    this.roaming.clear();
+    this.projectiles.length = 0;
+    this.selectedId = null;
+    this.combatUntil = 0;
+  }
+
+  agentMemory(id: string): Readonly<AgentBrain['memory']> | null {
+    return this.agentBrains.get(id)?.memory ?? null;
   }
 
   get defense(): number {
@@ -220,21 +252,55 @@ export class CombatEngine {
       }
     }
     if (!this.hero.alive) return events;
+    // Alertas são compartilhados pelos agentes de grupo; dano e recarga continuam
+    // sendo julgados exclusivamente por este motor (nunca pela IA).
+    const packAlert = [...this.enemies.values()].some(enemy => enemy.alive
+      && this.agentBrains.get(enemy.id)?.traits.pack
+      && distance(enemy, this.hero) <= this.enemyStats.get(enemy.id)!.aggroRange)
+      ? { x: this.hero.x, y: this.hero.y } : null;
+    const packLosses = [...this.enemies.values()].filter(enemy => !enemy.alive
+      && this.agentBrains.get(enemy.id)?.traits.pack).length;
     for (const enemy of this.enemies.values()) {
-      if (!enemy.alive || distance(enemy, this.hero) > this.config.enemy.aggroRange) continue;
-      this.engage(now);
-      const gap = distance(enemy, this.hero);
-      if (gap > this.config.enemy.attackRange) {
-        const move = Math.min(this.config.enemy.speed * dt, gap - this.config.enemy.attackRange);
-        const nx = enemy.x + (this.hero.x - enemy.x) / gap * move;
-        const ny = enemy.y + (this.hero.y - enemy.y) / gap * move;
-        if (isFree(nx, ny)) { enemy.x = nx; enemy.y = ny; }
-      } else if (now - enemy.lastAttackAt >= this.config.enemy.attackCooldownMs) {
+      if (!enemy.alive) continue;
+      const stats = this.enemyStats.get(enemy.id)!;
+      const brain = this.agentBrains.get(enemy.id)!;
+      const decision = brain.decide(now, { self: enemy, home: this.enemyHomes.get(enemy.id)!,
+        healthRatio: enemy.health / enemy.maxHealth, player: this.hero,
+        packAlert: brain.traits.pack ? packAlert : null,
+        alliesFallen: brain.traits.pack ? packLosses : 0 });
+      if (decision.action === 'attack' || decision.action === 'chase') this.engage(now);
+      if (decision.action === 'attack') {
+        if (now - enemy.lastAttackAt < stats.attackCooldownMs) continue;
         enemy.lastAttackAt = now;
-        const strike = this.hitHero(this.config.enemy.damage, now, `${enemy.id}:${now}`);
+        const strike = this.hitHero(stats.damage, now, `${enemy.id}:${now}`);
         events.push(...strike);
         if (strike.some(event => event.type === 'resurrect' || event.type === 'hero-death')) break;
+        continue;
       }
+      let target = decision.target;
+      let stoppingDistance = decision.action === 'chase' ? stats.attackRange : 2;
+      if (decision.action === 'flee' && target) {
+        const awayX = target.x - enemy.x, awayY = target.y - enemy.y;
+        target = { x: enemy.x + awayX * 128, y: enemy.y + awayY * 128 };
+        stoppingDistance = 0;
+      }
+      if (decision.action === 'wander' && this.roaming.has(enemy.id) && decision.direction) {
+        const v = vectors[decision.direction];
+        target = { x: enemy.x + v.x * stats.speed * dt * 0.4,
+          y: enemy.y + v.y * stats.speed * dt * 0.4 };
+        if (distance(target, this.enemyHomes.get(enemy.id)!) > 32) {
+          brain.stop(); continue;
+        }
+        stoppingDistance = 0;
+      }
+      if (!target) continue;
+      const gap = distance(enemy, target);
+      if (gap <= stoppingDistance) continue;
+      const step = Math.min(stats.speed * dt, gap - stoppingDistance);
+      const nx = enemy.x + (target.x - enemy.x) / gap * step;
+      const ny = enemy.y + (target.y - enemy.y) / gap * step;
+      if (isFree(nx, ny)) { enemy.x = nx; enemy.y = ny; }
+      else brain.stop();
     }
     return events;
   }

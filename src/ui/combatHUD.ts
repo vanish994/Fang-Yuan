@@ -89,10 +89,10 @@ export class CombatHUD {
     this.healthValue.textContent = `${Math.ceil(engine.hero.health)}/${engine.hero.maxHealth}`;
     this.essenceValue.textContent = `${Math.floor(engine.essence)}/${engine.config.hero.maxEssence}`;
     const target = engine.target;
-    const targetDescription = target ? `Alvo: ${target.id} · ${target.health}/${target.maxHealth} PV`
+    const targetDescription = target ? `Alvo: ${target.name ?? target.id} · ${target.health}/${target.maxHealth} PV`
       : 'Alvo: nenhum — toque num inimigo';
     this.target.hidden = !target;
-    this.target.textContent = target ? `${target.id} · ${target.health} PV` : '';
+    this.target.textContent = target ? `${target.name ?? target.id} · ${target.health} PV` : '';
     this.target.setAttribute('aria-label', targetDescription);
     this.target.title = targetDescription;
     const autoState = engine.autoTarget ? 'ligado' : 'desligado';

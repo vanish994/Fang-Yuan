@@ -12,7 +12,10 @@ function moduleURL(path, imports = {}) {
   return `data:text/javascript;base64,${Buffer.from(js).toString('base64')}`;
 }
 const configURL = moduleURL('combat/combatConfig');
-const engineURL = moduleURL('combat/combatEngine', { './combatConfig': configURL });
+const agentURL = moduleURL('agents/agentBrain');
+const engineURL = moduleURL('combat/combatEngine', {
+  './combatConfig': configURL, '../agents/agentBrain': agentURL,
+});
 const { CombatEngine } = await import(engineURL);
 const { COMBAT_CONFIG, TEST_ENEMY_OFFSETS } = await import(configURL);
 const profileURL = moduleURL('entities/characterProfile');
@@ -39,6 +42,26 @@ test('início do mapa deixa inventário liberado; aproximar-se ativa combate', (
   engine.tick(200, 100);
   assert.equal(engine.inCombat(200), true);
   assert.match(engine.equip('passive', null, 200).reason, /combate/);
+});
+
+test('troca de área limpa encontros sem perder vida, essência, Gu ou duplicar recompensas', () => {
+  const engine = make();
+  engine.hero.health = 72;
+  engine.essence = 54;
+  assert.equal(engine.equip('passive', 'stone-skin', 0).ok, true);
+  engine.addEnemy('area:teste', 120, 100, 10);
+  engine.select('area:teste');
+  assert.equal(engine.basicAttack(1000).events.filter(e => e.type === 'reward').length, 1);
+  engine.clearAreaEnemies();
+  assert.equal(engine.enemies.size, 0);
+  assert.equal(engine.target, null);
+  assert.equal(engine.hero.health, 72);
+  assert.equal(engine.essence, 54);
+  assert.equal(engine.equipment.passive, 'stone-skin');
+  engine.addEnemy('area:teste', 120, 100, 10);
+  assert.equal(engine.basicAttack(2000).ok, false, 'não há alvo selecionado');
+  engine.select('area:teste');
+  assert.equal(engine.basicAttack(2000).events.filter(e => e.type === 'reward').length, 0);
 });
 
 test('alvo manual tem prioridade; automático é opcional e só atinge dentro do alcance', () => {
