@@ -16,24 +16,24 @@ Planejamento antes da implementação. Derivado de `docs/GDD-ATUALIZADO.md`, `sr
 | Ninho do Rei Serpente (`ninho_serpente`) | Boss | oeste → Cavernas; leste → Santuário da Besta | Solo e umidade representados com água/margens existentes, sem regra nova de veneno. |
 | Santuário da Besta Antiga (`santuario_besta`) | Extremo | oeste → Ninho | Arena isolada; condição definitiva de acesso ainda a definir, não inventar bloqueio por Rank. |
 
-Acesso entre áreas é bidirecional e conserva progresso de vida/essência/equipagem na sessão; inimigos derrotados não reaparecem até recarregar a página. Os seis alvos genéricos anteriores ("Criatura 1–6") permanecem na Floresta Exterior, fora do elenco de 12 espécies. Coleta específica por área e persistência entre saves dependem de regras futuras. Não transformar sprites de cogumelos/rochas em itens coletáveis com taxas inventadas.
+Acesso entre áreas é bidirecional e conserva progresso de vida/essência/equipagem na sessão; inimigos derrotados não reaparecem até recarregar a página. Os seis alvos genéricos anteriores ("Criatura 1–6") foram retirados do mapa: encontros jogáveis usam exclusivamente as 12 espécies e quatro bosses com arte fornecida. Coleta específica por área e persistência entre saves dependem de regras futuras. Não transformar sprites de cogumelos/rochas em itens coletáveis com taxas inventadas.
 
 ## Distribuição integral dos 10 NPCs jogáveis
 
-Todos estão na Vila por decisão de layout **provisória**; ID, nome, role, rank e atributos vêm do catálogo existente. Itinerários abaixo registram pontos de interesse de teste, não história aprovada; por enquanto os NPCs percorrem somente rotas curtas próximas do home dentro do raio já existente. Itinerários longos dependem de navegação e horários definidos depois. Spawns preservam os quatro NPCs visíveis no mobile ao iniciar.
+Todos estão na Vila por decisão de layout **provisória**; ID, nome, role, rank e atributos vêm do catálogo existente. Itinerários abaixo registram pontos de interesse de teste, não história aprovada; por enquanto os NPCs percorrem somente rotas curtas próximas do home dentro do raio já existente. Itinerários longos dependem de navegação e horários definidos depois. Os spawns foram redistribuídos pelos bairros e portão; a câmera inicial já não exibe os quatro NPCs agrupados.
 
 | ID | Nome | Área / subárea | Spawn (tile) | Home/território e itinerário provisório | Papel / facção / Rank existente |
 |---|---|---|---|---|---|
-| npc-gu-yue-mei | Gu Yue Mei | Vila / residencial | (22,25) | Residencial; casa → mercado → casa | Aldeã; facção a definir; Mortal |
-| npc-zhao-he | Zhao He | Vila / mercado | (23,26) | Mercado; loja → mercado → casa | Mercador; facção a definir; 1 |
-| npc-old-chen | Velho Chen | Vila / portão | (25.75,24) | Portão; patrulha vila → saída | Guarda; facção a definir; 1 |
-| npc-lin-shan | Lin Shan | Vila / treino | (26.75,24.5) | Campo; treino → centro | Cultivador; facção a definir; 1 · Inicial |
-| npc-gu-yue-lan | Gu Yue Lan | Vila / residencial | (20,21) | Residencial; casa → treino | Discípula; facção a definir; 1 |
-| npc-gu-yue-fang | Gu Yue Fang | Vila / treino | (29,21) | Treino; treino → centro | Discípulo; facção a definir; 1 |
-| npc-aunt-hua | Tia Hua | Vila / mercado | (17,30) | Mercado; banca → casa | Mercadora; facção a definir; Mortal |
+| npc-gu-yue-mei | Gu Yue Mei | Vila / residencial | (13,21) | Residencial; ronda curta | Aldeã; facção a definir; Mortal |
+| npc-zhao-he | Zhao He | Vila / mercado | (17,29) | Mercado; ronda curta | Mercador; facção a definir; 1 |
+| npc-old-chen | Velho Chen | Vila / portão | (40,24) | Portão; patrulha curta | Guarda; facção a definir; 1 |
+| npc-lin-shan | Lin Shan | Vila / treino | (34,22) | Treino; ronda curta | Cultivador; facção a definir; 1 · Inicial |
+| npc-gu-yue-lan | Gu Yue Lan | Vila / residencial | (19,19) | Residencial; ronda curta | Discípula; facção a definir; 1 |
+| npc-gu-yue-fang | Gu Yue Fang | Vila / treino | (34,27) | Treino; ronda curta | Discípulo; facção a definir; 1 |
+| npc-aunt-hua | Tia Hua | Vila / mercado | (19,35) | Mercado; banca; ronda curta | Mercadora; facção a definir; Mortal |
 | npc-gu-yue-bo | Gu Yue Bo | Vila / centro | (24,20) | Centro; posição fixa | Patriarca; facção a definir; 4 |
-| npc-gu-yue-chi-lian | Gu Yue Chi Lian | Vila / residencial | (32,30) | Residencial; posição fixa | Ancião; facção a definir; 3 |
-| npc-gu-yue-mo-bei | Gu Yue Mo Bei | Vila / residencial | (20,30) | Residencial; casa → treino | Discípulo; facção a definir; 2 |
+| npc-gu-yue-chi-lian | Gu Yue Chi Lian | Vila / residencial | (37,31) | Residencial; posição fixa | Ancião; facção a definir; 3 |
+| npc-gu-yue-mo-bei | Gu Yue Mo Bei | Vila / residencial | (26,34) | Residencial; ronda curta | Discípulo; facção a definir; 2 |
 
 ## Distribuição integral dos 12 mobs jogáveis
 
@@ -73,3 +73,5 @@ Cada boss é um encontro próprio, e **não** um mob adicional espalhado pelo ma
 2. Mosaicos existentes (árvores 3×4, pedras/arbustos multicélula) são objetos inteiros, âncora nos pés e colisão apenas em tronco/base, sem bloquear a copa inteira.
 3. Áreas têm layers lógicas GROUND, TERRAIN, TERRAIN_TRANSITIONS, PATHS, STRUCTURES, DECORATION_BACK, OBJECTS, DECORATION_FRONT, ENTITIES/Y_SORT, COLLISION, GAMEPLAY/SPAWN/RESOURCES. Tiles faltantes não são sintetizados.
 4. Saídas devem preservar a navegabilidade entre áreas, spawn seguro e retorno; chunk 16×16 não guarda estado de gameplay isolado.
+
+A praça inicial agora tem gramado, trilhas estreitas e dois recintos de ruínas abertos próximos ao centro, além das quatro estruturas periféricas originais. Não representa casas intactas nem substitui arte ausente.

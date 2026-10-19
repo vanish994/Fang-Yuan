@@ -58,9 +58,11 @@
       .sheet-close:hover { background-position: -44px 0; }
       .sheet-identity { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
       .sheet-portrait { position: relative; flex: 0 0 64px; height: 96px;
-        background-color: #343854; background-image: url('./assets/characters/fang-yuan-walk-32.png');
-        background-size: 384px 256px; background-position: 0 16px; background-repeat: no-repeat;
-        image-rendering: pixelated; }
+        background-color: #343854; image-rendering: pixelated; overflow: hidden; }
+      /* Recorta só o primeiro quadro (baixo) do novo atlas 4×4; sem vazar a linha seguinte. */
+      .sheet-portrait::before { position: absolute; top: 16px; left: 0; content: '';
+        width: 64px; height: 64px; background: url('./assets/characters/fang-yuan-walk-32.png')
+          0 0 / 256px 256px no-repeat; }
       .sheet-portrait::after { position: absolute; inset: 0; content: '';
         background: url('./assets/ui/portrait-frame.png') center / 100% 100% no-repeat; }
       .sheet-identity strong { display: block; font: 20px Georgia, serif; }
@@ -323,8 +325,9 @@
         .sheet-identity strong { font-size: 17px; }
         .sheet-identity small { font-size: 11px; margin-top: 2px; }
         .sheet-identity-caption { margin-top: 3px; }
-        .sheet-portrait { flex-basis: 48px; height: 72px;
-          background-size: 288px 192px; background-position: 0 12px; }
+        .sheet-portrait { flex-basis: 48px; height: 72px; }
+        .sheet-portrait::before { top: 12px; width: 48px; height: 48px;
+          background-size: 192px 192px; }
         .sheet-tabs { padding: 5px 7px; }
         .sheet-section { padding: 9px 12px; }
         .gu-choice { border-width: 5px; border-image-width: 5px; padding: 4px 0;
@@ -352,6 +355,56 @@
         .combat-minimap canvas { width: 76px; height: 76px; }
       }
       @media (max-height: 245px) { .combat-minimap { display: none; } }
+      /* HUD de campo compacto. O pack GUI segue nos menus; só a informação necessária
+         permanece sobre o mundo. Controles multitouch têm alvos grandes e transparentes. */
+      .combat-top, .combat-feedback, .combat-minimap, .combat-cicada {
+        border: 1px solid #c9ad7980; border-image: none; border-radius: 6px;
+        background: #121630d9; box-shadow: 0 2px 8px #080c2466;
+        image-rendering: auto;
+      }
+      .combat-top { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left));
+        width: 206px; padding: 6px 8px; }
+      .combat-bars label { grid-template-columns: 52px minmax(0, 1fr) 38px;
+        gap: 4px; font-size: 10px; margin-bottom: 2px; }
+      .combat-bars label:nth-child(2) span { font-size: 0; }
+      .combat-bars label:nth-child(2) span::after { content: 'Essência'; font-size: 10px; }
+      .combat-bars progress { height: 7px; }
+      .combat-target { min-height: 19px; padding-top: 1px; margin-top: 2px; }
+      .combat-target button { min-height: 21px; padding: 1px 5px; font-size: 9px; }
+      .combat-feedback { top: max(81px, calc(env(safe-area-inset-top) + 73px));
+        left: max(8px, env(safe-area-inset-left)); max-width: min(260px, 65vw);
+        padding: 5px 8px; font-size: 11px; }
+      .combat-minimap { top: max(58px, calc(env(safe-area-inset-top) + 58px));
+        right: max(8px, env(safe-area-inset-right)); width: 88px; padding: 4px; gap: 2px; }
+      .combat-minimap canvas { width: 78px; height: 78px; }
+      .combat-joystick { left: max(12px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom)); width: 102px; height: 102px;
+        background: #1216305c; }
+      .joystick-knob { width: 43px; height: 43px; background: #433653a8; }
+      .combat-actions { right: max(12px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom)); gap: 7px; }
+      .combat-actions button { width: 62px; height: 62px; min-width: 62px; min-height: 62px;
+        background: #121630a8; padding: 2px; }
+      .combat-actions .gu-icon { transform: scale(.8); margin: -3px 0; }
+      .combat-cicada { bottom: max(80px, calc(env(safe-area-inset-bottom) + 80px));
+        right: max(12px, env(safe-area-inset-right)); padding: 3px 7px; font-size: 10px; }
+      .combat-cicada[hidden] { display: none; }
+      @media (pointer: coarse) and (orientation: landscape) {
+        .map-label { display: none; }
+      }
+      @media (max-width: 700px) {
+        .combat-top { width: 185px; }
+        .combat-minimap { width: 78px; }
+        .combat-minimap canvas { width: 68px; height: 68px; }
+      }
+      @media (max-height: 420px) {
+        .combat-top { top: max(6px, env(safe-area-inset-top));
+          left: max(6px, env(safe-area-inset-left)); width: min(206px, 36vw); }
+        .map-label { display: none; }
+        .combat-feedback { top: max(81px, calc(env(safe-area-inset-top) + 73px));
+          left: max(6px, env(safe-area-inset-left)); }
+        .combat-minimap { top: max(55px, calc(env(safe-area-inset-top) + 55px)); }
+      }
     </style>
   </head>
   <body>

@@ -19,6 +19,9 @@ export class CombatHUD {
   private readonly respawn: HTMLButtonElement;
   private readonly joystick: HTMLElement;
   direction: Direction | null = null;
+  private steeringPointer: number | null = null;
+  private feedbackUntil = 0;
+  private lastPaintAt = -Infinity;
 
   constructor(private readonly engine: CombatEngine, onAction: (action: string) => void) {
     const root = document.createElement('div');
@@ -56,7 +59,16 @@ export class CombatHUD {
     for (const button of root.querySelectorAll<HTMLButtonElement>('[data-action]')) {
       const action = button.dataset.action!;
       if (action !== 'auto' && action !== 'respawn') this.actions.set(action, button);
-      button.addEventListener('click', () => onAction(action));
+      // Clique sintético costuma ser suprimido pelo navegador no segundo dedo.
+      // pointerdown funciona mesmo segurando o direcional; click fica para teclado.
+      button.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        event.preventDefault();
+        onAction(action);
+      });
+      button.addEventListener('click', event => {
+        if (event.detail === 0) onAction(action);
+      });
     }
     // Analógico cardinal, separado do toque no mapa. Pointer capture mantém o dedo no controle.
     const steer = (event: PointerEvent) => {
@@ -67,20 +79,34 @@ export class CombatHUD {
       this.joystick.dataset.direction = this.direction ?? '';
     };
     this.joystick.addEventListener('pointerdown', event => {
+      if (this.steeringPointer !== null) return;
+      this.steeringPointer = event.pointerId;
       this.joystick.setPointerCapture(event.pointerId);
       steer(event); event.preventDefault();
     });
     this.joystick.addEventListener('pointermove', event => {
       if (this.joystick.hasPointerCapture(event.pointerId)) steer(event);
     });
-    const release = () => { this.direction = null; this.joystick.dataset.direction = ''; };
+    const release = (event: PointerEvent) => {
+      if (event.pointerId !== this.steeringPointer) return;
+      this.steeringPointer = null;
+      this.direction = null; this.joystick.dataset.direction = '';
+    };
     this.joystick.addEventListener('pointerup', release);
     this.joystick.addEventListener('pointercancel', release);
     this.joystick.addEventListener('lostpointercapture', release);
   }
 
-  say(message: string): void { this.feedback.textContent = message; }
+  say(message: string): void {
+    this.feedback.textContent = message;
+    this.feedbackUntil = performance.now() + 3500;
+  }
   update(now: number): void {
+    if (this.feedback.textContent && performance.now() > this.feedbackUntil)
+      this.feedback.textContent = '';
+    // Números e textos DOM não precisam ser reescritos a 60 FPS; movimento e combate continuam livres.
+    if (now - this.lastPaintAt < 100 && now >= this.lastPaintAt) return;
+    this.lastPaintAt = now;
     const { engine } = this;
     this.health.max = engine.hero.maxHealth;
     this.health.value = engine.hero.health;
@@ -113,7 +139,10 @@ export class CombatHUD {
     dash.querySelector('small')!.textContent = engine.cooldownRemaining('dash', now) ? formatTime(engine.cooldownRemaining('dash', now)) : `Dash ·${engine.config.movement.essenceCost}`;
     dash.disabled = !engine.hero.alive || engine.cooldownRemaining('dash', now) > 0 || engine.essence < engine.config.movement.essenceCost;
     this.respawn.hidden = engine.hero.alive;
-    this.root.querySelector('.combat-cicada')!.textContent = `Cigarra · ${formatTime(engine.cooldownRemaining('cicada', now))}`;
+    const cicada = this.root.querySelector('.combat-cicada')!;
+    const remaining = engine.cooldownRemaining('cicada', now);
+    cicada.textContent = `Cigarra · ${formatTime(remaining)}`;
+    cicada.toggleAttribute('hidden', remaining === 0);
   }
   destroy(): void { this.root.remove(); }
 }

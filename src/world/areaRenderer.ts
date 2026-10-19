@@ -15,6 +15,8 @@ export function renderArea(scene: Phaser.Scene, area: GeneratedArea,
   const decorations: Phaser.GameObjects.Image[] = [];
   const signs: Phaser.GameObjects.Text[] = [];
   for (const [name, atlas, depth] of VISUAL_LAYERS) {
+    // Vila não tem água; não alocar TilemapLayer para camadas inteiramente vazias.
+    if (!area.layers[name].some(row => row.some(frame => frame !== -1))) continue;
     const map = scene.make.tilemap({ data: area.layers[name], tileWidth: 32, tileHeight: 32 });
     const tiles = map.addTilesetImage(atlas, atlas, 32, 32);
     if (!tiles) throw new Error(`Tileset indisponível: ${atlas}`);

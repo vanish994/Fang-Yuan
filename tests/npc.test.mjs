@@ -32,10 +32,11 @@ function fakeScene(uniqueArt = false) {
       generateFrameNumbers(key, range) { return [key, range]; },
       create({ key }) { this.keys.add(key); } },
     add: {
-      image() { return { setOrigin() { return this; } }; },
+      image() { return { setOrigin() { return this; }, setScale() { return this; } }; },
       sprite(_x, _y, key, frame) {
         const sprite = { key, frame, played: [], anims: { play(key) { sprite.played.push(key); } },
-          setOrigin() { return this; }, setTint(tint) { this.tint = tint; return this; },
+          setOrigin() { return this; }, setScale(scale) { this.scale = scale; return this; },
+          setTint(tint) { this.tint = tint; return this; },
           setFrame(frame) { this.frame = frame; return this; },
           setInteractive() { return this; }, on(_event, handler) { this.handler = handler; return this; } };
         sprites.push(sprite);
@@ -115,8 +116,8 @@ test('sprites Mixel preservados com 9 quadros idle, 4 walk e sombra 32px', () =>
   registerNpcAnimations(scene);
   assert.equal(loaded.length, 10);
   assert.equal(scene.anims.keys.size, 8);
-  assert.deepEqual(loaded[0], ['npc-static-4dir', 'assets/npcs/npc-static-4dir-32.png',
-    { frameWidth: 32, frameHeight: 32 }]);
+  assert.deepEqual(loaded[0], ['npc-static-4dir', 'assets/npcs/npc-static-4dir-64.png',
+    { frameWidth: 64, frameHeight: 64 }]);
   for (const [key, path, config] of loaded.slice(1, 9)) {
     assert.match(key, /^npc-(idle|walk)-(down|left|right|up)$/);
     const file = readFileSync(new URL(`../public/${path}`, import.meta.url));
@@ -136,8 +137,8 @@ test('sprites e nomes no Y-sort: toque mostra fala, registra memória e não mov
   const records = createTestNpcViews(scene, layer, isFree, text => messages.push(text));
   assert.equal(records.length, 10);
   assert.equal(layer.items.length, 10);
-  assert.deepEqual(texts.filter((_, index) => index % 2 === 1).slice(0, 4),
-    ['ALDEÃ', 'CULTIVADOR', 'MERCADOR', 'GUARDA']);
+  assert.deepEqual(texts.slice(0, 4),
+    ['Gu Yue Mei', 'Lin Shan', 'Zhao He', 'Velho Chen']);
   let stopped = false;
   sprites[0].handler({}, 0, 0, { stopPropagation() { stopped = true; } });
   assert.equal(stopped, true);
@@ -174,6 +175,7 @@ test('atlas específico tem 10 NPCs em ordem de manifesto, poses estáticas e di
   assert.equal(records.length, 10);
   assert.equal(sprites[1].frame, 12); // Lin Shan: linha 3, baixo
   assert.ok(records.every(record => record.uniqueArt));
+  assert.ok(sprites.every(sprite => sprite.scale === 0.4));
   updateTestNpcViews(records, 0, 50, isFree, () => 0.99);
   assert.equal(views[0].data.moving, true);
   assert.equal(sprites[0].frame, npcFrame('npc-gu-yue-mei', 'right'));
