@@ -3,10 +3,6 @@ import { TEST_NPCS, NpcBrain, type NpcDefinition, type NpcRole } from './npc';
 import type { Direction, Point } from '../combat/types';
 import { npcFrame } from './npcSprites';
 
-const ROLE_LABELS: Record<NpcRole, string> = {
-  villager: 'ALDEÃ', cultivator: 'CULTIVADOR', merchant: 'MERCADOR', guard: 'GUARDA',
-  disciple: 'DISCÍPULO', elder: 'ANCIÃO', patriarch: 'PATRIARCA',
-};
 const ROLE_TINTS: Record<NpcRole, number> = {
   villager: 0xf2ddc4, cultivator: 0xcddafa, merchant: 0xf3deb3, guard: 0xd3e8d4,
   disciple: 0xd7d1f7, elder: 0xe7cbd9, patriarch: 0xf4e2bc,
@@ -17,8 +13,8 @@ const DIRECTIONS: ReadonlyArray<readonly [Direction, string]> = [
 
 /** Arte individual do manifesto; Mixel original permanece como fallback se o atlas falhar. */
 export function preloadNpcSprites(scene: Phaser.Scene): void {
-  scene.load.spritesheet('npc-static-4dir', 'assets/npcs/npc-static-4dir-32.png',
-    { frameWidth: 32, frameHeight: 32 });
+  scene.load.spritesheet('npc-static-4dir', 'assets/npcs/npc-static-4dir-64.png',
+    { frameWidth: 64, frameHeight: 64 });
   for (const [direction, source] of DIRECTIONS) {
     for (const [action, count] of [['idle', 9], ['walk', 4]] as const) {
       scene.load.spritesheet(`npc-${action}-${direction}`,
@@ -62,20 +58,20 @@ export function createTestNpcViews(
     const brain = new NpcBrain(definition);
     const shadow = scene.add.image(0, -2, 'npc-shadow').setOrigin(0.5);
     const uniqueArt = scene.textures.exists('npc-static-4dir');
+    if (uniqueArt) shadow.setScale(0.8);
     const sprite = scene.add.sprite(0, 0, uniqueArt ? 'npc-static-4dir' : 'npc-idle-down',
       uniqueArt ? npcFrame(definition.id, 'down') : 0).setOrigin(0.5, 1)
       .setInteractive({ useHandCursor: true });
+    // Textura 64px em corpo visual de 25,6px, sem perder nitidez no zoom da câmera.
+    if (uniqueArt) sprite.setScale(0.4);
     if (!uniqueArt) {
       sprite.setTint(ROLE_TINTS[definition.role]);
       sprite.anims.play('npc-idle-down');
     }
-    const name = scene.add.text(0, -44, definition.name, {
+    const name = scene.add.text(0, -32, definition.name, {
       fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
     }).setOrigin(0.5);
-    const role = scene.add.text(0, 5, ROLE_LABELS[definition.role], {
-      fontSize: '6px', color: '#d7e8ff',
-    }).setOrigin(0.5);
-    const view = scene.add.container(definition.x, definition.y, [shadow, sprite, name, role])
+    const view = scene.add.container(definition.x, definition.y, [shadow, sprite, name])
       .setName(`NPC:${definition.id}`).setDepth(definition.y);
     sprite.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
       event: Phaser.Types.Input.EventData) => {

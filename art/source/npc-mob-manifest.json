@@ -1,0 +1,433 @@
+{
+  "schema": "fang-yuan.static-4dir.v2",
+  "cell_size": [
+    32,
+    32
+  ],
+  "direction_order": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "groups": {
+    "npc": {
+      "count": 10,
+      "atlas": "atlases/npc-static-4dir-32.png",
+      "size": [
+        128,
+        320
+      ]
+    },
+    "mob": {
+      "count": 15,
+      "atlas": "atlases/mob-static-4dir-32.png",
+      "size": [
+        128,
+        480
+      ]
+    }
+  },
+  "entities": [
+    {
+      "index": 0,
+      "name": "Gu Yue Mei",
+      "category": "npc",
+      "row": 0,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 1,
+      "name": "Zhao He",
+      "category": "npc",
+      "row": 1,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 2,
+      "name": "Velho Chen",
+      "category": "npc",
+      "row": 2,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 3,
+      "name": "Lin Shan",
+      "category": "npc",
+      "row": 3,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 4,
+      "name": "Gu Yue Lan",
+      "category": "npc",
+      "row": 4,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 5,
+      "name": "Gu Yue Fang",
+      "category": "npc",
+      "row": 5,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 6,
+      "name": "Tia Hua",
+      "category": "npc",
+      "row": 6,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 7,
+      "name": "Gu Yue Bo",
+      "category": "npc",
+      "row": 7,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 8,
+      "name": "Gu Yue Chi Lian",
+      "category": "npc",
+      "row": 8,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 9,
+      "name": "Gu Yue Mo Bei",
+      "category": "npc",
+      "row": 9,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 10,
+      "name": "Javali Selvagem",
+      "category": "mob",
+      "row": 0,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 11,
+      "name": "Coelho Lunar",
+      "category": "mob",
+      "row": 1,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 12,
+      "name": "Lobo Cinzento",
+      "category": "mob",
+      "row": 2,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 13,
+      "name": "Macaco da Montanha",
+      "category": "mob",
+      "row": 3,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 14,
+      "name": "Serpente Verde",
+      "category": "mob",
+      "row": 4,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 15,
+      "name": "Lobo Feroz",
+      "category": "mob",
+      "row": 5,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 16,
+      "name": "Javali Demoníaco",
+      "category": "mob",
+      "row": 6,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 17,
+      "name": "Serpente de Presas Negras",
+      "category": "mob",
+      "row": 7,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 18,
+      "name": "Aranha Sombria",
+      "category": "mob",
+      "row": 8,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 19,
+      "name": "Lagarto de Pedra",
+      "category": "mob",
+      "row": 9,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 20,
+      "name": "Lobo Demoníaco",
+      "category": "mob",
+      "row": 10,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 21,
+      "name": "Urso Demoníaco",
+      "category": "mob",
+      "row": 11,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 22,
+      "name": "Serpente de Jade",
+      "category": "mob",
+      "row": 12,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 23,
+      "name": "Tigre Demoníaco",
+      "category": "mob",
+      "row": 13,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 24,
+      "name": "Rei Javali",
+      "category": "mob",
+      "row": 14,
+      "cell_size": [
+        32,
+        32
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    }
+  ]
+}

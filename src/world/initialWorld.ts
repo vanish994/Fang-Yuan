@@ -29,7 +29,24 @@ export interface AreaDefinition {
 const chunks = { width: AREA_CHUNKS, height: AREA_CHUNKS } as const;
 const poi = (id: string, kind: PointOfInterest['kind'], x: number, y: number): PointOfInterest =>
   ({ id, kind, x, y });
-const npcSpawns: Spawn[] = TEST_NPCS.map(n => ({ id: n.id, x: n.x / 32, y: n.y / 32 }));
+// Pontos de trabalho/moradia distribuídos pelos quatro bairros e portão da vila.
+// Catálogo TEST_NPCS conserva identidades/estatísticas; a área define apenas o layout.
+const VILLAGE_NPC_POSITIONS: Readonly<Record<string, readonly [number, number]>> = {
+  'npc-gu-yue-mei': [13, 21],
+  'npc-lin-shan': [34, 22],
+  'npc-zhao-he': [17, 29],
+  'npc-old-chen': [40, 24],
+  'npc-gu-yue-lan': [19, 19],
+  'npc-gu-yue-fang': [34, 27],
+  'npc-aunt-hua': [19, 35],
+  'npc-gu-yue-bo': [24, 20],
+  'npc-gu-yue-chi-lian': [37, 31],
+  'npc-gu-yue-mo-bei': [26, 34],
+};
+const npcSpawns: Spawn[] = TEST_NPCS.map(n => {
+  const [x, y] = VILLAGE_NPC_POSITIONS[n.id]!;
+  return { id: n.id, x, y };
+});
 const positions: Readonly<Record<string, readonly [AreaId, number, number]>> = {
   'mob-wild-boar': ['floresta_exterior', 18, 24],
   'mob-moon-rabbit': ['floresta_exterior', 31, 25],
@@ -100,17 +117,18 @@ export const INITIAL_WORLD: Readonly<Record<AreaId, AreaDefinition>> = {
     pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
 };
 
+// Rotas locais não convergem novamente à praça central.
 const ROUTINES: Readonly<Record<string, readonly (readonly [number, number])[]>> = {
-  'npc-gu-yue-mei': [[22, 25], [21, 26]],
-  'npc-zhao-he': [[23, 26], [22, 26]],
-  'npc-old-chen': [[25.75, 24], [27, 24]],
-  'npc-lin-shan': [[26.75, 24.5], [28, 24.5]],
-  'npc-gu-yue-lan': [[20, 21], [21, 21]],
-  'npc-gu-yue-fang': [[29, 21], [29, 22]],
-  'npc-aunt-hua': [[17, 30], [18, 30]],
+  'npc-gu-yue-mei': [[13, 21], [14, 21]],
+  'npc-lin-shan': [[34, 22], [35, 22]],
+  'npc-zhao-he': [[17, 29], [17, 30]],
+  'npc-old-chen': [[40, 24], [41, 24]],
+  'npc-gu-yue-lan': [[19, 19], [20, 19]],
+  'npc-gu-yue-fang': [[34, 27], [34, 28]],
+  'npc-aunt-hua': [[19, 35], [19, 34]],
   'npc-gu-yue-bo': [[24, 20]],
-  'npc-gu-yue-chi-lian': [[32, 30]],
-  'npc-gu-yue-mo-bei': [[20, 30], [21, 30]],
+  'npc-gu-yue-chi-lian': [[37, 31]],
+  'npc-gu-yue-mo-bei': [[26, 34], [27, 34]],
 };
 export function areaNpcDefinitions(area: AreaDefinition): Readonly<NpcDefinition>[] {
   return area.npcSpawns.map(spawn => {

@@ -133,9 +133,19 @@ test('quando a rota direta é bloqueada, contorna sem atravessar o obstáculo', 
   assert.deepEqual(points.at(-1), { x: 80, y: 16 });
 });
 
-test('atlas de caminhada possui 6 quadros × 4 direções de 32px', () => {
-  const png = readFileSync(new URL('../public/assets/characters/fang-yuan-walk-32.png', import.meta.url));
+test('novo Fang Yuan: 4 quadros × 4 direções em textura 2×, mapa 32px e pés iguais', () => {
+  const png = readFileSync(new URL('../public/assets/characters/fang-yuan-walk-64.png', import.meta.url));
   assert.equal(png.subarray(1, 4).toString(), 'PNG');
-  assert.equal(png.readUInt32BE(16), 192);
-  assert.equal(png.readUInt32BE(20), 128);
+  assert.equal(png.readUInt32BE(16), 256);
+  assert.equal(png.readUInt32BE(20), 256);
+  assert.equal(png[25], 6); // canal alfa real
+  const animation = JSON.parse(readFileSync(new URL('../art/source/fang-yuan-animation.json', import.meta.url)));
+  assert.deepEqual(animation.direction_order, ['down', 'left', 'up', 'right']);
+  assert.equal(animation.fps, 8);
+  assert.deepEqual(animation.grid, [4, 4]);
+  const source = readFileSync(new URL('../src/entities/FangYuan.ts', import.meta.url), 'utf8');
+  assert.match(source, /FRAMES_PER_DIRECTION = 4/);
+  assert.match(source, /'down', 'left', 'up', 'right'/);
+  assert.match(source, /setScale\(0\.5\)/);
+  assert.match(source, /setSize\(28, 20\)\.setOffset\(18, 40\)/);
 });

@@ -90,6 +90,7 @@ export function shortestWorldWaypoints(
   canStep: (x: number, y: number, nextX: number, nextY: number) => boolean,
   facing?: Direction,
   moving = false,
+  canTraverse?: (from: WorldPoint, to: WorldPoint) => boolean,
 ): WorldPoint[] | null {
   const worldSize = tilesPerSide * tileSize;
   if (!Number.isFinite(clicked.x) || !Number.isFinite(clicked.y)
@@ -108,6 +109,8 @@ export function shortestWorldWaypoints(
 
   const clear = (from: WorldPoint, to: WorldPoint): boolean => {
     if (from.x !== to.x && from.y !== to.y) return false;
+    // Testar só a célula dos pés perde colisões quando o corpo invade a linha de cima.
+    if (canTraverse && !canTraverse(from, to)) return false;
     const a = tile(from), b = tile(to);
     if (from.x !== to.x) {
       const dir = Math.sign(b.x - a.x);
@@ -152,9 +155,33 @@ export function shortestWorldWaypoints(
 
   const path = findCardinalPath(startTile, goalTile, tilesPerSide, tilesPerSide, canStand, canStep);
   if (!path) return null;
-  const detour = toWorldWaypoints(current, path, tileSize);
+  let detour: WorldPoint[];
+  if (canTraverse) {
+    const first = { x: (startTile.x + 0.5) * tileSize, y: (startTile.y + 0.5) * tileSize };
+    // Aproximar o centro por um eixo de cada vez: o primeiro alinhamento pode
+    // tocar a quina da parede, enquanto o segundo contorna sem teleporte.
+    const align = [{ x: first.x, y: current.y }, { x: current.x, y: first.y }]
+      .find(point => canTraverse(current, point) && canTraverse(point, first));
+    if (!align) return null;
+    detour = [];
+    const push = (point: WorldPoint) => {
+      const previous = detour.at(-1) ?? current;
+      if (Math.abs(point.x - previous.x) > 0.5 || Math.abs(point.y - previous.y) > 0.5)
+        detour.push(point);
+    };
+    push(align);
+    push(first);
+    for (const point of toWorldWaypoints(first, path, tileSize)) push(point);
+    let previous = current;
+    for (const point of detour) {
+      if (!canTraverse(previous, point)) return null;
+      previous = point;
+    }
+  } else detour = toWorldWaypoints(current, path, tileSize);
   const end = detour.at(-1) ?? current;
-  // O desvio também termina no local tocado, nunca só no centro do tile.
-  const final = shortestWorldWaypoints(end, goal, tilesPerSide, tileSize, canStand, canStep, facing);
+  if (canTraverse && end.x === current.x && end.y === current.y) return null;
+  // O desvio também termina no pixel escolhido, nunca só no centro do tile.
+  const final = shortestWorldWaypoints(end, goal, tilesPerSide, tileSize,
+    canStand, canStep, facing, false, canTraverse);
   return final ? [...detour, ...final] : null;
 }

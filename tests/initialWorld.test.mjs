@@ -18,7 +18,6 @@ const worldURL = moduleURL('world/initialWorld', {
 });
 const { INITIAL_WORLD, AREA_TILES, areaNpcDefinitions, areaMobDefinitions, OPPOSITE } = await import(worldURL);
 const combatConfigURL = moduleURL('combat/combatConfig');
-const { TEST_ENEMY_OFFSETS } = await import(combatConfigURL);
 const { generateArea, dirtFrame, WORLD_LAYERS } = await import(moduleURL('world/areaGenerator', {
   './initialWorld': worldURL, '../combat/combatConfig': combatConfigURL,
 }));
@@ -52,13 +51,6 @@ test('nove áreas: cada saída tem retorno, cada spawn é único, alcançável e
   assert.equal(new Set(mobIds).size, mobIds.length);
   assert.equal(areas.filter(a => a.mobSpawns.some(s => TEST_MOBS.find(m => m.id === s.id)?.tier === 'boss')).length, 4);
   assert.equal(INITIAL_WORLD.covil_lobo.mobSpawns.filter(s => s.speciesId === 'mob-grey-wolf').length, 2);
-  const exterior = generateArea(INITIAL_WORLD.floresta_exterior);
-  for (const [dx, dy] of TEST_ENEMY_OFFSETS) {
-    const x = 24.5 * 32 + dx, y = 24.5 * 32 + dy;
-    for (const sx of [-7, 7]) for (const sy of [-7, 0])
-      assert.ok(exterior.isFreeTile(Math.floor((x + sx) / 32), Math.floor((y + sy) / 32)),
-        'os seis alvos antigos têm spawns livres');
-  }
   for (const definition of areas) {
     assert.deepEqual(definition.chunks, { width: 3, height: 3 });
     assert.equal(areaNpcDefinitions(definition).length, definition.npcSpawns.length);

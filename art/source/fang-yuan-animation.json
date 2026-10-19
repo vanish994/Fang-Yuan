@@ -1,0 +1,89 @@
+{
+  "schema": "fang-yuan.animation.walk.v1",
+  "source": "/home/ubuntu/fang_yuan_work/generation_v2/fang-yuan-walk-4dir-4frames-master.png",
+  "direction_order": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "frame_size": [
+    32,
+    32
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "fps": 8,
+  "loop": true,
+  "animations": {
+    "down": {
+      "row": 0,
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "frame_files": [
+        "frames/fang-yuan-walk-down-1.png",
+        "frames/fang-yuan-walk-down-2.png",
+        "frames/fang-yuan-walk-down-3.png",
+        "frames/fang-yuan-walk-down-4.png"
+      ]
+    },
+    "left": {
+      "row": 1,
+      "frames": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "frame_files": [
+        "frames/fang-yuan-walk-left-1.png",
+        "frames/fang-yuan-walk-left-2.png",
+        "frames/fang-yuan-walk-left-3.png",
+        "frames/fang-yuan-walk-left-4.png"
+      ]
+    },
+    "up": {
+      "row": 2,
+      "frames": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "frame_files": [
+        "frames/fang-yuan-walk-up-1.png",
+        "frames/fang-yuan-walk-up-2.png",
+        "frames/fang-yuan-walk-up-3.png",
+        "frames/fang-yuan-walk-up-4.png"
+      ]
+    },
+    "right": {
+      "row": 3,
+      "frames": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "frame_files": [
+        "frames/fang-yuan-walk-right-1.png",
+        "frames/fang-yuan-walk-right-2.png",
+        "frames/fang-yuan-walk-right-3.png",
+        "frames/fang-yuan-walk-right-4.png"
+      ]
+    }
+  },
+  "atlas": {
+    "path": "fang-yuan-walk-4dir-4frames-32.png",
+    "size": [
+      128,
+      128
+    ]
+  }
+}

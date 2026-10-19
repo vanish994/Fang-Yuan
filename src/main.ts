@@ -6,11 +6,11 @@ import { generateArea, type GeneratedArea } from './world/areaGenerator';
 import { renderArea } from './world/areaRenderer';
 import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigation';
 import { FangYuan, registerWalkAnimations, WALK_SPEED } from './entities/FangYuan';
-import { directionVector, shouldTurnForSegment, type CardinalDirection } from './entities/directions';
+import { shouldTurnForSegment, type CardinalDirection } from './entities/directions';
 import { CharacterSheet } from './ui/characterSheet';
 import { CharacterCultivation } from './entities/characterCultivation';
 import { CombatEngine } from './combat/combatEngine';
-import { TEST_ENEMY_OFFSETS } from './combat/combatConfig';
+import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction } from './combat/types';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
@@ -30,7 +30,7 @@ class QingMaoScene extends Phaser.Scene {
   private minimap?: MinimapView;
   private enemyViews = new Map<string, Phaser.GameObjects.Container>();
   private staticEnemyViews = new Map<string, { sprite: Phaser.GameObjects.Sprite; facing: Direction;
-    x: number; y: number; frame: (id: string, direction: Direction) => number }>();
+    x: number; y: number; boss: boolean; frame: (id: string, direction: Direction) => number }>();
   private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
   private pendingRewards: CombatEvent[] = [];
@@ -41,6 +41,9 @@ class QingMaoScene extends Phaser.Scene {
   private readonly defeatedInArea = new Set<string>();
   private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
+  private navigationPrevious?: WorldPoint;
+  private blockedTravelMs = 0;
+  private retriedTravel = false;
   private destination?: Phaser.GameObjects.Arc;
   private chunkGuide?: Phaser.GameObjects.Graphics;
   private readonly onResize = (size: Phaser.Structs.Size) => {
@@ -63,17 +66,18 @@ class QingMaoScene extends Phaser.Scene {
     this.load.image('bushes', 'assets/qing-mao/Bushes%201.1.PNG');
     this.load.image('logs', 'assets/qing-mao/Tree%20Stumps%20and%20Logs%201.2.PNG');
     this.load.image('mushrooms', 'assets/qing-mao/Mushrooms.png');
-    this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-32.png', {
-      frameWidth: TILE_SIZE, frameHeight: TILE_SIZE,
+    // Quadros 2× a resolução lógica: 64px na textura, 32px no mapa.
+    this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-64.png', {
+      frameWidth: 64, frameHeight: 64,
     });
     preloadNpcSprites(this);
-    // Atlas: 15 mobs (12 em jogo + 3 artes reservadas) × 4 direções, quadros 32×32.
-    this.load.spritesheet('mob-static-4dir', 'assets/mobs/mob-static-4dir-32.png', {
-      frameWidth: 32, frameHeight: 32,
+    // Atlas: 15 mobs (12 em jogo + 3 artes reservadas) × 4 direções.
+    this.load.spritesheet('mob-static-4dir', 'assets/mobs/mob-static-4dir-64.png', {
+      frameWidth: 64, frameHeight: 64,
     });
-    // Atlas fornecido: 4 bosses × (baixo, esquerda, cima, direita), quadro 48×48.
-    this.load.spritesheet('boss-static-4dir', 'assets/bosses/boss-static-4dir-48.png', {
-      frameWidth: 48, frameHeight: 48,
+    // Bosses usam 96px por quadro, mas continuam ~43px no mundo.
+    this.load.spritesheet('boss-static-4dir', 'assets/bosses/boss-static-4dir-96.png', {
+      frameWidth: 96, frameHeight: 96,
     });
   }
 
@@ -124,61 +128,48 @@ class QingMaoScene extends Phaser.Scene {
     });
   }
 
-  /** Bosses e 12 mobs usam atlas direcionais; seis alvos de teste mantêm seus marcadores. */
+  /** Apenas encontros definidos no mundo: nenhum alvo de teste em forma de círculo. */
   private createEnemies(): void {
-    const spawn = (id: string, x: number, y: number, color: number, labelText: string,
-      mob?: Readonly<MobDefinition>) => {
-      if (!this.isFree(x, y)) return;
-      const enemy = this.combat.addEnemy(id, x, y, mob?.health, mob);
-      const boss = mob?.tier === 'boss';
-      const hasArt = boss ? this.textures.exists('boss-static-4dir')
-        : !!mob && this.textures.exists('mob-static-4dir');
+    const spawn = (mob: Readonly<MobDefinition>) => {
+      if (!this.isFree(mob.x, mob.y)) return;
+      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob);
+      const boss = mob.tier === 'boss';
+      const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
       const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
-        mobFrame(mob?.spriteId ?? instanceId, direction);
-      const graphic = hasArt
-        ? this.add.sprite(0, 0, boss ? 'boss-static-4dir' : 'mob-static-4dir', frame(id, 'down'))
-          .setOrigin(0.5, 1).setInteractive({ useHandCursor: true })
-        : this.add.circle(0, -13, 13, color).setStrokeStyle(2, 0xf4ce8d)
-          .setInteractive({ useHandCursor: true });
+        mobFrame(mob.spriteId ?? instanceId, direction);
+      const graphic = this.add.sprite(0, 0, atlas, frame(mob.id, 'down'))
+        .setOrigin(0.5, 1).setScale(boss ? 0.45 : 0.425)
+        .setInteractive({ useHandCursor: true });
+      const label = this.add.text(0, boss ? -47 : -32, mob.name, {
+        fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
+      }).setOrigin(0.5).setVisible(boss);
       graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
         event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
         if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
       });
-      // Identificação do boss abaixo da arte: acima ficaria sob Menu/tela cheia no celular.
-      const label = this.add.text(0, boss ? 14 : -39, labelText, {
-        fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
-      }).setOrigin(0.5);
-      const barY = boss ? 28 : -29;
-      const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d);
-      const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e).setOrigin(0, 0.5).setName('hp');
-      const view = this.add.container(x, y, [graphic, label, back, hp]).setDepth(y);
+      const barY = boss ? 10 : 6;
+      const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
+      const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
+        .setOrigin(0, 0.5).setName('hp').setVisible(false);
+      const view = this.add.container(mob.x, mob.y, [graphic, label, back, hp]).setDepth(mob.y);
       this.worldObjects.add(view);
       this.enemyViews.set(enemy.id, view);
-      if (hasArt) this.staticEnemyViews.set(enemy.id, { sprite: graphic as Phaser.GameObjects.Sprite,
-        facing: 'down', x, y, frame });
+      this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
+        x: mob.x, y: mob.y, boss, frame });
     };
-    if (this.currentArea.definition.id === 'floresta_exterior') {
-      TEST_ENEMY_OFFSETS.forEach(([dx, dy], index) =>
-        spawn(`Criatura ${index + 1}`, 24.5 * TILE_SIZE + dx, 24.5 * TILE_SIZE + dy,
-          0x9a433e, 'INIMIGO · TESTE'));
-    }
     for (const mob of areaMobDefinitions(this.currentArea.definition)) {
-      if (this.defeatedInArea.has(`${this.currentArea.definition.id}:${mob.id}`)) continue;
-      const color = mob.tier === 'boss' ? 0xb37e35
-        : mob.tier === 3 ? 0x873367 : mob.tier === 2 ? 0x9a543e : 0x81634a;
-      spawn(mob.id, mob.x, mob.y, color, `${mob.name} · TESTE`, mob);
+      if (!this.defeatedInArea.has(`${this.currentArea.definition.id}:${mob.id}`)) spawn(mob);
     }
   }
 
-  private isFree = (x: number, y: number): boolean => {
-    return x >= 8 && y >= 10 && x < WORLD_SIZE - 8 && y < WORLD_SIZE - 2 &&
-      [-7, 7].every(dx => [-7, 0].every(dy =>
-        this.currentArea.isFreeTile(Math.floor((x + dx) / TILE_SIZE), Math.floor((y + dy) / TILE_SIZE))));
-  };
+  private isFree = (x: number, y: number): boolean =>
+    canStandAt(x, y, TILE_SIZE, (column, row) => this.currentArea.isFreeTile(column, row));
 
   private onCombatAction(action: string): void {
     const now = this.time.now;
+    // Ações DOM podem chegar entre dois updates enquanto o corpo Arcade se desloca.
+    this.combat.hero.x = this.player.x; this.combat.hero.y = this.player.y;
     if (action === 'auto') {
       this.combat.autoTarget = !this.combat.autoTarget;
       this.combatHUD?.say(`Alvo automático ${this.combat.autoTarget ? 'ligado' : 'desligado'}.`);
@@ -202,7 +193,7 @@ class QingMaoScene extends Phaser.Scene {
     const dy = target ? target.y - this.player.y : 0;
     const aiming: Direction = target && Math.abs(dx) + Math.abs(dy) > 1
       ? Math.abs(dx) >= Math.abs(dy) ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up'
-      : this.player.facingDirection;
+      : this.combatHUD?.direction ?? this.player.facingDirection;
     let result: ActionResult;
     if (action === 'basic') result = this.combat.basicAttack(now, this.isFree);
     else if (action === 'moonlight') result = this.combat.castMoonlight(now, aiming);
@@ -338,20 +329,27 @@ class QingMaoScene extends Phaser.Scene {
     return nearest;
   }
 
-  private walkTo(x: number, y: number): void {
+  private walkTo(x: number, y: number, recovering = false): void {
     if (!this.combat.hero.alive) return;
     const previousDirection = this.player.movingDirection;
     this.waypoints = [];
+    this.navigationPrevious = undefined;
+    this.blockedTravelMs = 0;
+    if (!recovering) this.retriedTravel = false;
     this.destination?.destroy();
     this.destination = undefined;
     const goal = this.walkableDestination(x, y);
+    const tileFree = (tx: number, ty: number) => this.currentArea.isFreeTile(tx, ty);
+    const centerFree = (tx: number, ty: number) => tileFree(tx, ty)
+      && canStandAt((tx + 0.5) * TILE_SIZE, (ty + 0.5) * TILE_SIZE, TILE_SIZE, tileFree);
     const route = goal && shortestWorldWaypoints(
       { x: this.player.x, y: this.player.y }, goal, AREA_TILES, TILE_SIZE,
-      (tx, ty) => this.currentArea.isFreeTile(tx, ty),
+      centerFree,
       (tx, ty, nx, ny) => Math.abs(tx - nx) + Math.abs(ty - ny) === 1
-        && this.currentArea.isFreeTile(tx, ty) && this.currentArea.isFreeTile(nx, ny),
+        && centerFree(tx, ty) && centerFree(nx, ny),
       previousDirection ?? this.player.facingDirection,
       previousDirection !== null,
+      (from, to) => canWalkSegment(from, to, TILE_SIZE, tileFree),
     );
     // Cancele imediatamente a velocidade anterior; o novo toque parte da posição real.
     this.player.move(null);
@@ -378,7 +376,8 @@ class QingMaoScene extends Phaser.Scene {
     for (const [id, view] of this.enemyViews) {
       const enemy = this.combat.enemies.get(id);
       if (!enemy?.alive) continue;
-      view.setPosition(enemy.x, enemy.y).setDepth(enemy.y);
+      if (view.x !== enemy.x || view.y !== enemy.y)
+        view.setPosition(enemy.x, enemy.y).setDepth(enemy.y);
       const art = this.staticEnemyViews.get(id);
       if (art) {
         const dx = enemy.x - art.x, dy = enemy.y - art.y;
@@ -389,8 +388,16 @@ class QingMaoScene extends Phaser.Scene {
         }
         art.x = enemy.x; art.y = enemy.y;
       }
-      const hp = view.getByName('hp') as Phaser.GameObjects.Rectangle;
-      hp.width = 28 * enemy.health / enemy.maxHealth;
+      const selected = this.combat.target?.id === id;
+      const [ , label, back, hp] = view.list as [Phaser.GameObjects.Sprite,
+        Phaser.GameObjects.Text, Phaser.GameObjects.Rectangle, Phaser.GameObjects.Rectangle];
+      const showLabel = selected || art?.boss === true;
+      const showHealth = selected || enemy.health < enemy.maxHealth;
+      if (label.visible !== showLabel) label.setVisible(showLabel);
+      if (back.visible !== showHealth) back.setVisible(showHealth);
+      if (hp.visible !== showHealth) hp.setVisible(showHealth);
+      const width = 28 * enemy.health / enemy.maxHealth;
+      if (hp.width !== width) hp.width = width;
     }
     const shots = this.combat.activeProjectiles;
     while (this.projectileViews.length > shots.length) this.projectileViews.pop()?.destroy();
@@ -413,20 +420,40 @@ class QingMaoScene extends Phaser.Scene {
     const stick = this.combatHUD?.direction;
     if (stick) {
       if (this.waypoints.length) { this.waypoints = []; this.destination?.destroy(); this.destination = undefined; }
-      const v = directionVector(stick);
-      const travel = speed * Math.min(delta, 100) / 1000;
-      let clear = true;
-      for (let d = 4; d <= travel + 3; d += 4) {
-        const sample = Math.min(d, travel);
-        if (!this.isFree(this.player.x + v.x * sample, this.player.y + v.y * sample)) {
-          clear = false; break;
-        }
-      }
-      this.player.move(clear ? stick : null, true, speed);
+      this.navigationPrevious = undefined;
+      this.blockedTravelMs = 0;
+      // O joystick não deve vetar a movimentação por outro teste de colisão.
+      // Se o Arcade deixou menos de 2px do corpo sobre a lateral da parede,
+      // solte-o para fora antes do próximo passo paralelo (sem atravessar tiles).
+      const foot = releaseWallSnag(this.player.x, this.player.y, stick, TILE_SIZE,
+        (tx, ty) => this.currentArea.isFreeTile(tx, ty));
+      if (foot.x !== this.player.x || foot.y !== this.player.y)
+        (this.player.body as Phaser.Physics.Arcade.Body).reset(foot.x, foot.y);
+      this.player.move(stick, true, speed);
       return;
     }
     const target = this.waypoints[0];
-    if (!target) { this.player.move(null); return; }
+    if (!target) { this.navigationPrevious = undefined; this.player.move(null); return; }
+    if (this.navigationPrevious && this.player.movingDirection
+      && Math.hypot(this.player.x - this.navigationPrevious.x,
+        this.player.y - this.navigationPrevious.y) < 0.35
+      && Math.hypot(target.x - this.player.x, target.y - this.player.y) > 5) {
+      this.blockedTravelMs += Math.min(delta, 50);
+      if (this.blockedTravelMs > 350) {
+        if (!this.retriedTravel) {
+          this.retriedTravel = true;
+          const goal = this.waypoints.at(-1)!;
+          this.walkTo(goal.x, goal.y, true);
+          return;
+        }
+        this.waypoints = [];
+        this.destination?.destroy(); this.destination = undefined;
+        this.player.move(null);
+        this.combatHUD?.say('Caminho bloqueado. Toque em outro ponto.');
+        return;
+      }
+    } else this.blockedTravelMs = 0;
+    this.navigationPrevious = { x: this.player.x, y: this.player.y };
     const dx = target.x - this.player.x;
     const dy = target.y - this.player.y;
     const step = speed * Math.min(delta, 50) / 1000 + 0.1;

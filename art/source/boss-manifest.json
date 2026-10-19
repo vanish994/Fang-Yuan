@@ -1,0 +1,92 @@
+{
+  "schema": "fang-yuan.boss-static-4dir.v1",
+  "source": "/home/ubuntu/fang_yuan_work/generation_v2/boss-master-sheet.png",
+  "source_grid": [
+    4,
+    4
+  ],
+  "cell_size": [
+    48,
+    48
+  ],
+  "direction_order": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "entities": [
+    {
+      "index": 0,
+      "name": "Rei Lobo Cinzento",
+      "category": "boss",
+      "row": 0,
+      "cell_size": [
+        48,
+        48
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 1,
+      "name": "Rei Javali Demoníaco",
+      "category": "boss",
+      "row": 1,
+      "cell_size": [
+        48,
+        48
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 2,
+      "name": "Rei Serpente",
+      "category": "boss",
+      "row": 2,
+      "cell_size": [
+        48,
+        48
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    },
+    {
+      "index": 3,
+      "name": "Besta Demoníaca Antiga",
+      "category": "boss",
+      "row": 3,
+      "cell_size": [
+        48,
+        48
+      ],
+      "directions": {
+        "down": 0,
+        "left": 1,
+        "up": 2,
+        "right": 3
+      }
+    }
+  ],
+  "atlas": {
+    "path": "boss-static-4dir-48.png",
+    "size": [
+      192,
+      192
+    ]
+  },
+  "frame_count": 16
+}

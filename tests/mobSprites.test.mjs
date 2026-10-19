@@ -30,10 +30,13 @@ test('somente os 12 mobs com atributos existentes surgem; Rei Javali não substi
   const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(catalog, /mob\('demonic-boar-king', 'Rei Javali Demoníaco'/);
   assert.match(main, /this\.load\.spritesheet\('mob-static-4dir'/);
-  assert.match(main, /frame\(id, 'down'\)/);
+  assert.match(main, /frame\(mob\.id, 'down'\)/);
   assert.match(main, /art\.sprite\.setFrame\(art\.frame\(id, art\.facing\)\)/);
   assert.match(main, /this\.combat\.select\(enemy\.id\)/);
   assert.match(main, /this\.staticEnemyViews\.delete\(event\.targetId\)/);
+  assert.doesNotMatch(main, /Criatura \$\{index/);
+  assert.doesNotMatch(main, /this\.add\.circle\(0, -13/);
+  assert.match(main, /'mob-static-4dir'|: 'mob-static-4dir'/);
   const catalogSource = readFileSync(new URL('../src/combat/mobCatalog.ts', import.meta.url), 'utf8');
   const jsCatalog = ts.transpileModule(catalogSource, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

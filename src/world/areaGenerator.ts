@@ -1,5 +1,4 @@
 import { AREA_TILES, type AreaDefinition, type Side } from './initialWorld';
-import { TEST_ENEMY_OFFSETS } from '../combat/combatConfig';
 
 export const WORLD_LAYERS = ['GROUND', 'TERRAIN', 'TERRAIN_TRANSITIONS', 'PATHS',
   'STRUCTURES', 'DECORATION_BACK', 'OBJECTS', 'DECORATION_FRONT', 'ENTITIES_Y_SORT',
@@ -102,18 +101,18 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
     }
   }
   for (const place of [...definition.pointsOfInterest, ...definition.mobSpawns])
-    pathTo(Math.round(place.x), Math.round(place.y), definition.biome === 'village' ? 2 : 1);
-  if (definition.id === 'floresta_exterior') for (const [dx, dy] of TEST_ENEMY_OFFSETS) {
-    const x = 24.5 + dx / 32, y = 24.5 + dy / 32;
-    protect(x, y, 1);
-    pathTo(Math.round(x), Math.round(y));
-  }
+    pathTo(Math.round(place.x), Math.round(place.y), 1);
 
   if (definition.biome === 'village') {
+    // A praça é pequena; as trilhas estreitas deixam gramado e casas visíveis ao redor.
+    for (let y = 22; y <= 26; y++) for (let x = 22; x <= 26; x++) {
+      dirt[y]![x] = true;
+      protectedCell[y]![x] = true;
+    }
     // Moradias abertas e rústicas: apenas pedras/paredes existentes do atlas Ruins.
     // Parede frontal tem passagem no meio, sem criar telhado nem inventar portas.
     for (const [left, top, width, height] of [[10, 13, 6, 5], [32, 12, 5, 6],
-      [9, 32, 7, 4], [32, 32, 6, 4]] as const) {
+      [9, 32, 7, 4], [32, 32, 6, 4], [17, 21, 3, 3], [29, 21, 3, 3]] as const) {
       for (let dy = 0; dy <= height; dy++) for (let dx = 0; dx <= width; dx++) {
         const x = left + dx, y = top + dy;
         const wall = (dx === 0 || dx === width || dy === 0 || dy === height)
@@ -142,7 +141,7 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
       layers[frame === 10 ? 'PATHS' : 'TERRAIN_TRANSITIONS'][y]![x] = frame;
     }
     const v = hash(definition.seed, x, y);
-    if (!dirt[y]![x] && !collision[y]![x] && v % 100 < 13)
+    if (!collision[y]![x] && (dirt[y]![x] ? definition.biome === 'village' && v % 100 < 3 : v % 100 < 13))
       layers.DECORATION_BACK[y]![x] = v % 2 ? 0 : 12;
   }
 
