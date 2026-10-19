@@ -43,26 +43,26 @@
         right: max(12px, env(safe-area-inset-right)); width: min(366px, calc(100vw - 24px));
         max-height: calc(100dvh - 86px - env(safe-area-inset-bottom)); overflow-y: auto;
         background: #121630; border: 12px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
         image-rendering: pixelated; box-shadow: 0 14px 42px #0b170ddd; }
       .sheet-header { padding: 16px 18px 12px; display: flex; align-items: flex-start; justify-content: space-between;
         border-bottom: 1px solid #6a6b4e; }
       .eyebrow { display: inline-block; min-width: 118px; padding: 6px 10px;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat;
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         color: #3a233a; text-align: center; text-transform: uppercase;
         letter-spacing: .08em; font-size: 10px; font-weight: 700; }
       .sheet-header h2 { margin: 4px 0 0; font: 24px Georgia, serif; color: #ffefd1; }
       .sheet-close { width: 44px; height: 44px; flex: 0 0 44px; margin: -6px -8px 0 8px;
-        border: 0; background: url('/assets/ui/close-button.png') 0 0 / 176px 44px no-repeat;
+        border: 0; background: url('./assets/ui/close-button.png') 0 0 / 176px 44px no-repeat;
         image-rendering: pixelated; font-size: 0; }
       .sheet-close:hover { background-position: -44px 0; }
       .sheet-identity { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
       .sheet-portrait { position: relative; flex: 0 0 64px; height: 96px;
-        background-color: #343854; background-image: url('/assets/characters/fang-yuan-walk-32.png');
+        background-color: #343854; background-image: url('./assets/characters/fang-yuan-walk-32.png');
         background-size: 384px 256px; background-position: 0 16px; background-repeat: no-repeat;
         image-rendering: pixelated; }
       .sheet-portrait::after { position: absolute; inset: 0; content: '';
-        background: url('/assets/ui/portrait-frame.png') center / 100% 100% no-repeat; }
+        background: url('./assets/ui/portrait-frame.png') center / 100% 100% no-repeat; }
       .sheet-identity strong { display: block; font: 20px Georgia, serif; }
       .sheet-identity small { display: block; margin-top: 5px; color: #c3caa9; font-size: 12px; line-height: 1.5; }
       .sheet-section { padding: 14px 18px; border-top: 1px solid #475139; }
@@ -80,7 +80,7 @@
       .sheet-sea-panel { display: flex; gap: 14px; align-items: center; margin: 0 0 12px;
         padding: 8px; background: #10252b; border: 1px solid #537a7c; border-radius: 6px; }
       .sheet-sea-panel .sea-sprite { flex: none; width: 112px; height: 112px;
-        background: url('/assets/ui/mar-primordial-11x128.png') 0 0 / 1232px 112px no-repeat;
+        background: url('./assets/ui/mar-primordial-11x128.png') 0 0 / 1232px 112px no-repeat;
         image-rendering: pixelated; }
       .sheet-sea-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
       .sea-eyebrow { text-transform: uppercase; letter-spacing: .07em; color: #a8d2cf; font-size: 10px; }
@@ -150,16 +150,16 @@
       /* Linguagem visual do pack Tiny RPG: molduras 9-slice, cabeçalhos e retrato. */
       .map-label, .combat-top, .combat-feedback, .combat-cicada {
         background: #121630; border: 9px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
         image-rendering: pixelated; box-shadow: 0 5px 18px #090d23a8;
       }
       .map-label { padding: 6px 10px; color: #fff0d7; }
       .map-label strong { font-size: 17px; color: #f4d595; }
       .map-label small { color: #d3d5ec; }
       .sheet-toggle { border: 0; border-radius: 0; color: #4a2638;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat;
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         box-shadow: 0 3px 12px #090d23b3; image-rendering: pixelated; }
-      .sheet-toggle[aria-expanded="true"] { background: url('/assets/ui/header.png') center / 100% 100% no-repeat;
+      .sheet-toggle[aria-expanded="true"] { background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         filter: brightness(1.13); }
       .sheet-toggle-icon { color: #633150; }
       .character-sheet { width: min(442px, calc(100vw - 24px)); background: #121630; }
@@ -171,19 +171,19 @@
         position: sticky; top: 0; z-index: 2; background: #121630; border-bottom: 1px solid #ae7b73; }
       .sheet-tabs button { min-height: 48px; padding: 5px 8px; color: #c9c6dc;
         background: #121630; border: 7px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch;
         image-rendering: pixelated; font-size: 12px; font-weight: bold; white-space: nowrap; }
       .sheet-tabs button[aria-selected="true"] { color: #462a3d;
         border-image: none; border: 0;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat; }
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat; }
       .sheet-section { border-color: #725976; }
       .sheet-section h3 { color: #f3d79a; }
       .sheet-section dt { color: #d3d4e6; }
       .sheet-sea-panel, .gu-intrinsic { background: #171c37; border-color: #b28b73; border-radius: 0; }
       .advance-action, .combat-respawn { border: 9px solid transparent; border-radius: 0;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
         background: #121630; color: #ffdf9d; image-rendering: pixelated; }
-      .advance-action:disabled { border-color: transparent; border-image: url('/assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
+      .advance-action:disabled { border-color: transparent; border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
         background: #121630; color: #9e9ab4; opacity: .7; }
       .slot-count { float: right; color: #c3b4d3; font: 12px Arial, sans-serif; }
       .inventory-disclaimer { margin-bottom: 12px; }
@@ -192,7 +192,7 @@
       .gear-lock[data-locked="true"] { background: #3a243b; border-color: #e7a880; color: #ffe4c4; }
       /* Quatro quadros reais 64x64 enviados pelo usuário: Lua, Licor, Pedra, Redemoinho. */
       .gu-icon { display: block; flex: none; width: 48px; height: 48px;
-        background-image: url('/assets/ui/gu-icons-2x2-64.png');
+        background-image: url('./assets/ui/gu-icons-2x2-64.png');
         background-size: 96px 96px; background-repeat: no-repeat; image-rendering: pixelated; }
       .gu-icon:not([data-gu]) { box-sizing: border-box; border: 1px dashed #9484a8;
         background: #181d37; }
@@ -204,14 +204,14 @@
         gap: 5px; margin: 0 0 14px; }
       .gu-choice { display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
         gap: 3px; min-width: 0; min-height: 88px; padding: 5px 2px; border: 7px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch;
         background: #121630; color: #f4d69d; font: 10px/1.2 Arial, sans-serif;
         image-rendering: pixelated; overflow-wrap: anywhere; }
       .gu-choice[aria-pressed="true"] { color: #b5e5e0; filter: brightness(1.25); }
       .gu-choice:disabled { opacity: .55; cursor: not-allowed; }
       .gu-slots { display: grid; gap: 8px; }
       .gu-slot { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 8px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 8px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 8px / 0 stretch;
         background: #121630; image-rendering: pixelated; }
       .gu-slot-body { min-width: 0; flex: 1; image-rendering: auto; }
       .gu-slot label { display: block; color: #f5d59d; font-size: 12px; font-weight: bold; margin-bottom: 6px; }
@@ -228,10 +228,10 @@
       .gu-intrinsic small { color: #d2cfdd; line-height: 1.5; }
       .combat-hud button, .combat-joystick { pointer-events: auto; touch-action: none; }
       .combat-top { padding: 8px 10px; border-width: 9px;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch; }
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch; }
       .combat-topline { display: flex; align-items: center; justify-content: space-between;
         margin: -3px 0 7px; padding: 3px 9px; min-height: 20px;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat;
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         color: #492840; }
       .combat-topline strong { font: bold 13px Georgia, serif; }
       .combat-topline span { font-size: 10px; }
@@ -246,18 +246,18 @@
       .combat-target { padding-top: 6px; border-top: 1px solid #735e7a; }
       .combat-target button { min-height: 40px; border: 0; border-radius: 0; padding: 4px 9px;
         color: #482b40; font-weight: bold;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat;
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat;
         image-rendering: pixelated; }
       .combat-target button[aria-pressed="true"] { filter: brightness(1.18); }
       .combat-feedback { padding: 4px 9px; border-width: 7px;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
       .combat-joystick { border: 12px solid transparent; border-radius: 0;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
         background: #121630; image-rendering: pixelated; }
       .joystick-knob { border: 0; border-radius: 0; color: #4d2b45;
-        background: url('/assets/ui/header.png') center / 100% 100% no-repeat; }
+        background: url('./assets/ui/header.png') center / 100% 100% no-repeat; }
       .combat-actions button { min-width: 68px; min-height: 68px; border: 9px solid transparent;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 9px / 0 stretch;
         border-radius: 0; color: #f9d9a5; background: #121630;
         box-shadow: 0 3px 8px #080c24ac; image-rendering: pixelated; }
       .combat-actions .gu-icon { width: 40px; height: 40px; background-size: 80px 80px; }
@@ -269,7 +269,7 @@
       .combat-cicada { position: absolute; bottom: max(105px, calc(env(safe-area-inset-bottom) + 105px));
         right: max(14px, calc(env(safe-area-inset-right) + 14px)); padding: 3px 9px;
         color: #eed7ae; font-size: 11px; border-width: 7px;
-        border-image: url('/assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
+        border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch; }
       .combat-top { top: max(112px, calc(env(safe-area-inset-top) + 112px)); }
       .combat-feedback { top: max(280px, calc(env(safe-area-inset-top) + 280px)); }
       @media (max-width: 600px) {
@@ -312,7 +312,7 @@
           max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
           max(24px, env(safe-area-inset-left)); background: #101524; text-align: center; }
         .rotate-card { width: min(320px, 100%); padding: 24px 18px; border: 10px solid transparent;
-          border-image: url('/assets/ui/panel-9slice.png') 12 fill / 10px / 0 stretch; }
+          border-image: url('./assets/ui/panel-9slice.png') 12 fill / 10px / 0 stretch; }
         .rotate-card .rotate-symbol { display: block; margin-bottom: 8px; font-size: 44px; color: #ecc58b; }
         .rotate-card strong { display: block; font: 22px Georgia, serif; color: #fff0d7; }
         .rotate-card p { margin: 10px 0 0; color: #d7d8cf; font-size: 14px; line-height: 1.5; }
