@@ -4,6 +4,8 @@ import { defineConfig } from 'vite';
 // - host 0.0.0.0: permite acesso pelo preview do ambiente e pela rede local.
 // - allowedHosts: o preview roda atrás de um proxy com host dinâmico, então liberamos todos.
 export default defineConfig({
+  // GitHub Pages publica este repositório em /Fang-Yuan/.
+  base: '/Fang-Yuan/',
   server: {
     host: '0.0.0.0',
     port: 5173,
