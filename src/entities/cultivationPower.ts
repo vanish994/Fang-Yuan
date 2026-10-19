@@ -1,10 +1,7 @@
 /**
  * Curva de poder de cultivo usada pelo balanceamento.
  * Não cria XP/níveis: o GDD continua usando somente Rank + estágio.
- *
  * power é uma unidade relativa ao Rank 1 Inicial.
- * Os campos derivados são referências de balanceamento e serão ligados ao
- * estado de combate quando a ficha passar a aplicar atributos de cultivo.
  */
 import type { Stage } from './cultivation';
 
@@ -34,16 +31,11 @@ export const CULTIVATION_POWER_CURVE: readonly CultivationPower[] = ROWS.map(([r
   rank,
   stage,
   power,
-  maxHealthMultiplier: Number(power ** 0.80.toFixed?.() ?? 0),
+  maxHealthMultiplier: power ** 0.80,
   attackMultiplier: power,
   defenseMultiplier: power ** 0.60,
   maxEssenceMultiplier: power,
 }));
-
-// Evita expor uma fórmula estranha no runtime: a tabela acima é a fonte dos dados.
-for (const row of CULTIVATION_POWER_CURVE as CultivationPower[]) {
-  row.maxHealthMultiplier = Number(row.power ** 0.80);
-}
 
 export function cultivationPower(rank: number, stage: Stage): CultivationPower {
   const row = CULTIVATION_POWER_CURVE.find((entry) => entry.rank === rank && entry.stage === stage);
