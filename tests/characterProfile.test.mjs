@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { readHtml, readStyles } from './support/markup.mjs';
 
 const source = readFileSync(new URL('../src/entities/characterProfile.ts', import.meta.url), 'utf8');
 const javascript = ts.transpileModule(source, {
@@ -31,13 +32,13 @@ test('sem XP: Fang Yuan inicia no Rank 1 Inicial com 0 recursos', () => {
   for (const key of ['aptitude', 'opening', 'openingCapacity']) {
     assert.equal(UNCONFIGURED_CHARACTER[key], null);
   }
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const html = readHtml();
   assert.doesNotMatch(html, /\bXP\b|\bnível\b/i);
   assert.match(html, /Pedras espirituais/);
 });
 
 test('pedras espirituais são uma moeda única; fontes futuras são drop direto e troca de drops', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const html = readHtml();
   const balance = readFileSync(new URL('../BALANCEAMENTO.md', import.meta.url), 'utf8');
   assert.match(html, /Pedras espirituais/);
   assert.doesNotMatch(html, /Pedras primordiais/);
@@ -56,16 +57,17 @@ test('GDD atualizado separa regras de cultivo aprovadas e balanceamento provisó
 });
 
 test('ficha mobile fica fechada por padrão e tem controles acessíveis', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const html = readHtml();
+  const css = readStyles();
   assert.match(html, /id="character-toggle"[^>]*aria-controls="character-sheet"/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /id="character-sheet"[^>]*hidden/);
   assert.match(html, /id="character-close"[^>]*aria-label="Fechar ficha"/);
   assert.match(html, /id="advance-action"[^>]*disabled[^>]*aria-describedby="advance-reason"/);
   assert.match(html, /id="advance-feedback"[^>]*role="status"[^>]*aria-live="polite"/);
-  assert.match(html, /env\(safe-area-inset-top\)/);
+  assert.match(css, /env\(safe-area-inset-top\)/);
   assert.match(html, /class="advance-action"[^>]*disabled/);
-  assert.match(html, /\.advance-action\s*\{[^}]*min-height:\s*48px/s);
-  assert.match(html, /max-height:\s*calc\(100dvh/);
+  assert.match(css, /\.advance-action\s*\{[^}]*min-height:\s*48px/s);
+  assert.match(css, /max-height:\s*calc\(100dvh/);
   assert.match(html, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/);
 });

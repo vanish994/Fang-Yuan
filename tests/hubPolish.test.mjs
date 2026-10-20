@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { moduleURL } from './support/tsModule.mjs';
+import { readStyles } from './support/markup.mjs';
 
 const npc = moduleURL('entities/npc', { '../agents/agentBrain': moduleURL('agents/agentBrain') });
 const mob = moduleURL('combat/mobCatalog');
@@ -44,7 +45,7 @@ test('dez NPCs da vila ocupam bairros distintos, pés livres e rotas curtas loca
 test('joystick e golpe usam pointers independentes; HUD não esconde o mundo', () => {
   const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   const hud = readFileSync(new URL('../src/ui/combatHUD.ts', import.meta.url), 'utf8');
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = readStyles();
   assert.match(hud, /button\.addEventListener\('pointerdown'/);
   assert.match(hud, /event\.detail === 0/);
   assert.match(hud, /event\.pointerId !== this\.steeringPointer/);
@@ -53,8 +54,8 @@ test('joystick e golpe usam pointers independentes; HUD não esconde o mundo', (
   assert.doesNotMatch(main, /this\.canSteer/);
   assert.match(main, /canWalkSegment\(from, to, TILE_SIZE, tileFree\)/);
   assert.doesNotMatch(main, /TEST_ENEMY_OFFSETS|this\.add\.circle\(0, -13/);
-  assert.match(html, /\.combat-top \{ top: max\(8px/);
-  assert.match(html, /\.map-label \{ display: none; \}/);
+  assert.match(css, /\.combat-top \{ top: max\(8px/);
+  assert.match(css, /\.map-label \{ display: none; \}/);
 });
 
 test('novos pés não ocultam nenhum encontro existente ao carregar as nove áreas', () => {

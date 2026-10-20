@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
+import { readStyles } from './support/markup.mjs';
 
 const file = relative => readFileSync(new URL(`../${relative}`, import.meta.url));
 const size = relative => {
@@ -31,7 +32,7 @@ test('texturas altas mantêm tamanhos lógicos e hitbox sem alterar IA ou regras
   const main = file('src/main.ts').toString();
   const npc = file('src/entities/npcView.ts').toString();
   const player = file('src/entities/FangYuan.ts').toString();
-  const html = file('index.html').toString();
+  const css = readStyles();
   assert.match(main, /fang-yuan-walk-64\.png'[\s\S]*?frameWidth: 64, frameHeight: 64/);
   assert.match(main, /mob-static-4dir-64\.png'[\s\S]*?frameWidth: 64, frameHeight: 64/);
   assert.match(main, /boss-static-4dir-96\.png'[\s\S]*?frameWidth: 96, frameHeight: 96/);
@@ -40,8 +41,8 @@ test('texturas altas mantêm tamanhos lógicos e hitbox sem alterar IA ou regras
   assert.match(npc, /sprite\.setScale\(0\.4\)/);
   assert.match(player, /setScale\(0\.5\)/);
   assert.match(player, /setSize\(28, 20\)\.setOffset\(18, 40\)/);
-  assert.match(html, /\.sheet-portrait::before/);
-  assert.match(html, /256px 256px no-repeat/);
+  assert.match(css, /\.sheet-portrait::before/);
+  assert.match(css, /256px 256px no-repeat/);
   assert.equal(64 * 0.5, 32, 'Fang Yuan mantém 32px no mundo');
   assert.equal(28 * 0.5, 14, 'largura do corpo Arcade preservada');
   assert.equal(20 * 0.5, 10, 'altura do corpo Arcade preservada');

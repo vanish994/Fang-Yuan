@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { moduleURL } from './support/tsModule.mjs';
+import { readHtml, readStyles } from './support/markup.mjs';
 
 
 const profile = moduleURL('entities/characterProfile');
@@ -53,16 +53,19 @@ class FakeElement {
 }
 
 test('ficha touch: requisitos, confirmação, resultado e proteção contra toques duplicados', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /max-height:\s*calc\(100dvh/);
-  assert.match(html, /\.advance-action\s*\{[^}]*min-height:\s*48px/s);
+  const html = readHtml();
+  const css = readStyles();
+  assert.match(css, /max-height:\s*calc\(100dvh/);
+  assert.match(css, /\.advance-action\s*\{[^}]*min-height:\s*48px/s);
   assert.match(html, /role="tablist" aria-label="Menu do personagem"/);
   assert.match(html, /role="tabpanel" aria-labelledby="tab-inventory"[^>]*hidden/);
   for (const slot of ['attack', 'passive', 'movement', 'support']) {
     assert.match(html, new RegExp(`<select id="gu-${slot}"`));
   }
+  // recortes de painel podem vir do markup ou da folha de estilo
+  const page = `${html}\n${css}`;
   for (const asset of ['panel-9slice.png', 'header.png', 'portrait-frame.png', 'close-button.png']) {
-    assert.match(html, new RegExp(asset.replace('.', '\\.')));
+    assert.match(page, new RegExp(asset.replace('.', '\\.')));
   }
   assert.doesNotMatch(html, /class="combat-gear"/);
   const ids = [...html.matchAll(/id="([a-z-]+)"/g)].map((match) => match[1]);

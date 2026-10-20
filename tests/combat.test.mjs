@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { moduleURL } from './support/tsModule.mjs';
+import { readStyles } from './support/markup.mjs';
 
 const configURL = moduleURL('combat/combatConfig');
 const agentURL = moduleURL('agents/agentBrain');
@@ -233,13 +234,13 @@ test('loot de inimigos é uma transação única salva; falha de storage não pu
 });
 
 test('controles de toque são circulares, translúcidos e preservam áreas de toque', () => {
-  const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = readStyles();
   assert.match(css, /\.combat-joystick\s*\{[^}]*border-image:\s*none;[^}]*border-radius:\s*50%;[^}]*background:\s*#[0-9a-f]{8};/s);
   assert.match(css, /\.combat-actions button\s*\{[^}]*width:\s*72px;[^}]*height:\s*72px;[^}]*border-image:\s*none;[^}]*border-radius:\s*50%;[^}]*background:\s*#[0-9a-f]{8};/s);
 });
 
 test('HUD captura toques informativos e drops pendentes respeitam o intervalo de retry', () => {
-  const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = readStyles();
   const scene = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(css, /\.combat-top\s*\{[^}]*pointer-events:\s*auto/s);
   // A fila de recompensa virou módulo próprio (rewardFlow): o cenário só decide
@@ -277,7 +278,7 @@ test('Mar Primordial reflete gasto e regeneração da mesma reserva de combate',
 
 test('HUD mobile tem barras, alvo e controle; equipagem fica somente no inventário', () => {
   const html = readFileSync(new URL('../src/ui/combatHUD.ts', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = readStyles();
   assert.match(html, /combat-joystick/);
   assert.match(html, /combat-health/);
   assert.match(html, /combat-essence/);

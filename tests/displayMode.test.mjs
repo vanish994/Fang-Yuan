@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { readHtml, readStyles } from './support/markup.mjs';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = readHtml();
+const css = readStyles();
 const source = readFileSync(new URL('../src/ui/displayMode.ts', import.meta.url), 'utf8');
 const js = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -86,7 +88,7 @@ test('sem suporte ou permissão, informa limite; falha no lock não cancela tela
 
 test('aviso só em celular retrato e controles discretos permanecem em paisagem', () => {
   assert.match(html, /class="rotate-overlay"/);
-  assert.match(html, /@media \(orientation: portrait\) and \(pointer: coarse\)/);
+  assert.match(css, /@media \(orientation: portrait\) and \(pointer: coarse\)/);
   assert.match(html, /id="fullscreen-toggle"[^>]+aria-label="Entrar em tela cheia"/);
   assert.match(html, /class="top-actions"[\s\S]*?id="fullscreen-toggle"[\s\S]*?id="character-toggle"/);
 });
