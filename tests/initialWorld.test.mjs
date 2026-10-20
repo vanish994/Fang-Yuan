@@ -84,12 +84,26 @@ test('nove áreas: cada saída tem retorno, cada spawn é único, alcançável e
 test('autotiling escolhe formas reais do atlas; variações não decidem a topologia', () => {
   const mask = Array.from({ length: 9 }, () => Array(9).fill(false));
   for (let y = 2; y <= 6; y++) for (let x = 2; x <= 6; x++) mask[y][x] = true;
-  // O algoritmo opera sobre a grade de área 48×48; o quadrado está no canto interno desta máscara.
-  assert.equal(dirtFrame(mask, 4, 4), 10);
-  assert.equal(dirtFrame(mask, 4, 2), 25);
-  assert.equal(dirtFrame(mask, 4, 6), 37);
-  assert.equal(dirtFrame(mask, 2, 4), 24);
-  assert.equal(dirtFrame(mask, 6, 4), 27);
+  // O algoritmo opera sobre a grade de área 48×48; o quadrado está no centro desta máscara.
+  assert.equal(dirtFrame(mask, 4, 4), 10, 'interior: terra lisa');
+  // Encostas com três lados de terra usam as peças de faixa fina medidas no atlas
+  // (72 = grama ao norte, 84 = ao sul, 76 = a oeste, 77 = a leste).
+  assert.equal(dirtFrame(mask, 4, 2), 72);
+  assert.equal(dirtFrame(mask, 4, 6), 84);
+  assert.equal(dirtFrame(mask, 2, 4), 76);
+  assert.equal(dirtFrame(mask, 6, 4), 77);
+  // Pontas de trilha (uma única vizinha de terra) usam a meia célula oposta.
+  const line = Array.from({ length: 9 }, () => Array(9).fill(false));
+  for (let y = 2; y <= 6; y++) line[y][4] = true;
+  assert.equal(dirtFrame(line, 4, 5), 50, 'corredor em pé: grama dos lados');
+  assert.equal(dirtFrame(line, 4, 2), 25, 'ponta de cima: grama ao norte');
+  assert.equal(dirtFrame(line, 4, 6), 37, 'ponta de baixo: grama ao sul');
+  // Quinas arredondadas (grama nos dois lados livres) e mancha isolada.
+  assert.equal(dirtFrame(mask, 2, 2), 43, 'quina noroeste: grama a norte e oeste');
+  assert.equal(dirtFrame(mask, 6, 6), 30, 'quina sudeste: grama a sul e leste');
+  const dot = Array.from({ length: 9 }, () => Array(9).fill(false));
+  dot[4][4] = true;
+  assert.equal(dirtFrame(dot, 4, 4), 44, 'mancha isolada');
 });
 
 test('a cena carrega só a área ativa e não substitui NPCs, bosses ou atributos de combate', () => {
