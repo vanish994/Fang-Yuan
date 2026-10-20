@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, WORLD_SIZE } from './world/qingMaoGround';
-import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaMobDefinitions, areaNpcDefinitions,
-  type AreaId, type Side } from './world/initialWorld';
+import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaNpcDefinitions, isBossSpawn,
+  mobDefinitionFor, mobSpawnsForArea, type AreaId, type Side, type Spawn } from './world/initialWorld';
 import { generateArea, type GeneratedArea } from './world/areaGenerator';
 import { renderArea } from './world/areaRenderer';
 import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigation';
@@ -22,8 +22,8 @@ import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
 import { createTestNpcViews, preloadNpcSprites, registerNpcAnimations,
   updateTestNpcViews, type NpcViewRecord } from './entities/npcView';
-import type { MobDefinition } from './combat/mobCatalog';
 import { bossFrame } from './combat/bossSprites';
+import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world/mobRespawn';
 import { mobFrame } from './combat/mobSprites';
 
 class QingMaoScene extends Phaser.Scene {
@@ -44,9 +44,17 @@ class QingMaoScene extends Phaser.Scene {
   private worldObjects!: Phaser.GameObjects.Layer;
   private currentArea!: GeneratedArea;
   private disposeArea?: () => void;
+  /** Spawns mortos que ainda não voltaram (chave: `area:spawn`). */
   private readonly defeatedInArea = new Set<string>();
   /** Gu sorteado por criatura na sessão; `null` = nasceu sem Gu. */
   private readonly wildGuBySpawn = new Map<string, GuId | null>();
+  /** Criaturas aguardando o respawn por tempo (60–90 s). */
+  private readonly respawns = new RespawnQueue();
+  /** Vida atual de cada spawn: cada renascimento gera um id de instância novo. */
+  private readonly spawnRecords = new Map<string,
+    { areaId: AreaId; spawn: Spawn; lives: number; boss: boolean }>();
+  /** Instância viva -> spawn de origem (para agendar o respawn na morte). */
+  private readonly instanceSpawns = new Map<string, string>();
   private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
   private navigationPrevious?: WorldPoint;
@@ -140,53 +148,108 @@ class QingMaoScene extends Phaser.Scene {
     });
   }
 
+  private spawnKey(spawn: Spawn): string {
+    return `${this.currentArea.definition.id}:${spawn.id}`;
+  }
+
+  /** Vida do spawn; sobrevive à troca de área e aos renascimentos. */
+  private spawnRecord(spawn: Spawn): { areaId: AreaId; spawn: Spawn; lives: number; boss: boolean } {
+    const key = this.spawnKey(spawn);
+    let record = this.spawnRecords.get(key);
+    if (!record) {
+      record = { areaId: this.currentArea.definition.id, spawn, lives: 0,
+        boss: isBossSpawn(spawn) };
+      this.spawnRecords.set(key, record);
+    }
+    return record;
+  }
+
+  /** Cria a criatura e a view dela. `false` quando o tile está ocupado. */
+  private spawnMob(spawn: Spawn): boolean {
+    const x = spawn.x * TILE_SIZE, y = spawn.y * TILE_SIZE;
+    if (!this.isFree(x, y)) return false;
+    const key = this.spawnKey(spawn);
+    const record = this.spawnRecord(spawn);
+    record.lives += 1;
+    // Cada vida é uma instância nova: o motor não trata a segunda morte como
+    // "recompensa já processada". A primeira mantém o id histórico do mundo.
+    const instanceId = record.lives === 1 ? spawn.id : `${spawn.id}~${record.lives}`;
+    const mob = mobDefinitionFor(spawn, instanceId);
+    // O Gu da criatura é sorteado no nascimento e guardado na sessão: sair e
+    // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
+    const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
+    // O sorteio usa o RNG do motor; `forcedWildGu` só repete o resultado já
+    // registrado para esta criatura nesta sessão.
+    const enemy = this.combat.addEnemy(instanceId, mob.x, mob.y, mob.health, mob, { forcedWildGu });
+    if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wild?.gu ?? null);
+    this.instanceSpawns.set(instanceId, key);
+    const boss = mob.tier === 'boss';
+    const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
+    const frame = boss ? bossFrame : (id: string, direction: Direction) =>
+      mobFrame(mob.spriteId ?? id, direction);
+    const graphic = this.add.sprite(0, 0, atlas, frame(instanceId, 'down'))
+      .setOrigin(0.5, 1).setScale(boss ? 0.45 : 0.425)
+      .setInteractive({ useHandCursor: true });
+    const label = this.add.text(0, boss ? -47 : -32, mob.name, {
+      fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
+    }).setOrigin(0.5).setVisible(boss);
+    // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
+    const wild = enemy.wild ? GU_CATALOG[enemy.wild.gu] : null;
+    const wildLabel = this.add.text(0, boss ? -58 : -44,
+      wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
+      fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',
+      stroke: '#1a1206', strokeThickness: 2,
+    }).setOrigin(0.5).setVisible(wild !== null);
+    graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
+      event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
+    });
+    const barY = boss ? 10 : 6;
+    const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
+    const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
+      .setOrigin(0, 0.5).setName('hp').setVisible(false);
+    const view = this.add.container(mob.x, mob.y, [graphic, label, wildLabel, back, hp])
+      .setDepth(mob.y);
+    this.worldObjects.add(view);
+    this.enemyViews.set(enemy.id, view);
+    this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
+      x: mob.x, y: mob.y, boss, frame });
+    return true;
+  }
+
   /** Apenas encontros definidos no mundo: nenhum alvo de teste em forma de círculo. */
   private createEnemies(): void {
-    const spawn = (mob: Readonly<MobDefinition>) => {
-      if (!this.isFree(mob.x, mob.y)) return;
-      // O Gu da criatura é sorteado no nascimento e guardado na sessão: sair e
-      // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
-      const key = `${this.currentArea.definition.id}:${mob.id}`;
-      const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
-      // O sorteio usa o RNG do motor; `forcedWildGu` só repete o resultado já
-      // registrado para esta criatura nesta sessão.
-      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob, { forcedWildGu });
-      if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wild?.gu ?? null);
-      const boss = mob.tier === 'boss';
-      const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
-      const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
-        mobFrame(mob.spriteId ?? instanceId, direction);
-      const graphic = this.add.sprite(0, 0, atlas, frame(mob.id, 'down'))
-        .setOrigin(0.5, 1).setScale(boss ? 0.45 : 0.425)
-        .setInteractive({ useHandCursor: true });
-      const label = this.add.text(0, boss ? -47 : -32, mob.name, {
-        fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
-      }).setOrigin(0.5).setVisible(boss);
-      // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
-      const wild = enemy.wild ? GU_CATALOG[enemy.wild.gu] : null;
-      const wildLabel = this.add.text(0, boss ? -58 : -44,
-        wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
-        fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',
-        stroke: '#1a1206', strokeThickness: 2,
-      }).setOrigin(0.5).setVisible(wild !== null);
-      graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
-        event: Phaser.Types.Input.EventData) => {
-        event.stopPropagation();
-        if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
-      });
-      const barY = boss ? 10 : 6;
-      const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
-      const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
-        .setOrigin(0, 0.5).setName('hp').setVisible(false);
-      const view = this.add.container(mob.x, mob.y, [graphic, label, wildLabel, back, hp])
-        .setDepth(mob.y);
-      this.worldObjects.add(view);
-      this.enemyViews.set(enemy.id, view);
-      this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
-        x: mob.x, y: mob.y, boss, frame });
-    };
-    for (const mob of areaMobDefinitions(this.currentArea.definition)) {
-      if (!this.defeatedInArea.has(`${this.currentArea.definition.id}:${mob.id}`)) spawn(mob);
+    for (const spawn of mobSpawnsForArea(this.currentArea.definition, this.isFree)) {
+      this.spawnRecord(spawn);
+      if (this.defeatedInArea.has(this.spawnKey(spawn))) continue; // volta pelo respawn
+      this.spawnMob(spawn);
+    }
+  }
+
+  /**
+   * Respawn por tempo (60–90 s por criatura). Só nasce na área atual, longe do
+   * jogador e em tile livre; caso contrário, tenta de novo em 5 s — nunca um mob
+   * dentro da parede ou em cima do jogador.
+   */
+  private processRespawns(now: number): void {
+    if (!this.combat.hero.alive) return;
+    for (const key of this.respawns.due(now)) {
+      const record = this.spawnRecords.get(key);
+      if (!record) { this.respawns.settle(key); continue; }
+      if (record.areaId !== this.currentArea.definition.id) { this.respawns.postpone(key, now); continue; }
+      const px = record.spawn.x * TILE_SIZE, py = record.spawn.y * TILE_SIZE;
+      if (!this.isFree(px, py)
+        || Math.hypot(this.player.x - px, this.player.y - py) < RESPAWN_MIN_PLAYER_DISTANCE) {
+        this.respawns.postpone(key, now); continue;
+      }
+      // Criatura nova: o Gu é sorteado de novo no nascimento.
+      this.wildGuBySpawn.delete(key);
+      const name = mobDefinitionFor(record.spawn).name;
+      if (!this.spawnMob(record.spawn)) { this.respawns.postpone(key, now); continue; }
+      this.defeatedInArea.delete(key);
+      this.respawns.settle(key);
+      this.combatHUD?.say(`${name} voltou a ${this.currentArea.definition.name}.`);
     }
   }
 
@@ -328,7 +391,13 @@ class QingMaoScene extends Phaser.Scene {
         this.tweens.add({ targets: trail, alpha: 0, duration: 280, onComplete: () => trail.destroy() });
       }
       if (event.type === 'defeat' && event.targetId) {
-        this.defeatedInArea.add(`${this.currentArea.definition.id}:${event.targetId}`);
+        const key = this.instanceSpawns.get(event.targetId)
+          ?? `${this.currentArea.definition.id}:${event.targetId}`;
+        this.defeatedInArea.add(key);
+        this.instanceSpawns.delete(event.targetId);
+        // Só volta se a criatura veio de um spawn do mundo (nunca alvo de teste).
+        const record = this.spawnRecords.get(key);
+        if (record) this.respawns.schedule(key, this.time.now, respawnDelay(key, record.boss));
         this.enemyViews.get(event.targetId)?.destroy();
         this.enemyViews.delete(event.targetId);
         this.staticEnemyViews.delete(event.targetId);
@@ -400,7 +469,7 @@ class QingMaoScene extends Phaser.Scene {
     this.destination?.destroy(); this.destination = undefined;
     this.player.move(null);
     for (const view of this.enemyViews.values()) view.destroy();
-    this.enemyViews.clear(); this.staticEnemyViews.clear();
+    this.enemyViews.clear(); this.staticEnemyViews.clear(); this.instanceSpawns.clear();
     for (const npc of this.npcViews) npc.view.destroy();
     this.npcViews = [];
     this.projectileViews.forEach(view => view.destroy()); this.projectileViews = [];
@@ -490,6 +559,7 @@ class QingMaoScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.checkAreaTransition(time)) return;
+    this.processRespawns(time);
     this.minimap?.update(this.player.x, this.player.y);
     this.combat.hero.x = this.player.x;
     this.combat.hero.y = this.player.y;

@@ -37,6 +37,21 @@ test('início do mapa deixa inventário liberado; aproximar-se ativa combate', (
   assert.match(engine.equip('passive', null, 200).reason, /combate/);
 });
 
+test('cada vida de um spawn é uma instância distinta: a segunda morte também recompensa', () => {
+  const engine = make();
+  engine.addEnemy('mob-wild-boar', 120, 100, 10);
+  engine.select('mob-wild-boar');
+  assert.equal(engine.basicAttack(1_000).events.filter(event => event.type === 'reward').length, 1);
+
+  // O respawn usa um id novo (`~2`): a primeira morte não pode engolir a segunda.
+  engine.addEnemy('mob-wild-boar~2', 120, 100, 10);
+  engine.select('mob-wild-boar~2');
+  assert.equal(engine.basicAttack(2_000).events.filter(event => event.type === 'reward').length, 1);
+
+  // Reutilizar o id de uma criatura já processada é recusado pelo motor.
+  assert.throws(() => engine.addEnemy('mob-wild-boar', 120, 100, 10), /Inimigo duplicado/);
+});
+
 test('troca de área limpa encontros sem perder vida, essência, Gu ou duplicar recompensas', () => {
   const engine = make();
   engine.hero.health = 72;

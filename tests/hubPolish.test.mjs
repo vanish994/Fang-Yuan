@@ -6,7 +6,9 @@ import { readStyles } from './support/markup.mjs';
 
 const npc = moduleURL('entities/npc', { '../agents/agentBrain': moduleURL('agents/agentBrain') });
 const mob = moduleURL('combat/mobCatalog');
-const world = moduleURL('world/initialWorld', { '../entities/npc': npc, '../combat/mobCatalog': mob });
+const placement = moduleURL('world/mobPlacement');
+const world = moduleURL('world/initialWorld', { '../entities/npc': npc, '../combat/mobCatalog': mob,
+  './mobPlacement': placement });
 const area = moduleURL('world/areaGenerator', { './initialWorld': world });
 const { INITIAL_WORLD, areaNpcDefinitions } = await import(world);
 const { generateArea } = await import(area);

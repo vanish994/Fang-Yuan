@@ -16,6 +16,7 @@ const npcURL = moduleURL('entities/npc', { '../agents/agentBrain': agentURL });
 const mobURL = moduleURL('combat/mobCatalog');
 const worldURL = moduleURL('world/initialWorld', {
   '../entities/npc': npcURL, '../combat/mobCatalog': mobURL,
+  './mobPlacement': moduleURL('world/mobPlacement'),
 });
 const configURL = moduleURL('combat/combatConfig');
 const generatorURL = moduleURL('world/areaGenerator', {

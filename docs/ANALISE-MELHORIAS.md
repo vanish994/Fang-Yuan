@@ -302,7 +302,7 @@ Recomendo executar a **Onda 1** inteira de uma vez: são correções pequenas, c
 | 6. Save sobrescrito | `<chave>.backup` criado antes da primeira gravação sobre save ilegível/futuro | perda silenciosa → original preservado (testado nos dois saves) |
 | 7. CI cego | `.github/workflows/ci.yml` com typecheck + testes + build em PR e push | nenhum teste em PR → suíte completa por PR |
 
-**Balanceamento do novo loot:** a curva é suave em risco normalizado — 0,144 a 0,288 pedras por PV em todas as criaturas; chefes pagam 2–4 materiais de Rank superior. Nenhuma criatura domina o farm por pedra/PV, e o respawn continua inexistente na sessão.
+**Balanceamento do novo loot:** a curva é suave em risco normalizado — 0,144 a 0,288 pedras por PV em todas as criaturas; chefes pagam 2–4 materiais de Rank superior. Nenhuma criatura domina o farm por pedra/PV. (Na época desta onda não havia respawn; a seção 13 registra a mudança posterior.)
 
 **Pendente na época (hoje concluído na Onda 3):** RNG injetável no `tick`, extração de `rewardFlow` para teste, `renderRecipes` com assinatura (perda de foco), agrupamento de `Enemy.wild`, remoção de exports mortos e do default duplicado, redução de asserts sobre texto do código.
 
@@ -365,3 +365,27 @@ Recomendo executar a **Onda 1** inteira de uma vez: são correções pequenas, c
 3. **Asserts de texto restantes:** os 137 são predominantemente CSS/arte; converter os de `npc.test.mjs` e `combat.test.mjs` exigiria um DOM de teste (jsdom), o que adicionaria dependência sem ganho imediato.
 4. **`main.ts` ainda grande (≈600 linhas):** a cena concentra entrada, render e orquestração. A extração de projéteis já reduziu o pior trecho; dividir por sistemas (input, mundo, HUD) é o próximo passo natural, não um pré-requisito.
 
+
+---
+
+## 13. Densidade de criaturas e respawn por tempo (a pedido, 2026-10-20)
+
+Pedido: **mais mobs nas áreas** e **respawn por tempo** (escolhido entre as opções 60–90 s com aviso no HUD).
+
+| Item | Implementação | Evidência antes → depois |
+|---|---|---|
+| Quantidade por área | `extraMobs` em `src/world/initialWorld.ts` + `src/world/mobPlacement.ts`: posições autorais continuam sendo a base e as extras caem em tiles livres por hash da seed, com 4 tiles de separação e 4 de proteção (spawns autorais, NPCs, POIs, entrada) | **23** criaturas no mundo → **51** (fauna: Exterior 7→12, Perigosa 4→8, Rochosa **1→6**, Cavernas 4→8; covis 1–2 chefes + 1–2 guardas) |
+| Chefes | `isBossSpawn` impede duplicação de chefe na distribuição automática | 4 chefes → **4 chefes** (nenhum extra virou chefe) |
+| Respawn | `src/world/mobRespawn.ts` (`RespawnQueue`, `respawnDelay`): 60–90 s por criatura, determinístico pela chave | área ficava vazia até recarregar a página → criatura volta sozinha, com aviso no HUD |
+| Chefes no respawn | Intervalo próprio de **5–6 min** | sem isso, o maior pagamento (centenas de pedras + material de Rank alto) viraria farm de 90 s |
+| Segurança do nascimento | Só na área atual, ≥ 96 px do jogador e em tile livre; contrário → nova tentativa em 5 s | nunca nasce dentro de parede nem em cima do jogador |
+| Recompensa repetida | Cada vida usa uma instância (`id~2`, `id~3`); o motor recusa reutilizar id | primeira morte não “engole” a recompensa da segunda |
+
+**Medições executadas**
+
+- Mapa real (nove áreas, `generateArea` + `canStandAt`): **51/51** spawns em chão livre, sem dois no mesmo tile, extras a ≥ 4 tiles dos pontos protegidos e nenhum chefe duplicado.
+- `mobPlacement.test.mjs` (8 testes) e `mobRespawn.test.mjs` (9): determinismo por seed, teto de quantidade, refúgio quando o mapa não tem espaço, atraso em [60 s, 90 s] (chefe em [5 min, 6 min]), fila sem duplicar e sem reiniciar prazo.
+- `combat.test.mjs`: segunda vida (`mob-wild-boar~2`) recebe recompensa de novo; o motor recusa reutilizar o id antigo.
+- Suíte completa: **191/191**, `tsc --noEmit` limpo, `npm run lint` limpo.
+
+**Pendente:** o respawn não é persistido entre sessões (recarregar a página reinicia os encontros) e o Gu selvagem é re-sorteado a cada renascimento — se isso ficar raro demais ou comum demais no teste de jogo, o ajuste é em `WILD_GU_CHANCES`, não no respawn.

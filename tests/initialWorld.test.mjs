@@ -13,16 +13,19 @@ function moduleURL(path, imports = {}) {
 const agent = moduleURL('agents/agentBrain');
 const npc = moduleURL('entities/npc', { '../agents/agentBrain': agent });
 const mob = moduleURL('combat/mobCatalog');
+const placement = moduleURL('world/mobPlacement');
 const worldURL = moduleURL('world/initialWorld', {
-  '../entities/npc': npc, '../combat/mobCatalog': mob,
+  '../entities/npc': npc, '../combat/mobCatalog': mob, './mobPlacement': placement,
 });
-const { INITIAL_WORLD, AREA_TILES, areaNpcDefinitions, areaMobDefinitions, OPPOSITE } = await import(worldURL);
+const { INITIAL_WORLD, AREA_TILES, areaNpcDefinitions, areaMobDefinitions, mobSpawnsForArea,
+  OPPOSITE } = await import(worldURL);
 const combatConfigURL = moduleURL('combat/combatConfig');
 const { generateArea, dirtFrame, WORLD_LAYERS } = await import(moduleURL('world/areaGenerator', {
   './initialWorld': worldURL, '../combat/combatConfig': combatConfigURL,
 }));
 const { TEST_NPCS } = await import(npc);
 const { TEST_MOBS } = await import(mob);
+const { canStandAt } = await import(moduleURL('world/footprint'));
 
 function connected(area, start, goal) {
   const encode = (p) => `${p.x},${p.y}`;
@@ -93,8 +96,60 @@ test('a cena carrega só a área ativa e não substitui NPCs, bosses ou atributo
   const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(main, /this\.loadArea\('vila_gu_yue'/);
   assert.match(main, /this\.currentArea = generateArea\(INITIAL_WORLD\[id\]\)/);
-  assert.match(main, /areaMobDefinitions\(this\.currentArea\.definition\)/);
+  // A cena usa os spawns efetivos (autorais + extras), não só a lista fixa.
+  assert.match(main, /mobSpawnsForArea\(this\.currentArea\.definition, this\.isFree\)/);
   assert.match(main, /areaNpcDefinitions\(this\.currentArea\.definition\)/);
   assert.match(main, /this\.combat\.clearAreaEnemies\(\)/);
   assert.match(main, /this\.currentArea\.isFreeTile/);
+});
+
+test('densidade: extras nascem em chão livre, separados e nunca duplicam chefe', () => {
+  // Curva pedida: cerca de 2× a quantidade original, com a Região Rochosa
+  // deixando de ter um único encontro.
+  const expected = {
+    vila_gu_yue: 0, floresta_exterior: 12, floresta_perigosa: 8, regiao_rochosa: 6,
+    cavernas: 8, covil_lobo: 4, covil_javali: 5, ninho_serpente: 4, santuario_besta: 4,
+  };
+  const chebyshev = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+  let total = 0;
+  // O motor guarda recompensa por id de instância: o id precisa ser único no
+  // mundo inteiro, não só dentro da área.
+  const globalIds = new Set();
+  for (const definition of Object.values(INITIAL_WORLD)) {
+    const generated = generateArea(definition);
+    const isFree = (x, y) => canStandAt(x, y, 32, generated.isFreeTile);
+    const spawns = mobSpawnsForArea(definition, isFree);
+    assert.equal(spawns.length, expected[definition.id],
+      `${definition.id}: ${spawns.length} mobs`);
+    total += spawns.length;
+    assert.equal(new Set(spawns.map(s => s.id)).size, spawns.length, `${definition.id}: id repetido`);
+    const bosses = spawns.filter(s => TEST_MOBS.find(m => m.id === (s.speciesId ?? s.id))?.tier === 'boss');
+    assert.equal(bosses.length,
+      definition.mobSpawns.filter(s => TEST_MOBS.find(m => m.id === (s.speciesId ?? s.id))?.tier === 'boss').length,
+      `${definition.id}: chefe não pode ser duplicado`);
+    for (const spawn of spawns) {
+      assert.ok(!globalIds.has(spawn.id), `id global repetido: ${spawn.id}`);
+      globalIds.add(spawn.id);
+    }
+    const authored = new Set(definition.mobSpawns.map(spawn => spawn.id));
+    for (const spawn of spawns) {
+      assert.ok(isFree(spawn.x * 32, spawn.y * 32), `${definition.id}:${spawn.id} bloqueado`);
+      // Só as extras precisam respeitar a entrada; as posições autorais (a
+      // arena do chefe fica no centro) são decisão de layout já existente.
+      if (!authored.has(spawn.id)) {
+        assert.ok(Math.hypot(spawn.x * 32 - 24 * 32, spawn.y * 32 - 24 * 32) > 64,
+          `${definition.id}:${spawn.id} em cima da entrada`);
+      }
+    }
+    for (let i = 0; i < spawns.length; i += 1) {
+      for (let j = i + 1; j < spawns.length; j += 1) {
+        assert.ok(chebyshev(spawns[i], spawns[j]) >= 2,
+          `${definition.id}: ${spawns[i].id} e ${spawns[j].id} no mesmo tile`);
+      }
+    }
+  }
+  // 30 posições autorais (eram 23; entraram 7 guardas de covil) + 21 extras.
+  // A vila continua sem mobs.
+  assert.equal(total, 51);
+  assert.equal(INITIAL_WORLD.vila_gu_yue.mobSpawns.length, 0);
 });

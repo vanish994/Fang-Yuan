@@ -16,7 +16,7 @@ Planejamento antes da implementação. Derivado de `docs/GDD-ATUALIZADO.md`, `sr
 | Ninho do Rei Serpente (`ninho_serpente`) | Boss | oeste → Cavernas; leste → Santuário da Besta | Solo e umidade representados com água/margens existentes, sem regra nova de veneno. |
 | Santuário da Besta Antiga (`santuario_besta`) | Extremo | oeste → Ninho | Arena isolada; condição definitiva de acesso ainda a definir, não inventar bloqueio por Rank. |
 
-Acesso entre áreas é bidirecional e conserva progresso de vida/essência/equipagem na sessão; inimigos derrotados não reaparecem até recarregar a página. Os seis alvos genéricos anteriores ("Criatura 1–6") foram retirados do mapa: encontros jogáveis usam exclusivamente as 12 espécies e quatro bosses com arte fornecida. Coleta específica por área e persistência entre saves dependem de regras futuras. Não transformar sprites de cogumelos/rochas em itens coletáveis com taxas inventadas.
+Acesso entre áreas é bidirecional e conserva progresso de vida/essência/equipagem na sessão. Criaturas derrotadas voltam sozinhas: **60–90 s** para a fauna e **5–6 min** para chefes, sempre na área em que morreram, longe do jogador (≥ 3 tiles) e em tile livre — caso contrário a tentativa é repetida em 5 s. O retorno aparece no HUD. Os seis alvos genéricos anteriores ("Criatura 1–6") foram retirados do mapa: encontros jogáveis usam exclusivamente as 12 espécies e quatro bosses com arte fornecida. Coleta específica por área e persistência entre saves dependem de regras futuras. Não transformar sprites de cogumelos/rochas em itens coletáveis com taxas inventadas.
 
 ## Distribuição integral dos 10 NPCs jogáveis
 
@@ -37,7 +37,7 @@ Todos estão na Vila por decisão de layout **provisória**; ID, nome, role, ran
 
 ## Distribuição integral dos 12 mobs jogáveis
 
-Cada espécie permanece com **os mesmos HP, dano, defesa, velocidade, aggro, IA e drop provisórios** do catálogo. Spawns e densidade são **de layout**, não taxas de respawn: não há respawn funcional, política futura a definir. Patrulha é centrada no spawn; matilha somente para as espécies cujo perfil já a habilita. Instâncias adicionais da **mesma espécie**, sem novos atributos: Coelho Lunar (33,26) e Lobo Cinzento (27,18) na Floresta Exterior; dois Lobos Cinzentos no Covil do Rei Lobo (20,26) e (28,26). Seus IDs únicos são derivados do ID da espécie e preservam o atlas original.
+Cada espécie permanece com **os mesmos HP, dano, defesa, velocidade, aggro, IA e drop provisórios** do catálogo. Spawns e densidade são **de layout**; o tempo de retorno é regra global (60–90 s), não um número por criatura. Posições autorais ficam onde têm leitura de mapa; as **criaturas extras** (`extraMobs` em `src/world/initialWorld.ts`) são distribuídas em tiles livres por hash da seed da área, com 4 tiles de separação e 4 tiles de proteção em volta de spawns autorais, NPCs, pontos de interesse e da entrada. Nenhum chefe é duplicado. Patrulha é centrada no spawn; matilha somente para as espécies cujo perfil já a habilita. Instâncias adicionais da **mesma espécie**, sem novos atributos: Coelho Lunar (33,26) e Lobo Cinzento (27,18) na Floresta Exterior; dois Lobos Cinzentos no Covil do Rei Lobo (20,26) e (28,26). Seus IDs únicos são derivados do ID da espécie e preservam o atlas original.
 
 | ID | Espécie | Área / subárea | Tier | Spawn (tile) | Densidade/território provisórios |
 |---|---|---|---:|---|---|
@@ -53,10 +53,31 @@ Cada espécie permanece com **os mesmos HP, dano, defesa, velocidade, aggro, IA 
 | mob-stone-lizard | Lagarto de Pedra | Rochosa / pedras | 2 | (20,37) | disperso; rochas |
 | mob-demon-wolf | Lobo Demoníaco | Cavernas / corredor | 3 | (12,12) | grupo conforme IA; passagem profunda |
 | mob-demon-bear | Urso Demoníaco | Cavernas / câmara | 3 | (36,12) | isolado; câmara |
+| mob-stone-lizard-burrow | Lagarto de Pedra (ninhada) | Rochosa / pedras | 2 | (26,30) | instância da mesma espécie |
+| mob-demonic-boar-guard-1/2 | Javali Demoníaco (guardas) | Covil do Javali | 2 | (21,26) e (27,26) | sentinelas da arena |
+| mob-jade-serpent-guard-1/2 | Serpente de Jade (guardas) | Ninho | 3 | (21,26) e (27,26) | sentinelas da arena |
+| mob-demon-tiger-guard-1/2 | Tigre Demoníaco (guardas) | Santuário | 3 | (21,26) e (27,26) | sentinelas da arena |
+
+## Quantidade efetiva por área
+
+Soma das posições autorais e das criaturas extras. A vila continua sem mobs.
+
+| Área | Autorais | Extras | Total |
+|---|---:|---:|---:|
+| Vila Gu Yue | 0 | 0 | **0** |
+| Floresta Exterior | 7 | 5 | **12** |
+| Floresta Perigosa | 4 | 4 | **8** |
+| Região Rochosa | 2 | 4 | **6** |
+| Cavernas | 4 | 4 | **8** |
+| Covil do Rei Lobo | 3 | 1 | **4** |
+| Covil do Rei Javali | 4 | 1 | **5** |
+| Ninho do Rei Serpente | 3 | 1 | **4** |
+| Santuário da Besta Antiga | 3 | 1 | **4** |
+| **Total** | **30** | **21** | **51** |
 
 ## Distribuição integral dos quatro bosses jogáveis
 
-Cada boss é um encontro próprio, e **não** um mob adicional espalhado pelo mapa. Bosses usam os valores e o drop provisório já existentes; `spawn condition`, loot específico, respawn e dificuldade numérica definitiva **não estão aprovados**. Até definição, o acesso é por passagem visível e cada boss aparece uma vez por sessão (sem temporizador de respawn; recarregar a página reinicia os encontros). Minions são somente espécies já definidas, quando indicados; habilidades planejadas no catálogo permanecem não implementadas.
+Cada boss é um encontro próprio, e **não** um mob adicional espalhado pelo mapa. Bosses usam os valores e o drop provisório já existentes; `spawn condition`, loot específico e dificuldade numérica definitiva **não estão aprovados**. O acesso é por passagem visível. O boss volta **5–6 minutos** depois de derrotado — bem mais que a fauna, para o maior pagamento do jogo não virar farm de 90 s. Minions são somente espécies já definidas, quando indicados; habilidades planejadas no catálogo permanecem não implementadas.
 
 | ID | Boss | Área / arena | Spawn (tile) | Território / sentinelas | Acesso / loot |
 |---|---|---|---|---|---|

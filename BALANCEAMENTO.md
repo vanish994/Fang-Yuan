@@ -215,7 +215,7 @@ das lâminas do jogador, com a cor do Gu.
   motivo é inventário cheio (aí os outros drops seguem normalmente) ou quando a fila degradou.
 - Recompensas com zero pedras (ou zero material) são válidas desde que não sejam vazias; antes
   disso, a primeira criatura sem pedras travaria a fila inteira em retry infinito.
-- Mobs não respawnam na mesma sessão, então não existe farm curto da criatura mais fácil.
+- Mobs voltam em 60–90 s (chefes, 5–6 min), sempre na área onde morreram e longe do jogador. O farm da criatura mais fácil é limitado pelo tempo de retorno, não pela ausência de respawn.
 
 ### Limitação conhecida
 
