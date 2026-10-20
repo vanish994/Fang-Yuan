@@ -89,6 +89,9 @@ export class CharacterCultivation {
 
   get revision(): number { return this.version; }
   get persistent(): boolean { return this.storage !== null; }
+
+  /** Mantém o estado em memória e para de tentar gravar (armazenamento falhou). */
+  disablePersistence(): void { this.storage = null; }
   get hasTestStones(): boolean { return this.testStonesGranted; }
 
   get requirement(): AdvanceRequirement {

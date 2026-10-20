@@ -43,6 +43,8 @@ export interface WildGuClaim {
   reason?: string;
   /** O Gu já havia sido entregue; repetir o processamento não duplica nada. */
   alreadyClaimed?: boolean;
+  /** Falha de gravação: vale tentar de novo; inventário cheio não vale. */
+  retryable?: boolean;
 }
 
 type TimedKey = 'damage' | 'speed' | 'defense';
@@ -151,6 +153,12 @@ export class CombatEngine {
     this.adoptSnapshot(next);
     return true;
   }
+
+  /** `false` quando a sessão roda só em memória (sem localStorage ou degradada). */
+  get persistent(): boolean { return this.store?.persistent ?? false; }
+
+  /** Para de gravar e segue em memória; usado pelo fluxo de recompensa degradado. */
+  disablePersistence(): void { this.store?.disablePersistence(); }
 
   private owned(id: GuId): number { return this.inventory[id] ?? 0; }
   inventoryCount(id: GuId): number { return this.owned(id); }
@@ -353,8 +361,6 @@ export class CombatEngine {
       // item que ela não saberia usar; nesse caso nasce sem Gu.
       return gu && gu.rank <= rank && isWildGuCandidate(gu) ? gu.id : null;
     }
-    // Sem fonte de aleatoriedade explícita a criatura nasce sem Gu. O cenário
-    // de jogo passa `Math.random`; combates de teste ficam determinísticos.
     if (!options.random) return null;
     return rollWildGu(rank, isBoss, options.random, affinity);
   }
@@ -386,7 +392,7 @@ export class CombatEngine {
     }
     const nextInventory = { ...this.inventory, [guId]: this.owned(guId) + 1 };
     if (!this.commit({ ...this.snapshot(), inventory: nextInventory })) {
-      return { ok: false, reason: 'Não foi possível salvar o Gu; tente novamente.' };
+      return { ok: false, retryable: true, reason: 'Não foi possível salvar o Gu.' };
     }
     this.wildGuDrops.delete(enemyId);
     this.claimedWildGu.add(enemyId);

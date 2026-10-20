@@ -205,10 +205,14 @@ das lâminas do jogador, com a cor do Gu.
   recursos e `CombatEngine.claimWildGu` só mexe no inventário de Gu.
 - `claimWildGu` é idempotente (`claimedWildGu` + remoção do drop pendente): processar a mesma
   morte duas vezes, recarregar a área ou reiniciar a sessão não duplica a unidade.
-- Se o save falhar, o drop permanece pendente e a UI tenta de novo com **backoff exponencial**
-  (2 s → 4 s → … → 30 s); após 5 falhas o jogador é avisado de que o progresso pode não ser salvo,
-  em vez de receber a mesma mensagem para sempre; pedras/materiais só são entregues depois que o
-  Gu é gravado ou quando o motivo é inventário cheio.
+- Se o save falhar, o drop permanece pendente e a fila tenta de novo com **backoff exponencial**
+  (2 s → 4 s → 8 s → 16 s → 30 s); o HUD avisa na primeira e na penúltima tentativa, sem repetir a
+  mesma mensagem. A lógica vive em `src/combat/rewardFlow.ts` (`RewardQueue`), testada fora do Phaser.
+- Depois de **5 falhas seguidas** a persistência é desligada nos dois lados (Gu e cultivo) e a sessão
+  continua **em memória**: a recompensa entra, o jogador recebe um aviso único de que o progresso
+  não será salvo e o jogo para de tentar gravar. Sem isso, um `localStorage` bloqueado repetia a
+  mesma tentativa para sempre. Pedras/materiais só são entregues depois que o Gu é gravado, quando o
+  motivo é inventário cheio (aí os outros drops seguem normalmente) ou quando a fila degradou.
 - Recompensas com zero pedras (ou zero material) são válidas desde que não sejam vazias; antes
   disso, a primeira criatura sem pedras travaria a fila inteira em retry infinito.
 - Mobs não respawnam na mesma sessão, então não existe farm curto da criatura mais fácil.

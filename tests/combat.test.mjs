@@ -242,7 +242,9 @@ test('HUD captura toques informativos e drops pendentes respeitam o intervalo de
   const css = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(css, /\.combat-top\s*\{[^}]*pointer-events:\s*auto/s);
-  assert.match(scene, /this\.pendingRewards\.length && this\.time\.now >= this\.nextRewardRetryAt\) this\.flushRewards\(\)/);
+  // A fila de recompensa virou módulo próprio (rewardFlow): o cenário só decide
+  // *quando* drenar. O comportamento do intervalo é testado em rewardFlow.test.mjs.
+  assert.match(scene, /this\.rewards\.size > 0 && this\.time\.now >= this\.rewards\.nextRetryAt\) this\.flushRewards\(\)/);
   assert.equal((scene.match(/this\.flushRewards\(\)/g) ?? []).length, 1);
 });
 

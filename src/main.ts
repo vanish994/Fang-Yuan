@@ -15,7 +15,7 @@ import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { wildGuShortLabel } from './combat/wildGu';
-import { breakthroughMaterialLabel } from './entities/cultivationBalance';
+import { RewardQueue, type RewardMessage } from './combat/rewardFlow';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
@@ -38,10 +38,8 @@ class QingMaoScene extends Phaser.Scene {
   private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
   private enemyProjectileViews: Phaser.GameObjects.Graphics[] = [];
-  private pendingRewards: CombatEvent[] = [];
-  private nextRewardRetryAt = 0;
-  /** Tentativas consecutivas de gravar a mesma recompensa (backoff com teto). */
-  private rewardAttempts = 0;
+  /** Fila de recompensas: entrega Gu/pedras/material com retry e degradação. */
+  private readonly rewards = new RewardQueue();
   private worldObjects!: Phaser.GameObjects.Layer;
   private currentArea!: GeneratedArea;
   private disposeArea?: () => void;
@@ -131,6 +129,7 @@ class QingMaoScene extends Phaser.Scene {
       this.disposeArea?.();
       this.characterSheet?.destroy();
       this.characterSheet = undefined;
+      this.rewards.clear();
       this.minimap?.destroy();
       this.minimap = undefined;
       this.combatHUD?.destroy();
@@ -273,7 +272,7 @@ class QingMaoScene extends Phaser.Scene {
 
   private handleCombatEvents(events: CombatEvent[]): void {
     for (const event of events) {
-      if (event.type === 'reward') { this.pendingRewards.push(event); continue; }
+      if (event.type === 'reward') { this.rewards.enqueue(event); continue; }
       if (event.type === 'damage' && event.x !== undefined && event.y !== undefined) {
         const text = this.add.text(event.x, event.y - 36, `-${event.amount}`, {
           fontSize: '13px', color: '#fff1cb', stroke: '#3b1715', strokeThickness: 3,
@@ -332,60 +331,21 @@ class QingMaoScene extends Phaser.Scene {
         this.staticEnemyViews.delete(event.targetId);
       }
     }
-    if (this.pendingRewards.length && this.time.now >= this.nextRewardRetryAt) this.flushRewards();
-  }
-
-  /**
-   * Reagenda a recompensa pendente com backoff exponencial limitado. Sem isso,
-   * um armazenamento bloqueado gerava uma tentativa (e uma mensagem) a cada 2 s,
-   * para sempre, sem nunca avisar o jogador de forma conclusiva.
-   */
-  private scheduleRewardRetry(reason: string): void {
-    this.rewardAttempts += 1;
-    const delay = Math.min(30_000, 2_000 * 2 ** (this.rewardAttempts - 1));
-    this.nextRewardRetryAt = this.time.now + delay;
-    if (this.rewardAttempts === 1) {
-      this.combatHUD?.say(`${reason} Nova tentativa em ${Math.round(delay / 1000)} s.`);
-    } else if (this.rewardAttempts === 5) {
-      this.combatHUD?.say('O armazenamento continua indisponível. A recompensa ficou na fila e o progresso pode não ser salvo.');
-    }
+    if (this.rewards.size > 0 && this.time.now >= this.rewards.nextRetryAt) this.flushRewards();
   }
 
   private flushRewards(): void {
-    while (this.pendingRewards.length) {
-      const reward = this.pendingRewards[0];
-      const parts: string[] = [];
-      try {
-        // O Gu é o mesmo registrado na criatura no nascimento; `claimWildGu`
-        // deduplica e só altera o inventário depois de salvar. Se o save falhar,
-        // a recompensa inteira continua pendente para nova tentativa.
-        if (reward.guReward && reward.targetId) {
-          const claim = this.combat.claimWildGu(reward.targetId);
-          if (!claim.ok) {
-            if (/salvar/.test(claim.reason ?? '')) {
-              this.scheduleRewardRetry('Não foi possível salvar o Gu.');
-              break;
-            }
-            this.combatHUD?.say(`Gu não coletado: ${claim.reason} Os outros drops foram entregues.`);
-          }
-          if (claim.ok && claim.guId) parts.push(`+1 ${GU_CATALOG[claim.guId].label}`);
-        }
-        this.cultivation.receiveLoot(reward.stoneReward!, reward.materialId!, reward.materialQuantity!);
-        this.pendingRewards.shift();
-        this.rewardAttempts = 0;
-        // Só anuncia o que realmente caiu: criaturas de Rank alto não dão pedras
-        // na mesma proporção, e "+0" poluía a mensagem.
-        if (reward.stoneReward) parts.unshift(`+${reward.stoneReward} pedras espirituais`);
-        if (reward.materialQuantity && reward.materialId) {
-          parts.push(`+${reward.materialQuantity} ${breakthroughMaterialLabel(reward.materialId)}`);
-        }
-        this.combatHUD?.say(parts.join(' · ') || 'Recompensa recebida.');
-        this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
-      } catch {
-        this.scheduleRewardRetry('Não foi possível salvar o drop.');
-        break;
-      }
+    const messages = this.rewards.drain(this.combat, this.cultivation, this.time.now);
+    for (const message of messages) this.announceReward(message);
+    if (messages.some(message => message.kind === 'loot')) {
+      this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
     }
+  }
+
+  private announceReward(message: RewardMessage): void {
+    // Tentativas intermediárias de retry ficam em silêncio para não inundar o HUD.
+    if (message.kind === 'retry' && !message.notify) return;
+    this.combatHUD?.say(message.text);
   }
 
   /** Troca a unidade de gameplay; não reinicia o cultivo nem o motor de Gu. */

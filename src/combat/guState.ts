@@ -101,6 +101,13 @@ export class GuStateStore {
 
   get persistent(): boolean { return this.storage !== null; }
 
+  /**
+   * Desliga a persistência sem perder o estado já carregado. Usado quando o
+   * armazenamento falha de forma repetida: o jogador continua na sessão e o
+   * jogo deixa de tentar gravar, em vez de repetir a mesma falha para sempre.
+   */
+  disablePersistence(): void { this.storage = null; }
+
   load(): GuSnapshot | null {
     if (!this.storage) return null;
     let raw: string | null = null;
