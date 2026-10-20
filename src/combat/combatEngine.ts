@@ -29,8 +29,11 @@ interface Projectile {
 }
 
 /** Projétil disparado por uma criatura selvagem; atinge apenas o herói. */
+/** Gu selvagem disparado em linha reta: direção vetorial, mira congelada no disparo. */
 interface EnemyProjectile {
-  enemyId: string; guId: GuId; x: number; y: number; direction: Direction;
+  enemyId: string; guId: GuId; x: number; y: number;
+  /** Vetor unitário da mira no instante do disparo (não persegue o herói). */
+  dx: number; dy: number;
   traveled: number; range: number; speed: number; damage: number; hitId: string;
 }
 
@@ -914,9 +917,16 @@ export class CombatEngine {
     if (behavior.kind === 'projectile' && active.kind === 'projectile') {
       const range = wildProjectileRange(gu);
       if (gap > range || gap < 24) return [];
-      const direction = this.dominantDirection(enemy, { x: this.hero.x, y: this.hero.y - 12 });
+      // Mira no herói no instante do disparo. O projétil não corrige a rota
+      // depois, então continua possível esquivar — mas deixa de ser inacertável
+      // quando o alvo está fora do eixo cardeal.
+      const originY = enemy.y - 10;
+      const aimX = this.hero.x - enemy.x;
+      const aimY = (this.hero.y - 12) - originY;
+      const aimLength = Math.hypot(aimX, aimY) || 1;
       this.enemyProjectiles.push({
-        enemyId: enemy.id, guId, x: enemy.x, y: enemy.y - 10, direction,
+        enemyId: enemy.id, guId, x: enemy.x, y: originY,
+        dx: aimX / aimLength, dy: aimY / aimLength,
         traveled: 0, range, speed: wildProjectileSpeed(gu),
         damage: wildProjectileDamage(this.hero.maxHealth, active.damage),
         hitId: `wild:${enemy.id}:${casts}`,
@@ -962,18 +972,19 @@ export class CombatEngine {
     isFree: (x: number, y: number) => boolean): CombatEvent[] {
     const events: CombatEvent[] = [];
     for (const shot of [...this.enemyProjectiles]) {
-      const v = vectors[shot.direction];
       const wanted = Math.min(shot.speed * dt, shot.range - shot.traveled);
       let step = wanted;
       for (let d = 4; d <= wanted; d += 4) {
-        if (!isFree(shot.x + v.x * d, shot.y + v.y * d)) { step = Math.max(0, d - 4); break; }
+        if (!isFree(shot.x + shot.dx * d, shot.y + shot.dy * d)) { step = Math.max(0, d - 4); break; }
       }
       const toHeroX = this.hero.x - shot.x;
       const toHeroY = (this.hero.y - 12) - shot.y;
-      const along = toHeroX * v.x + toHeroY * v.y;
-      const cross = Math.abs(toHeroX * v.y - toHeroY * v.x);
-      const hit = cross <= 16 && along >= 0 && along <= step;
-      shot.x += v.x * step; shot.y += v.y * step; shot.traveled += step;
+      const along = toHeroX * shot.dx + toHeroY * shot.dy;
+      const cross = Math.abs(toHeroX * shot.dy - toHeroY * shot.dx);
+      // Corredor de 12 px de raio: com mira vetorial isso acerta o alvo em
+      // qualquer ângulo e continua exigindo posicionamento para esquivar.
+      const hit = cross <= 12 && along >= 0 && along <= step;
+      shot.x += shot.dx * step; shot.y += shot.dy * step; shot.traveled += step;
       if (hit) {
         events.push(...this.hitHero(shot.damage, now, shot.hitId));
         this.enemyProjectiles.splice(this.enemyProjectiles.indexOf(shot), 1);

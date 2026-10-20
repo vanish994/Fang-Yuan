@@ -136,10 +136,12 @@ test('nenhum Gu acima do Rank da criatura pode ser sorteado ou forçado', () => 
 });
 
 test('criatura usa o Gu em combate com efeito identificável', () => {
-  // Ofensivo: projétil registrado em evento e dano real no herói.
+  // Ofensivo: projétil registrado em evento e dano real no herói. O corpo a
+  // corpo é neutralizado para que a queda de vida só possa vir do Gu.
   const { engine } = make();
   const archer = engine.addEnemy('arqueiro', 250, 100, 90, mobOf('mob-moon-rabbit'),
     { forcedWildGu: 'star-arrow' });
+  archer.lastAttackAt = Infinity;
   const healthBefore = engine.hero.health;
   const events = [];
   for (let i = 0; i < 120; i += 1) events.push(...engine.tick(1000 + i * 100, 100));
@@ -168,6 +170,23 @@ test('criatura usa o Gu em combate com efeito identificável', () => {
   assert.ok(abilities(healEvents).some(event => event.guId === 'cleansing-water'));
   assert.ok(healing.health > injured, 'a cura precisa repor vida');
   assert.ok(healing.health <= healing.maxHealth, 'a cura nunca passa do teto');
+});
+
+test('projétil do Gu selvagem acerta alvo fora do eixo cardeal', () => {
+  // Regressão: o disparo era cardeal e só acertava com desvio <= 16 px, então
+  // criaturas que vagueiam (±32 px) anunciavam o Gu e nunca causavam dano.
+  for (const dy of [0, 8, 16, 20, 24, 32]) {
+    const { engine } = make();
+    const archer = engine.addEnemy('alvo', 250, 100 + dy, 90, mobOf('mob-moon-rabbit'),
+      { forcedWildGu: 'star-arrow' });
+    archer.lastAttackAt = Infinity; // isola o Gu do corpo a corpo
+    const before = engine.hero.health;
+    const events = [];
+    for (let i = 0; i < 160; i += 1) events.push(...engine.tick(1000 + i * 50, 50));
+    const shots = abilities(events).filter(event => event.guId === 'star-arrow');
+    assert.ok(shots.length >= 1, `dy=${dy}: o Gu precisa ser usado`);
+    assert.ok(engine.hero.health < before, `dy=${dy}: o Gu anunciado precisa causar dano`);
+  }
 });
 
 test('derrotar criatura com Gu entrega exatamente o Gu registrado', () => {
