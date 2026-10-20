@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { TEST_NPCS, NpcBrain, type NpcDefinition, type NpcRole } from './npc';
+import { TEST_NPCS, NpcBrain, type NpcContext, type NpcDefinition, type NpcRole } from './npc';
 import type { Direction, Point } from '../combat/types';
 import { npcFrame } from './npcSprites';
 
@@ -52,6 +52,9 @@ export function createTestNpcViews(
   isFree: (x: number, y: number) => boolean,
   say: (message: string) => void,
   definitions: readonly Readonly<NpcDefinition>[] = TEST_NPCS,
+  /** Lido a cada toque: o NPC comenta o Rank/pedras/Gu do momento, sem guardar histórico. */
+  context: () => Readonly<NpcContext> = () => ({ rank: 1, stage: 'Inicial',
+    spiritStones: 0, equippedGu: 0 }),
 ): NpcViewRecord[] {
   return definitions.flatMap((definition) => {
     if (!isFree(definition.x, definition.y)) return [];
@@ -77,7 +80,7 @@ export function createTestNpcViews(
       event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
       const metBefore = Number.isFinite(brain.agent.memory.lastInteractionAt);
-      brain.interact(scene.time.now);
+      brain.interact(scene.time.now, context());
       // Cada conversa avança uma fala do NPC (em ciclo); ver npcLine em npc.ts.
       say(`${definition.name}${metBefore ? ' (já conversou)' : ''}: “${brain.line}”`);
     });

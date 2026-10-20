@@ -23,6 +23,45 @@ guarda **de onde veio cada ideia** e o que é **adaptação de teste**, não cit
 - Nada de comércio real: as falas de mercador **não** anunciam preço ou item
   comprável, porque essas mecânicas não existem nesta versão.
 
+## Ganchos de mundo (o NPC comenta seu progresso)
+
+Cada NPC pode ter `hints: NpcHint[]`, falas condicionadas ao estado atual do
+jogador. No toque, `NpcBrain.interact` recebe um `NpcContext` com `rank`, `stage`,
+`spiritStones` e `equippedGu`; o **primeiro gancho aplicável que ainda não foi
+dito** tem prioridade. Sem gancho novo, volta ao rodízio normal de falas, de onde
+parou.
+
+Regras atuais, todas de teste:
+
+- Cada gancho aparece **uma vez por sessão**; recarregar a página reinicia.
+- Nada é salvo, nada dá recompensa, não existe reputação nem missão. O NPC nunca
+  altera o estado do jogador — só lê no momento do toque.
+- Ganchos de Rank mais alto são declarados primeiro, para um jogador de Rank 3 não
+  ouvir a fala de Rank 2.
+- Condições: `minRank` (1–9), `minStones` (pedras espirituais) e `minEquippedGu`
+  (0–4 slots). Os textos continuam limitados a 120 caracteres.
+
+| NPC | Condição | Fala |
+| --- | --- | --- |
+| Gu Yue Mei | Rank ≥ 2 | "Agora que você é Rank 2, o bairro inteiro comenta quando você passa." |
+| Lin Shan | Rank ≥ 2 | "Sua essência mudou de cor. Verde-cobre vira vermelho-aço; o Rank 2 tem outro peso." |
+| Zhao He | 3 Gu equipadas | "Três Gu equipadas e nenhuma pedra sobrando, aposto. Manter Gu custa mais que achar Gu." |
+| Velho Chen | Rank ≥ 3 | "Rank 3 no meu portão? O clã vai querer seu nome escrito na muralha." |
+| Velho Chen | Rank ≥ 2 | "Já está no Rank 2. Então passe do portão sem escolta — mas volte antes do escuro." |
+| Gu Yue Lan | Rank ≥ 2 | "Você já é Rank 2 e eu ainda treino no boneco de palha. O instrutor vai comparar." |
+| Gu Yue Fang | Rank ≥ 2 | "Rank 2? A aposta das vinte pedras já foi. Guarde essa lâmina para a próxima." |
+| Tia Hua | Rank ≥ 2 | "Subiu de Rank, meu bem? Então coma mais: essência nova gasta mais corpo." |
+| Gu Yue Bo | Rank ≥ 3 | "Rank 3 nesta vila jovem. Não se apresse: líderes morrem por pressa." |
+| Gu Yue Bo | Rank ≥ 2 | "Rank 2. Bom. A montanha precisa de gente que sobreviva à próxima onda de lobos." |
+| Gu Yue Chi Lian | Rank ≥ 3 | "Rank 3 sem apadrinhamento? A facção Chi reconhece talento antes dos outros." |
+| Gu Yue Chi Lian | Rank ≥ 2 | "Subiu para o Rank 2. Meu neto levou mais tempo. Venha conversar na academia." |
+| Gu Yue Mo Bei | Rank ≥ 3 | "Você me passou no Rank. O avô vai perguntar seu nome — e eu vou responder." |
+| Gu Yue Mo Bei | Rank ≥ 2 | "Então você também chegou ao Rank 2. Agora temos algo para medir na arena." |
+
+As cores de essência citadas por Lin Shan vêm da novel (essência primordial:
+cobre-verde no Rank 1, aço-vermelho no Rank 2). A cobrança dos anciãos e o orgulho
+de Chi Lian são adaptação; a novela não tem essas réplicas.
+
 ## Fatos usados (e onde conferir)
 
 | # | Fato da novel | Uso no jogo |
@@ -60,6 +99,9 @@ de pedras primárias sob as cavernas da Gu Yue).
 | Gu Yue Bo | patriarca Rank 4 | 3 | Estagnação no Rank 4 e o peso de liderar o primeiro clã da montanha (fatos 1 e 8). |
 | Gu Yue Chi Lian | ancião Rank 3 | 4 | Contagem de passos como dívida política, orgulho da família Chi e defesa do neto (fatos 9 e 2). |
 | Gu Yue Mo Bei | discípulo Rank 2 | 3 | Pressão do avô Mo Chen e rivalidade com Chi Chen (fato 10). |
+
+Além das falas fixas, 14 ganchos reagem ao Rank e às Gu equipadas do jogador — ver
+a seção "Ganchos de mundo" abaixo.
 
 ## O que é adaptação (não cânone)
 

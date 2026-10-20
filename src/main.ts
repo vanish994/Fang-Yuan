@@ -484,7 +484,13 @@ class QingMaoScene extends Phaser.Scene {
     this.disposeArea = renderArea(this, this.currentArea, this.worldObjects, this.player);
     this.createEnemies();
     this.npcViews = createTestNpcViews(this, this.worldObjects, this.isFree,
-      message => this.combatHUD?.say(message), areaNpcDefinitions(this.currentArea.definition));
+      message => this.combatHUD?.say(message), areaNpcDefinitions(this.currentArea.definition),
+      () => {
+        // Progresso lido no toque; nenhum NPC guarda ou altera o estado do jogador.
+        const state = this.cultivation.state;
+        return { rank: state.rank, stage: state.stage, spiritStones: state.spiritStones,
+          equippedGu: Object.values(this.combat.equipment).filter(Boolean).length };
+      });
     this.combatHUD?.say(`Área: ${this.currentArea.definition.name} · risco ${RISK_LABELS[this.currentArea.definition.risk]}`);
   }
 

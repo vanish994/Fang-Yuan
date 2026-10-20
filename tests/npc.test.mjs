@@ -13,7 +13,7 @@ function moduleURL(path, imports = {}) {
 }
 const agentURL = moduleURL('agents/agentBrain');
 const npcURL = moduleURL('entities/npc', { '../agents/agentBrain': agentURL });
-const { NpcBrain, TEST_NPCS, npcLine, npcLines } = await import(npcURL);
+const { NpcBrain, TEST_NPCS, npcLine, npcLines, hintApplies } = await import(npcURL);
 const npcSpritesURL = moduleURL('entities/npcSprites');
 const { NPC_ROWS, npcFrame } = await import(npcSpritesURL);
 const { preloadNpcSprites, registerNpcAnimations, createTestNpcViews, updateTestNpcViews } =
@@ -104,6 +104,85 @@ test('cada conversa avança uma fala e volta ao início no fim da lista', () => 
   brain.interact(30);
   brain.interact(40);
   assert.equal(brain.line, lines[0], 'a quarta conversa do NPC de três falas volta ao início');
+});
+
+test('ganchos de mundo têm condição válida e fala dentro do limite do HUD', () => {
+  const lines = TEST_NPCS.flatMap(npc => npcLines(npc));
+  const hinted = TEST_NPCS.flatMap(npc => npc.hints ?? []);
+  assert.ok(hinted.length >= 10, 'o elenco precisa reagir ao progresso do jogador');
+  for (const npc of TEST_NPCS) {
+    for (const hint of npc.hints ?? []) {
+      const conditions = [hint.minRank, hint.minStones, hint.minEquippedGu].filter(v => v !== undefined);
+      assert.ok(conditions.length >= 1, `${npc.name} tem gancho sem condição`);
+      assert.ok(hint.line.trim().length >= 20 && hint.line.length <= 120,
+        `${npc.name} tem gancho fora do tamanho: ${hint.line}`);
+      assert.doesNotMatch(hint.line, /Fala de teste/i);
+      assert.ok(!lines.includes(hint.line), `${npc.name} repete um gancho como fala comum`);
+    }
+    const multiple = (npc.hints ?? []).length > 1;
+    if (multiple) {
+      const ranks = npc.hints.map(hint => hint.minRank ?? 0);
+      assert.deepEqual(ranks, [...ranks].sort((a, b) => b - a),
+        `${npc.name} deve declarar o gancho de Rank mais alto primeiro`);
+    }
+    for (const hint of npc.hints ?? []) {
+      if (hint.minRank !== undefined) assert.ok(hint.minRank >= 2 && hint.minRank <= 9);
+      if (hint.minStones !== undefined) assert.ok(Number.isSafeInteger(hint.minStones) && hint.minStones > 0);
+      if (hint.minEquippedGu !== undefined) assert.ok(hint.minEquippedGu >= 1 && hint.minEquippedGu <= 4);
+    }
+  }
+  const all = [...lines, ...hinted.map(hint => hint.line)];
+  assert.deepEqual(all, [...new Set(all)], 'fala repetida entre base e ganchos');
+});
+
+test('condição do gancho compara Rank, pedras e Gu equipadas', () => {
+  const context = { rank: 2, stage: 'Inicial', spiritStones: 50, equippedGu: 2 };
+  assert.equal(hintApplies({ line: 'x', minRank: 2 }, context), true);
+  assert.equal(hintApplies({ line: 'x', minRank: 3 }, context), false);
+  assert.equal(hintApplies({ line: 'x', minStones: 50 }, context), true);
+  assert.equal(hintApplies({ line: 'x', minStones: 51 }, context), false);
+  assert.equal(hintApplies({ line: 'x', minEquippedGu: 2 }, context), true);
+  assert.equal(hintApplies({ line: 'x', minEquippedGu: 3 }, context), false);
+  assert.equal(hintApplies({ line: 'x', minRank: 2, minStones: 100 }, context), false);
+  assert.equal(hintApplies({ line: 'x' }, context), true);
+});
+
+test('gancho de Rank é dito uma vez e não interrompe o rodízio das falas comuns', () => {
+  const chen = TEST_NPCS.find(npc => npc.id === 'npc-old-chen');
+  const lines = npcLines(chen);
+  const context = rank => ({ rank, stage: 'Inicial', spiritStones: 0, equippedGu: 1 });
+  const brain = new NpcBrain(chen);
+  assert.deepEqual([...brain.hinted], [], 'nada comentado antes da primeira conversa');
+  brain.interact(10, context(1));
+  assert.equal(brain.line, lines[0]);
+  brain.interact(20, context(1));
+  assert.equal(brain.line, lines[1]);
+  assert.deepEqual([...brain.hinted], [], 'Rank 1 não ativa gancho de Rank');
+  brain.interact(30, context(2));
+  assert.match(brain.line, /Já está no Rank 2/);
+  assert.deepEqual([...brain.hinted], [1]);
+  brain.interact(40, context(2));
+  assert.equal(brain.line, lines[2], 'sem gancho novo, o rodízio continua');
+  brain.interact(50, context(3));
+  assert.match(brain.line, /Rank 3 no meu portão/);
+  assert.deepEqual([...brain.hinted], [1, 0], 'cada gancho aparece uma vez por sessão');
+  brain.interact(60, context(3));
+  assert.equal(brain.line, lines[0], 'depois dos ganchos a conversa volta ao início');
+  brain.interact(70);
+  assert.equal(brain.line, lines[1], 'brain sem contexto ignora ganchos e segue o rodízio');
+  assert.equal(chen.hints.length, 2, 'conversar não altera os dados do NPC');
+});
+
+test('gancho de Gu equipadas exige a condição completa do mercador', () => {
+  const zhao = TEST_NPCS.find(npc => npc.id === 'npc-zhao-he');
+  const brain = new NpcBrain(zhao);
+  const context = equippedGu => ({ rank: 1, stage: 'Inicial', spiritStones: 0, equippedGu });
+  brain.interact(10, context(2));
+  assert.equal(brain.line, zhao.dialogue);
+  brain.interact(20, context(3));
+  assert.match(brain.line, /Três Gu equipadas/);
+  brain.interact(30, context(4));
+  assert.equal(brain.line, npcLines(zhao)[1], 'o mesmo gancho não se repete');
 });
 
 test('dez NPCs na clareira com identidades e cérebro independente do Phaser', () => {
@@ -214,6 +293,23 @@ test('sprites e nomes no Y-sort: toque mostra fala, registra memória e não mov
   assert.equal(views[0].data.alert, true);
 });
 
+test('toque informa o Rank do jogador e o NPC comenta uma vez antes de voltar às falas comuns', () => {
+  const { scene, layer, sprites } = fakeScene();
+  const messages = [];
+  let context = { rank: 1, stage: 'Inicial', spiritStones: 0, equippedGu: 1 };
+  createTestNpcViews(scene, layer, isFree, text => messages.push(text), undefined, () => context);
+  const chen = TEST_NPCS.findIndex(npc => npc.id === 'npc-old-chen');
+  sprites[chen].handler({}, 0, 0, { stopPropagation() {} });
+  assert.match(messages[0], /Não se afaste demais da vila/);
+  context = { ...context, rank: 2, stage: 'Médio' };
+  sprites[chen].handler({}, 0, 0, { stopPropagation() {} });
+  assert.match(messages[1], /já conversou/);
+  assert.match(messages[1], /Já está no Rank 2/);
+  sprites[chen].handler({}, 0, 0, { stopPropagation() {} });
+  assert.match(messages[2], /A cada três anos os lobos/);
+  assert.doesNotMatch(messages[2], /Rank 2/);
+});
+
 test('atlas específico tem 10 NPCs em ordem de manifesto, poses estáticas e direções corretas', () => {
   const png = readFileSync(new URL('../public/assets/npcs/npc-static-4dir-32.png', import.meta.url));
   assert.equal(png.readUInt32BE(16), 128);
@@ -245,4 +341,6 @@ test('spawn bloqueado é ignorado e a cena cria, anima e atualiza NPCs', () => {
   assert.match(main, /registerNpcAnimations\(this\)/);
   assert.match(main, /this\.npcViews = createTestNpcViews\(this, this\.worldObjects, this\.isFree,/);
   assert.match(main, /updateTestNpcViews\(this\.npcViews, time, delta, this\.isFree,/);
+  assert.match(main, /equippedGu: Object\.values\(this\.combat\.equipment\)/,
+    'o toque precisa informar o progresso atual do jogador');
 });
