@@ -14,6 +14,7 @@ import { GuStateStore } from './combat/guState';
 import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
+import { wildGuShortLabel } from './combat/wildGu';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
@@ -35,12 +36,15 @@ class QingMaoScene extends Phaser.Scene {
     x: number; y: number; boss: boolean; frame: (id: string, direction: Direction) => number }>();
   private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
+  private enemyProjectileViews: Phaser.GameObjects.Graphics[] = [];
   private pendingRewards: CombatEvent[] = [];
   private nextRewardRetryAt = 0;
   private worldObjects!: Phaser.GameObjects.Layer;
   private currentArea!: GeneratedArea;
   private disposeArea?: () => void;
   private readonly defeatedInArea = new Set<string>();
+  /** Gu sorteado por criatura na sessão; `null` = nasceu sem Gu. */
+  private readonly wildGuBySpawn = new Map<string, GuId | null>();
   private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
   private navigationPrevious?: WorldPoint;
@@ -136,7 +140,13 @@ class QingMaoScene extends Phaser.Scene {
   private createEnemies(): void {
     const spawn = (mob: Readonly<MobDefinition>) => {
       if (!this.isFree(mob.x, mob.y)) return;
-      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob);
+      // O Gu da criatura é sorteado no nascimento e guardado na sessão: sair e
+      // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
+      const key = `${this.currentArea.definition.id}:${mob.id}`;
+      const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
+      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob,
+        { random: Math.random, forcedWildGu });
+      if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wildGu ?? null);
       const boss = mob.tier === 'boss';
       const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
       const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
@@ -147,6 +157,13 @@ class QingMaoScene extends Phaser.Scene {
       const label = this.add.text(0, boss ? -47 : -32, mob.name, {
         fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
       }).setOrigin(0.5).setVisible(boss);
+      // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
+      const wild = enemy.wildGu ? GU_CATALOG[enemy.wildGu] : null;
+      const wildLabel = this.add.text(0, boss ? -58 : -44,
+        wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
+        fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',
+        stroke: '#1a1206', strokeThickness: 2,
+      }).setOrigin(0.5).setVisible(wild !== null);
       graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
         event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
@@ -156,7 +173,8 @@ class QingMaoScene extends Phaser.Scene {
       const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
       const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
         .setOrigin(0, 0.5).setName('hp').setVisible(false);
-      const view = this.add.container(mob.x, mob.y, [graphic, label, back, hp]).setDepth(mob.y);
+      const view = this.add.container(mob.x, mob.y, [graphic, label, wildLabel, back, hp])
+        .setDepth(mob.y);
       this.worldObjects.add(view);
       this.enemyViews.set(enemy.id, view);
       this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
@@ -266,6 +284,25 @@ class QingMaoScene extends Phaser.Scene {
         }).setDepth(1000);
         this.tweens.add({ targets: text, y: text.y - 25, alpha: 0, duration: 720,
           onComplete: () => text.destroy() });
+        if (event.targetId && event.targetId !== 'hero') {
+          const healed = this.combat.enemies.get(event.targetId)?.name ?? 'Criatura';
+          this.combatHUD?.say(`${healed} recuperou ${event.amount} de vida com o Gu!`);
+        }
+      }
+      if (event.type === 'enemy-ability' && event.guId && event.x !== undefined && event.y !== undefined) {
+        const gu = GU_CATALOG[event.guId];
+        const actor = this.combat.enemies.get(event.targetId ?? '')?.name ?? 'Criatura';
+        this.combatHUD?.say(`${actor} usou ${gu.label}!`);
+        const ring = this.add.graphics({ x: event.x, y: event.y - 12 }).setDepth(1000);
+        const color = Number.parseInt(gu.visual.color.replace('#', ''), 16);
+        ring.lineStyle(1.5, color, 0.95).strokeCircle(0, 0, 8);
+        this.tweens.add({ targets: ring, alpha: 0, scale: 2.2, duration: 420,
+          onComplete: () => ring.destroy() });
+        const text = this.add.text(event.x, event.y - 46, wildGuShortLabel(gu), {
+          fontSize: '10px', color: gu.visual.color, stroke: '#120d06', strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(1001);
+        this.tweens.add({ targets: text, y: text.y - 22, alpha: 0, duration: 900,
+          onComplete: () => text.destroy() });
       }
       if (event.type === 'barrier') {
         this.combatHUD?.say(`Barreira absorveu ${event.amount} de dano.`);
@@ -298,10 +335,26 @@ class QingMaoScene extends Phaser.Scene {
   private flushRewards(): void {
     while (this.pendingRewards.length) {
       const reward = this.pendingRewards[0];
+      let guMessage = '';
       try {
+        // O Gu é o mesmo registrado na criatura no nascimento; `claimWildGu`
+        // deduplica e só altera o inventário depois de salvar. Se o save falhar,
+        // a recompensa inteira continua pendente para nova tentativa.
+        if (reward.guReward && reward.targetId) {
+          const claim = this.combat.claimWildGu(reward.targetId);
+          if (!claim.ok) {
+            if (/salvar/.test(claim.reason ?? '')) {
+              this.nextRewardRetryAt = this.time.now + 2000;
+              this.combatHUD?.say('Não foi possível salvar o Gu. Recompensa pendente.');
+              break;
+            }
+            this.combatHUD?.say(`Gu não coletado: ${claim.reason} Os outros drops foram entregues.`);
+          }
+          if (claim.ok && claim.guId) guMessage = ` · +1 ${GU_CATALOG[claim.guId].label}`;
+        }
         this.cultivation.receiveLoot(reward.stoneReward!, reward.materialId!, reward.materialQuantity!);
         this.pendingRewards.shift();
-        this.combatHUD?.say(`+${reward.stoneReward} pedras espirituais · +${reward.materialQuantity} material de ruptura`);
+        this.combatHUD?.say(`+${reward.stoneReward} pedras espirituais · +${reward.materialQuantity} material de ruptura${guMessage}`);
         this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
       } catch {
         this.nextRewardRetryAt = this.time.now + 2000;
@@ -321,6 +374,7 @@ class QingMaoScene extends Phaser.Scene {
     for (const npc of this.npcViews) npc.view.destroy();
     this.npcViews = [];
     this.projectileViews.forEach(view => view.destroy()); this.projectileViews = [];
+    this.enemyProjectileViews.forEach(view => view.destroy()); this.enemyProjectileViews = [];
     this.disposeArea?.();
     this.combat.clearAreaEnemies();
     this.currentArea = generateArea(INITIAL_WORLD[id]);
@@ -459,6 +513,23 @@ class QingMaoScene extends Phaser.Scene {
     shots.forEach((shot, i) => this.projectileViews[i].setPosition(shot.x, shot.y)
       .setRotation(shot.direction === 'right' ? 0 : shot.direction === 'left' ? Math.PI
         : shot.direction === 'up' ? -Math.PI / 2 : Math.PI / 2));
+    // Projéteis de Gu selvagem: orbes coloridos, visualmente distintos das lâminas do jogador.
+    const enemyShots = this.combat.activeEnemyProjectiles;
+    while (this.enemyProjectileViews.length > enemyShots.length) {
+      this.enemyProjectileViews.pop()?.destroy();
+    }
+    while (this.enemyProjectileViews.length < enemyShots.length) {
+      const orb = this.add.graphics().setDepth(901);
+      this.enemyProjectileViews.push(orb);
+    }
+    enemyShots.forEach((shot, i) => {
+      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
+      const orb = this.enemyProjectileViews[i];
+      orb.clear().setPosition(shot.x, shot.y);
+      orb.fillStyle(0x120d06, 0.85).fillCircle(0, 0, 7);
+      orb.fillStyle(color, 0.95).fillCircle(0, 0, 4.5);
+      orb.lineStyle(1, 0xffe6a8, 0.9).strokeCircle(0, 0, 6.5);
+    });
     this.combatHUD?.update(time);
     this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
     if (!this.combat.hero.alive) { this.player.move(null); return; }

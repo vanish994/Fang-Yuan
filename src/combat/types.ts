@@ -26,11 +26,24 @@ export interface Enemy extends Combatant {
   id: string; name?: string; lastAttackAt: number; rewarded: boolean;
   /** Cegueira temporária (Flash Blink Gu); não concede imunidade, só pausa a IA. */
   blindedUntil?: number;
+  /** Gu sorteado no nascimento; nunca muda durante a luta. */
+  wildGu?: GuId | null;
+  /** Próximo instante em que o Gu selvagem pode ser usado. */
+  wildGuNextAt?: number;
+  /** Quantidade de ativações; compõe o id único de cada golpe. */
+  wildGuCasts?: number;
+  /** Bônus de dano de buff ativo até este instante. */
+  wildBuffUntil?: number;
+  wildDamageBonus?: number;
+  /** Defesa condicional (Bronze Skin) avaliada a cada golpe recebido. */
+  wildLowHealthDefense?: number;
 }
 export interface CombatEvent {
   type: 'damage' | 'defeat' | 'reward' | 'resurrect' | 'hero-death'
     | 'moonlight' | 'dash' | 'activate' | 'heal' | 'barrier' | 'blind'
-    | 'refine' | 'assimilate';
+    | 'refine' | 'assimilate'
+    /** Criatura selvagem ativou o Gu registrado nela. */
+    | 'enemy-ability';
   targetId?: string;
   amount?: number;
   x?: number;
@@ -39,6 +52,8 @@ export interface CombatEvent {
   stoneReward?: number;
   materialId?: string;
   materialQuantity?: number;
+  /** Gu exato registrado na criatura derrotada; nunca sorteado na morte. */
+  guReward?: GuId;
 }
 export type ActionResult = { ok: boolean; reason?: string; events: CombatEvent[] };
 

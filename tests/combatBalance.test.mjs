@@ -19,7 +19,10 @@ test('mitigação não cria parede de 1 dano contra chefes', () => {
   assert.equal(mitigatedDamage(14, 45), 9);
   assert.ok(mitigatedDamage(14, 80) >= 7);
   assert.match(mitigation, /amount \* 100 \/ \(100 \+ Math\.max\(0, defense\)\)/);
-  assert.match(combat, /mitigatedDamage\(amount, enemy\.defense\)/);
+  // A defesa efetiva nunca ignora a fórmula: passivos de Gu selvagem entram
+  // como defesa adicional (Bronze Skin condicional incluído), não como imunidade.
+  assert.match(combat, /mitigatedDamage\(amount, this\.enemyDefense\(enemy\)\)/);
+  assert.match(combat, /enemy\.defense \+ \(lowActive \? low : 0\)/);
 });
 
 test('Moonlight mantém a base e escala pela qualidade da essência, não pelo ataque bruto', () => {

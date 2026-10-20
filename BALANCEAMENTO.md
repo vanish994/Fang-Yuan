@@ -156,6 +156,66 @@ preservando apenas o equipamento/lista que comprovadamente possuíam — nunca o
 inteiro —, e a migração é idempotente. IDs desconhecidos, quantidades inválidas, Gu duplicado
 em dois slots e equipamento sem posse são descartados na leitura.
 
+## Gu selvagens — v0.3
+
+Criaturas podem nascer portando um Gu e usá-lo em combate. É um encontro raro: a chance é
+sorteada **uma única vez, no nascimento** (`CombatEngine.addEnemy` → `rollWildGu`), fica
+gravada na instância (`Enemy.wildGu`) e nunca é recalculada por ataque, tick, morte ou troca
+de área. O cenário de jogo passa `Math.random`; sem fonte de aleatoriedade explícita a
+criatura nasce sem Gu, o que mantém os testes de combate determinísticos.
+
+| Criatura | Chance | Pool máximo |
+|---|---:|---|
+| Tier 1 (Rank 1) | 2% | Gu Rank 1 |
+| Tier 2 (Rank 2) | 4% | Gu Rank 1–2 |
+| Tier 3 (Rank 3) | 6% | Gu Rank 1–2 (ainda não há Gu Rank 3) |
+| Chefes (qualquer Rank) | 15% | até o Rank do chefe |
+
+Regras do pool (`src/combat/wildGu.ts`):
+
+- Nenhum Gu acima do Rank da criatura. Força-bruta (`forcedWildGu`) com Rank acima do teto é
+  recusada e a criatura nasce sem Gu.
+- Ficam fora do sorteio consumíveis e Gu sem efeito observável em criatura: Flash Blink,
+  Liquor Worm (essência não existe para inimigos) e os três Gu assimiláveis de força.
+- Afinidade por criatura (`wildGuAffinity` no `mobCatalog`) só estreita o pool; nunca eleva o Rank.
+  Sem Gu do mesmo Rank no catálogo, usa-se o Rank mais alto abaixo dele (caso de Rank 3/4).
+- Criaturas sem Gu mantêm exatamente os valores anteriores de vida, defesa, dano, velocidade e drops.
+
+### Uso em combate
+
+O comportamento vem do efeito já existente no catálogo — não há Gu novo nesta versão:
+
+| Efeito do Gu | Ação da criatura | Limite |
+|---|---|---|
+| Projétil (Moonlight, Bone Spear, Star Arrow/Dart, Ghost Fire, Exploding Egg, Moonglow) | Dispara um orbe na direção do herói | 11–21 dano (8–21% da vida máxima do herói), alcance 85% e velocidade 80% do Gu do jogador, recarga 1,4× (2,6–7 s), 900 ms de espera inicial |
+| Passivo de defesa/vida (Stone/Jade/Bronze/Iron/Rock/Beast Skin, White Jade) | Aplica defesa, vida máxima, velocidade e Bronze Skin condicional no nascimento | Defesa passa pela fórmula de mitigação (piso 1); nunca imunidade |
+| Cura (Cleansing Water) | Cura 18% da vida máxima | Só abaixo de 60% da vida; recarga 8–14 s; nunca passa do teto |
+| Buff (Little Light, All-Out Effort) e Empower (Amplify Effect) | +15/+25% de dano corpo a corpo por 6–8 s | Teto de +30%; recarga 8–12 s; não acumula |
+| Movimento (Whirlwind, Clear Wind Wheel, Dragonpill Cricket) | Investida curta na direção do herói | Usa a colisão real do mapa (não atravessa parede nem sai do mapa); para a 30 px do herói; recarga 5–9 s |
+
+Cada uso emite `enemy-ability` e a criatura mostra o nome do Gu acima do sprite, um anel
+colorido no corpo, texto flutuante e mensagem no HUD. Projéteis selvagens são orbes distintos
+das lâminas do jogador, com a cor do Gu.
+
+### Recompensa
+
+- A morte lê `enemy.wildGu` e grava o **mesmo** Gu no evento `reward.guReward` — nada é
+  sorteado no óbito. Sem Gu no corpo, o evento não tem `guReward`.
+- O Gu é separado de pedras e materiais: `cultivation.receiveLoot` continua tratando os
+  recursos e `CombatEngine.claimWildGu` só mexe no inventário de Gu.
+- `claimWildGu` é idempotente (`claimedWildGu` + remoção do drop pendente): processar a mesma
+  morte duas vezes, recarregar a área ou reiniciar a sessão não duplica a unidade.
+- Se o save falhar, o drop permanece pendente e a UI tenta de novo; pedras/materiais só são
+  entregues depois que o Gu é gravado ou quando o motivo é inventário cheio.
+- Mobs não respawnam na mesma sessão, então não existe farm curto da criatura mais fácil.
+
+### Limitação conhecida
+
+O kit inicial da v0.2 concede **todos** os 24 Gu Rank 1. Um drop de Gu Rank 1 é, portanto,
+uma segunda unidade de algo já possuído; o prêmio realmente novo são Moonglow/White Jade
+(Rank 2) de criaturas Rank 2+ e chefes. Recomenda-se, num passe futuro, trocar o kit inicial
+por aquisição gradual ou dar uso a duplicatas.
+
 ## Regra de trabalho
 
 Não vamos inflar HP/DEF para criar dificuldade. Toda alteração deve ser validada contra TTK, dano recebido, custo em essência, disponibilidade de recursos, risco/recompensa e progressão de Rank. Depois dos testes de combate, a economia será recalibrada para que a progressão seja exigente sem virar grind vazio.
