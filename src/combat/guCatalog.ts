@@ -1,5 +1,5 @@
-import { GU_SLOTS, type ActiveEffect, type GuCategory, type GuDefinition, type GuId,
-  type GuSlot, type GuSource, type PassiveEffect } from './types';
+import { GU_SLOTS, type GuCategory, type GuDefinition, type GuId,
+  type GuSlot, type GuSource } from './types';
 
 /**
  * Catálogo central. Nenhum Gu entra aqui por conveniência: cada entrada declara
@@ -372,6 +372,3 @@ export const STARTING_INVENTORY: Readonly<Partial<Record<GuId, number>>> = Objec
     .map(id => [id, id === 'little-light' ? 2 : 1])),
 );
 
-/** Custo de essência/efeito de um Gu; tipagem estreita para evitar `any`. */
-export function passiveOf(gu: GuDefinition): PassiveEffect | undefined { return gu.passive; }
-export function activeOf(gu: GuDefinition): ActiveEffect | undefined { return gu.active; }

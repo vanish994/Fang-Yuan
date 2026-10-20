@@ -1,7 +1,8 @@
 import { COMBAT_CONFIG, STARTING_EQUIPMENT, type CombatSettings } from './combatConfig';
 import { GU_CATALOG, GU_IDS, isAssimilable, isEquippable, isUsable } from './guCatalog';
 import { GU_RECIPES, recipeById } from './guRecipes';
-import { GuStateStore, MAX_GU_STACK, emptyInventory, type GuSnapshot } from './guState';
+import { GuStateStore, MAX_GU_STACK, defaultGuSnapshot, emptyInventory,
+  type GuSnapshot } from './guState';
 import { GU_SLOTS, type ActionResult, type CombatEvent, type Direction, type Enemy,
   type GuId, type GuSlot, type GuUsage, type Point } from './types';
 import { AgentBrain } from '../agents/agentBrain';
@@ -118,7 +119,8 @@ export class CombatEngine {
     this.cultivationState = cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} };
     this.cultivationStats = cultivationCombatStats(this.cultivationState);
     const saved = this.store?.load() ?? null;
-    this.adoptSnapshot(saved ?? this.defaultSnapshot());
+    // Fonte única do inventário inicial: `defaultGuSnapshot` (guState).
+    this.adoptSnapshot(saved ?? defaultGuSnapshot());
     const maxHealth = this.maxHealthFor(this.assimilated, this.equipment.passive);
     this.hero = { x, y, health: maxHealth, maxHealth, alive: true };
     this.essence = this.cultivationStats.maxEssence;
@@ -126,15 +128,6 @@ export class CombatEngine {
   }
 
   // ── Estado persistente ────────────────────────────────────────────────────
-  private defaultSnapshot(): GuSnapshot {
-    const inventory = emptyInventory();
-    for (const id of GU_IDS) {
-      const gu = GU_CATALOG[id];
-      if (gu.rank === 1) inventory[id] = id === 'little-light' ? 2 : 1;
-    }
-    return { inventory, equipment: { ...STARTING_EQUIPMENT }, assimilated: [] };
-  }
-
   private adoptSnapshot(snapshot: GuSnapshot): void {
     this.inventory = { ...snapshot.inventory };
     this.equipment.attack = snapshot.equipment.attack;
