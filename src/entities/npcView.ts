@@ -78,7 +78,8 @@ export function createTestNpcViews(
       event.stopPropagation();
       const metBefore = Number.isFinite(brain.agent.memory.lastInteractionAt);
       brain.interact(scene.time.now);
-      say(`${definition.name}${metBefore ? ' (já conversou)' : ''}: “${definition.dialogue}”`);
+      // Cada conversa avança uma fala do NPC (em ciclo); ver npcLine em npc.ts.
+      say(`${definition.name}${metBefore ? ' (já conversou)' : ''}: “${brain.line}”`);
     });
     layer.add(view);
     return [{ definition: brain.definition, brain, view, sprite, facing: 'down' as Direction, uniqueArt }];

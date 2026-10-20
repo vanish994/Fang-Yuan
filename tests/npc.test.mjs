@@ -13,7 +13,7 @@ function moduleURL(path, imports = {}) {
 }
 const agentURL = moduleURL('agents/agentBrain');
 const npcURL = moduleURL('entities/npc', { '../agents/agentBrain': agentURL });
-const { NpcBrain, TEST_NPCS } = await import(npcURL);
+const { NpcBrain, TEST_NPCS, npcLine, npcLines } = await import(npcURL);
 const npcSpritesURL = moduleURL('entities/npcSprites');
 const { NPC_ROWS, npcFrame } = await import(npcSpritesURL);
 const { preloadNpcSprites, registerNpcAnimations, createTestNpcViews, updateTestNpcViews } =
@@ -57,6 +57,54 @@ function fakeScene(uniqueArt = false) {
   const layer = { items: [], add(view) { this.items.push(view); } };
   return { scene, layer, sprites, views, texts, loaded };
 }
+
+test('falas de teste têm base na novela, sem placeholder e com ciclo por conversa', () => {
+  const all = [];
+  for (const npc of TEST_NPCS) {
+    const lines = npcLines(npc);
+    assert.ok(lines.length >= 3, `${npc.name} precisa de pelo menos três falas`);
+    assert.equal(lines[0], npc.dialogue);
+    assert.deepEqual(lines, [...new Set(lines)], `${npc.name} repete fala`);
+    for (const line of lines) {
+      assert.ok(line.trim().length >= 20, `${npc.name} tem fala curta demais: ${line}`);
+      // O aviso de combate tem largura limitada; falas longas cobrem a tela no celular.
+      assert.ok(line.length <= 120, `${npc.name} tem fala longa demais (${line.length}): ${line}`);
+      assert.doesNotMatch(line, /Fala de teste/i);
+      all.push(line);
+    }
+  }
+  assert.equal(all.length, 31);
+  assert.deepEqual(all, [...new Set(all)], 'duas falas iguais no elenco');
+  // Termos que ancoram as falas nos fatos da novela (ver docs/DIALOGOS-NPC.md).
+  assert.ok(all.some(line => /orquídeas?-da-lua|orquídea-da-lua/i.test(line)));
+  assert.ok(all.some(line => /pedras? primárias?/i.test(line)));
+  assert.ok(all.some(line => /cerimônia do despertar/i.test(line)));
+  assert.ok(all.some(line => /Rank [234]/.test(line)));
+});
+
+test('cada conversa avança uma fala e volta ao início no fim da lista', () => {
+  const definition = TEST_NPCS[0];
+  const lines = npcLines(definition);
+  assert.equal(npcLine(definition, 1), lines[0]);
+  assert.equal(npcLine(definition, 2), lines[1]);
+  assert.equal(npcLine(definition, lines.length + 1), lines[0]);
+  assert.equal(npcLine(definition, 0), lines[0]);
+  assert.equal(npcLine(definition, Number.NaN), lines[0]);
+  const solo = { ...definition, dialogues: undefined };
+  assert.equal(npcLine(solo, 5), definition.dialogue, 'NPC com uma fala só não quebra o ciclo');
+  const brain = new NpcBrain(definition);
+  assert.equal(brain.conversations, 0);
+  assert.equal(brain.line, lines[0], 'antes de qualquer toque mostra a fala inicial');
+  brain.interact(10);
+  assert.equal(brain.conversations, 1);
+  assert.equal(brain.line, lines[0], 'a primeira conversa usa a fala de apresentação');
+  brain.interact(20);
+  assert.equal(brain.line, lines[1]);
+  assert.equal(brain.agent.memory.lastInteractionAt, 20);
+  brain.interact(30);
+  brain.interact(40);
+  assert.equal(brain.line, lines[0], 'a quarta conversa do NPC de três falas volta ao início');
+});
 
 test('dez NPCs na clareira com identidades e cérebro independente do Phaser', () => {
   assert.equal(TEST_NPCS.length, 10);
@@ -146,6 +194,12 @@ test('sprites e nomes no Y-sort: toque mostra fala, registra memória e não mov
   assert.equal(records[0].brain.agent.memory.lastInteractionAt, 123);
   sprites[0].handler({}, 0, 0, { stopPropagation() {} });
   assert.match(messages[1], /já conversou/);
+  assert.match(messages[1], /orquídeas-da-lua/, 'a segunda conversa usa a segunda fala');
+  sprites[0].handler({}, 0, 0, { stopPropagation() {} });
+  assert.match(messages[2], /já conversou/);
+  assert.match(messages[2], /onda de lobos/);
+  sprites[0].handler({}, 0, 0, { stopPropagation() {} });
+  assert.match(messages[3], /vila parece tranquila/, 'quarta conversa volta ao começo');
   updateTestNpcViews(records, 0, 50, isFree, () => 0.99);
   assert.equal(views[0].x, TEST_NPCS[0].x + 0.9);
   assert.equal(views[0].depth, views[0].y);
