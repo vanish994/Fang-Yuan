@@ -152,6 +152,8 @@ export interface GuDefinition {
   name: string;
   /** Nome de exibição em pt-BR. */
   label: string;
+  /** Nome curto (sem o prefixo em inglês) para rótulos no mundo, acima do sprite. */
+  short: string;
   rank: number;
   slot: GuSlot;
   categories: readonly GuCategory[];

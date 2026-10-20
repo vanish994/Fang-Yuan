@@ -96,6 +96,22 @@ test('catálogo Rank 1: 24 Gu verificados, quatro slots e candidatos rejeitados 
 });
 
 // ── Equipamento ─────────────────────────────────────────────────────────────
+test('nome curto do catálogo cabe no rótulo do mundo e existe para todo Gu', async () => {
+  const { wildGuShortLabel } = await import(moduleURL('combat/wildGu'));
+  for (const id of GU_IDS) {
+    const gu = GU_CATALOG[id];
+    assert.equal(typeof gu.short, 'string', `${id} precisa de 'short'`);
+    assert.ok(gu.short.trim().length > 0, `${id} com 'short' vazio`);
+    // Rótulo desenhado acima do sprite: 14 caracteres é o limite prático.
+    assert.ok(gu.short.length <= 14, `${id}: '${gu.short}' tem ${gu.short.length} caracteres`);
+    assert.equal(wildGuShortLabel(gu), gu.short);
+    // O nome curto não pode repetir o prefixo em inglês do label completo.
+    assert.ok(!gu.short.includes('·'), `${id}: '${gu.short}' não é curto`);
+  }
+  assert.equal(new Set(GU_IDS.map(id => GU_CATALOG[id].short)).size, GU_IDS.length,
+    'cada Gu precisa de um nome curto próprio');
+});
+
 test('equipamento: valida slot, posse e combate; troca não deixa bônus residual', () => {
   const { engine } = makeEngine();
   assert.equal(engine.equipment.attack, 'moonlight');

@@ -136,11 +136,11 @@ export function wildBuffDuration(active: ActiveEffect | undefined): number {
 
 /**
  * Nome curto para o rótulo no mundo (o `label` completo, ex. "Moonlight Gu ·
- * Gu da Lua", não cabe acima do sprite).
+ * Gu da Lua", não cabe acima do sprite). Vem do catálogo, não de um
+ * `split('·')`: o label é texto de exibição e pode variar sem quebrar a UI.
  */
 export function wildGuShortLabel(gu: GuDefinition): string {
-  const parts = gu.label.split('·');
-  return (parts.length > 1 ? parts[parts.length - 1] : gu.label).trim();
+  return gu.short;
 }
 
 /** Alcance efetivo do projétil selvagem (um pouco menor que o do jogador). */
