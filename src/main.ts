@@ -98,8 +98,9 @@ class QingMaoScene extends Phaser.Scene {
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
     this.cultivation.grantTestStonesOnce();
+    // RNG explícito: o mundo pode ser reproduzido em testes/depuração.
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y, undefined,
-      new GuStateStore());
+      new GuStateStore(), Math.random);
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
     this.minimap = new MinimapView(this.combatHUD.root);
@@ -146,8 +147,9 @@ class QingMaoScene extends Phaser.Scene {
       // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
       const key = `${this.currentArea.definition.id}:${mob.id}`;
       const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
-      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob,
-        { random: Math.random, forcedWildGu });
+      // O sorteio usa o RNG do motor; `forcedWildGu` só repete o resultado já
+      // registrado para esta criatura nesta sessão.
+      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob, { forcedWildGu });
       if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wildGu ?? null);
       const boss = mob.tier === 'boss';
       const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';

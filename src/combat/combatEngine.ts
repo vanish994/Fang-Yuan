@@ -103,8 +103,18 @@ export class CombatEngine {
   private empowerEffectMultiplier = 1.5;
   private empowerCostMultiplier = 1.5;
 
+  /** Fonte de aleatoriedade do motor: decisões da IA, esquiva/revive e sorteios. */
+  private readonly random: () => number;
+  /** Só existe quando o chamador injetou um RNG; sem ele, o nascimento é determinístico. */
+  private readonly injectedRandom: (() => number) | null;
+
   constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0,
-    cultivation?: CultivationState, private readonly store: GuStateStore | null = new GuStateStore()) {
+    cultivation?: CultivationState, private readonly store: GuStateStore | null = new GuStateStore(),
+    random?: () => number) {
+    // Injetar um RNG torna a simulação inteira reprodutível (testes, replay,
+    // depuração). Sem injeção, o motor usa Math.random como sempre.
+    this.injectedRandom = random ?? null;
+    this.random = random ?? Math.random;
     this.cultivationState = cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} };
     this.cultivationStats = cultivationCombatStats(this.cultivationState);
     const saved = this.store?.load() ?? null;
@@ -361,8 +371,12 @@ export class CombatEngine {
       // item que ela não saberia usar; nesse caso nasce sem Gu.
       return gu && gu.rank <= rank && isWildGuCandidate(gu) ? gu.id : null;
     }
-    if (!options.random) return null;
-    return rollWildGu(rank, isBoss, options.random, affinity);
+    // Precisa de uma fonte explícita: `addEnemy` ou o RNG injetado no motor.
+    // Sem nenhuma das duas a criatura nasce sem Gu, o que mantém determinísticos
+    // os combates montados pelos testes.
+    const random = options.random ?? this.injectedRandom;
+    if (!random) return null;
+    return rollWildGu(rank, isBoss, random, affinity);
   }
 
   clearAreaEnemies(): void {
@@ -737,7 +751,8 @@ export class CombatEngine {
     return { ok: true, events: this.damageEnemy(enemy, amount, now) };
   }
 
-  hitHero(amount: number, now: number, hitId: string, random: () => number = Math.random): CombatEvent[] {
+  hitHero(amount: number, now: number, hitId: string, random?: () => number): CombatEvent[] {
+    const rng = random ?? this.random;
     this.lastNow = now;
     if (!this.hero.alive || this.processedHits.has(hitId)) return [];
     this.processedHits.add(hitId); this.recentHits.push(hitId);
@@ -759,7 +774,7 @@ export class CombatEngine {
       events.push({ type: 'damage', targetId: 'hero', amount: damage, x: this.hero.x, y: this.hero.y });
     }
     if (this.hero.health <= 0) {
-      if (!this.cooldownRemaining('cicada', now) && random() < this.config.cicada.chance) {
+      if (!this.cooldownRemaining('cicada', now) && rng() < this.config.cicada.chance) {
         this.hero.health = Math.max(1, Math.ceil(this.hero.maxHealth * this.config.cicada.restoredHealthRatio));
         this.cooldowns.set('cicada', now + this.config.cicada.cooldownMs);
         events.push({ type: 'resurrect', targetId: 'hero', x: this.hero.x, y: this.hero.y });
@@ -860,7 +875,7 @@ export class CombatEngine {
       events.push(...this.useWildGu(enemy, now, isFree));
       const stats = this.enemyStats.get(enemy.id)!; const brain = this.agentBrains.get(enemy.id)!;
       const decision = brain.decide(now, { self: enemy, home: this.enemyHomes.get(enemy.id)!, healthRatio: enemy.health / enemy.maxHealth,
-        player: this.hero, packAlert: brain.traits.pack ? packAlert : null, alliesFallen: brain.traits.pack ? packLosses : 0 });
+        player: this.hero, packAlert: brain.traits.pack ? packAlert : null, alliesFallen: brain.traits.pack ? packLosses : 0 }, this.random);
       if (decision.action === 'attack' || decision.action === 'chase') this.engage(now);
       if (decision.action === 'attack') {
         if (now - enemy.lastAttackAt < stats.attackCooldownMs) continue;
