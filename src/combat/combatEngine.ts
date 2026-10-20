@@ -391,6 +391,20 @@ export class CombatEngine {
     return { ok: true, guId };
   }
 
+  /**
+   * Entrega uma Gu comprada na banca: grava antes de publicar o inventário e
+   * respeita o limite de pilha. Não equipa nada automaticamente.
+   */
+  grantGu(id: GuId): { ok: boolean; reason?: string } {
+    if (!GU_CATALOG[id]) return { ok: false, reason: 'Gu desconhecida.' };
+    if (this.owned(id) >= MAX_GU_STACK) return { ok: false, reason: 'Inventário cheio para esta Gu.' };
+    const nextInventory = { ...this.inventory, [id]: this.owned(id) + 1 };
+    if (!this.commit({ ...this.snapshot(), inventory: nextInventory })) {
+      return { ok: false, reason: 'Não foi possível salvar a Gu; pedras devolvidas.' };
+    }
+    return { ok: true };
+  }
+
   agentMemory(id: string): Readonly<AgentBrain['memory']> | null { return this.agentBrains.get(id)?.memory ?? null; }
 
   private engage(now: number): void { this.combatUntil = Math.max(this.combatUntil, now + this.config.combatLockMs); }

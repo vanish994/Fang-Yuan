@@ -8,6 +8,7 @@ import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigat
 import { FangYuan, registerWalkAnimations, WALK_SPEED } from './entities/FangYuan';
 import { shouldTurnForSegment, type CardinalDirection } from './entities/directions';
 import { CharacterSheet } from './ui/characterSheet';
+import { VendorPanel } from './ui/vendorPanel';
 import { CharacterCultivation } from './entities/characterCultivation';
 import { CombatEngine } from './combat/combatEngine';
 import { GuStateStore } from './combat/guState';
@@ -30,6 +31,7 @@ class QingMaoScene extends Phaser.Scene {
   private player!: FangYuan;
   private cultivation!: CharacterCultivation;
   private characterSheet?: CharacterSheet;
+  private vendorPanel?: VendorPanel;
   private combat!: CombatEngine;
   private combatHUD?: CombatHUD;
   private minimap?: MinimapView;
@@ -111,6 +113,7 @@ class QingMaoScene extends Phaser.Scene {
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y, undefined,
       new GuStateStore(), Math.random);
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
+    this.vendorPanel = new VendorPanel(this.cultivation, this.combat);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
     this.minimap = new MinimapView(this.combatHUD.root);
     this.loadArea('vila_gu_yue', this.player.x, this.player.y);
@@ -139,6 +142,8 @@ class QingMaoScene extends Phaser.Scene {
       this.disposeArea?.();
       this.characterSheet?.destroy();
       this.characterSheet = undefined;
+      this.vendorPanel?.destroy();
+      this.vendorPanel = undefined;
       this.rewards.clear();
       this.minimap?.destroy();
       this.minimap = undefined;
@@ -490,6 +495,12 @@ class QingMaoScene extends Phaser.Scene {
         const state = this.cultivation.state;
         return { rank: state.rank, stage: state.stage, spiritStones: state.spiritStones,
           equippedGu: Object.values(this.combat.equipment).filter(Boolean).length };
+      },
+      // O vendedor abre a banca em vez de só repetir a fala.
+      definition => {
+        if (definition.id !== 'npc-jiang-ya') return false;
+        this.vendorPanel?.open();
+        return true;
       });
     this.combatHUD?.say(`Área: ${this.currentArea.definition.name} · risco ${RISK_LABELS[this.currentArea.definition.risk]}`);
   }

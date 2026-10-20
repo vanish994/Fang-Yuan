@@ -129,6 +129,23 @@
         </section>
       </div>
     </aside>
+    <aside id="vendor-panel" class="vendor-panel" aria-labelledby="vendor-title" hidden>
+      <header class="sheet-header"><div><span class="eyebrow">Banca / Jiang Ya</span>
+        <h2 id="vendor-title">Banca do clã</h2></div>
+        <button type="button" id="vendor-close" class="sheet-close" aria-label="Fechar banca">×</button>
+      </header>
+      <p class="vendor-line">“Pétala, boneco de palha e o que a caravana deixar.”</p>
+      <p class="vendor-wallet">Pedras espirituais: <strong id="vendor-stones">0 pedras</strong></p>
+      <section class="vendor-section" aria-labelledby="vendor-buy-title">
+        <h3 id="vendor-buy-title">Comprar Gu</h3>
+        <ul id="vendor-stock" class="vendor-list"></ul>
+      </section>
+      <section class="vendor-section" aria-labelledby="vendor-sell-title">
+        <h3 id="vendor-sell-title">Vender materiais</h3>
+        <ul id="vendor-materials" class="vendor-list"></ul>
+      </section>
+      <p id="vendor-feedback" class="vendor-feedback" role="status" aria-live="polite"></p>
+    </aside>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

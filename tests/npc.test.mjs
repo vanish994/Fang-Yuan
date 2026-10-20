@@ -318,7 +318,7 @@ test('vendedor tem banca identificada, fala de mercador e nenhuma promessa de ve
   const jiang = vendors[0];
   assert.match(jiang.dialogue, /Banca do clã/);
   assert.match(npcLines(jiang).join(' '), /pétala/i, 'o vendedor precisa citar o que vende');
-  assert.match(npcLines(jiang).join(' '), /preço/i, 'sem comércio, o preço é assunto do clã');
+  assert.match(npcLines(jiang).join(' '), /preço/i, 'a fala atribui o preço ao clã, não ao NPC');
   // Nenhum texto de banca promete compra, desconto ou item jogável.
   for (const npc of vendors) {
     for (const line of [...npcLines(npc), ...(npc.hints ?? []).map(hint => hint.line)]) {
@@ -330,6 +330,25 @@ test('vendedor tem banca identificada, fala de mercador e nenhuma promessa de ve
   assert.ok(texts.includes('banca de Gu') && texts.includes('banca de comida'),
     'a banca precisa aparecer no mapa');
   assert.equal(texts.filter(text => text.startsWith('banca')).length, 2);
+});
+
+test('toque no vendedor pode abrir a banca sem gastar a fala comum', () => {
+  const { scene, layer, sprites } = fakeScene();
+  const messages = [];
+  const seen = [];
+  createTestNpcViews(scene, layer, isFree, text => messages.push(text), undefined, undefined,
+    definition => {
+      seen.push(definition.id);
+      return definition.id === 'npc-jiang-ya';
+    });
+  const vendorIndex = TEST_NPCS.findIndex(npc => npc.id === 'npc-jiang-ya');
+  sprites[vendorIndex].handler({}, 0, 0, { stopPropagation() {} });
+  assert.deepEqual(seen, ['npc-jiang-ya']);
+  assert.deepEqual(messages, [], 'a banca substitui a fala do vendedor');
+  const mei = TEST_NPCS.findIndex(npc => npc.id === 'npc-gu-yue-mei');
+  sprites[mei].handler({}, 0, 0, { stopPropagation() {} });
+  assert.deepEqual(seen, ['npc-jiang-ya', 'npc-gu-yue-mei']);
+  assert.match(messages[0], /vila parece tranquila/, 'os demais NPCs seguem falando');
 });
 
 test('atlas específico tem 10 NPCs em ordem de manifesto, poses estáticas e direções corretas', () => {

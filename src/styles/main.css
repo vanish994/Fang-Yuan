@@ -51,6 +51,40 @@
     border: 0; background: url('./assets/ui/close-button.png') 0 0 / 176px 44px no-repeat;
     image-rendering: pixelated; font-size: 0; }
   .sheet-close:hover { background-position: -44px 0; }
+  /* Banca do Jiang Ya: mesmo vocabulário visual da ficha, aberta ao tocar no NPC. */
+  .vendor-panel { box-sizing: border-box; position: fixed; z-index: 22;
+    top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+    right: max(12px, env(safe-area-inset-right)); width: min(400px, calc(100vw - 24px));
+    max-height: calc(100dvh - 86px - env(safe-area-inset-bottom)); overflow-y: auto;
+    background: #121630; border: 12px solid transparent;
+    border-image: url('./assets/ui/panel-9slice.png') 12 fill / 12px / 0 stretch;
+    image-rendering: pixelated; box-shadow: 0 14px 42px #0b170ddd;
+    color: #fff0d7; }
+  .vendor-line { margin: 10px 18px 0; color: #dfc9a4; font-style: italic; }
+  .vendor-wallet { margin: 8px 18px 4px; font-size: 13px; color: #c9c6dc; }
+  .vendor-wallet strong { color: #f4d595; }
+  .vendor-section { padding: 8px 18px 4px; border-top: 1px solid #4b4a3a; }
+  .vendor-section h3 { margin: 6px 0; font: 15px Georgia, serif; color: #ffefd1; }
+  .vendor-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .vendor-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center;
+    padding: 6px 8px; background: #1a2138; border: 1px solid #3d4462; border-radius: 4px; }
+  .vendor-name { font-size: 12px; }
+  .vendor-name small { display: block; color: #9fa3bd; font-size: 10px; }
+  .vendor-owned { grid-column: 2; grid-row: 1; font-size: 11px; color: #b9bad0; text-align: right; }
+  .vendor-action { grid-column: 1 / -1; min-height: 44px; padding: 8px 10px; cursor: pointer;
+    border: 1px solid #c9ad79; border-radius: 4px; background: #3d3324; color: #ffe9bd;
+    font: 600 13px/1 system-ui, sans-serif; }
+  .vendor-action:disabled { cursor: default; opacity: .45; }
+  .vendor-empty { font-size: 12px; color: #9fa3bd; }
+  .vendor-feedback { margin: 8px 18px 14px; min-height: 18px; font-size: 12px; }
+  .vendor-feedback.is-ok { color: #bfe3a8; }
+  .vendor-feedback.is-error { color: #ffb3a7; }
+  @media (max-width: 600px) {
+    .vendor-panel { top: max(8px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right));
+      width: min(360px, calc(100vw - 12px)); max-height: calc(100dvh - 16px - env(safe-area-inset-bottom)); }
+    .vendor-section { padding: 8px 12px 4px; }
+    .vendor-line, .vendor-wallet, .vendor-feedback { margin-left: 12px; margin-right: 12px; }
+  }
   .sheet-identity { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
   .sheet-portrait { position: relative; flex: 0 0 64px; height: 96px;
     background-color: #343854; image-rendering: pixelated; overflow: hidden; }

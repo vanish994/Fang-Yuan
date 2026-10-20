@@ -224,6 +224,38 @@ uma segunda unidade de algo já possuído; o prêmio realmente novo são Moonglo
 (Rank 2) de criaturas Rank 2+ e chefes. Recomenda-se, num passe futuro, trocar o kit inicial
 por aquisição gradual ou dar uso a duplicatas.
 
+## Banca do Jiang Ya — v0.4
+
+Comércio inicial do protótipo: **um** vendedor na vila. Nenhum valor é cânone.
+
+| Item | Pedras | Observação |
+| --- | --- | --- |
+| Material de ruptura Rank 1 | 8 | um javali/lobo/cobra comum rende 1 |
+| Material de ruptura Rank 2 | 24 | fauna perigosa |
+| Material de ruptura Rank 3 | 70 | elites |
+| Material de ruptura Rank 4 | 200 | chefes (4 materiais por morte) |
+| Seta Estelar (Flecha Estelar Gu) | 650 | preço do catálogo |
+| Lança de Osso | 700 | preço do catálogo |
+| Pele de Besta | 500 | preço do catálogo |
+| Pele de Rocha | 650 | preço do catálogo |
+| Roda de Vento | 650 | preço do catálogo |
+| Pequena Luz | 700 | preço do catálogo |
+
+Regras e raciocínio:
+
+- A venda de material é **sink de drop**: dobra aproximadamente o retorno em pedras
+  de uma caçada (fauna Rank 1 dá 7–10 pedras + 1 material = 15–18 no total), sem
+  competir com o custo de estágio do Rank 1 (20/35/55).
+- Materiais Rank 4 valem 4× mais que Rank 3 porque só chefes os soltam e em maior
+  quantidade; um chefe antigo paga 600 pedras + 4 materiais = 1.400 no total.
+- Gu usam o preço de referência já existente; não há markup nem desconto. Nenhuma
+  Gu da banca é assimilável ou consumível, então a compra nunca cria benefício
+  permanente duplicado.
+- A banca **não compra Gu**: vender Gu exigiria preço de compra por Rank e abriria
+  um ciclo de farmar Gu selvagem → pedras infinitas; fica fora até revisão.
+- O inventário de teste ainda concede uma cópia de cada Gu Rank 1; o efeito
+  econômico real da banca aparece quando esse inventário for retirado.
+
 ## Regra de trabalho
 
 Não vamos inflar HP/DEF para criar dificuldade. Toda alteração deve ser validada contra TTK, dano recebido, custo em essência, disponibilidade de recursos, risco/recompensa e progressão de Rank. Depois dos testes de combate, a economia será recalibrada para que a progressão seja exigente sem virar grind vazio.

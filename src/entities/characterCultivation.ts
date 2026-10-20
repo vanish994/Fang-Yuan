@@ -150,6 +150,46 @@ export class CharacterCultivation {
     this.commit({ ...this.current, spiritStones: this.current.spiritStones + stones, materials });
   }
 
+  /**
+   * Gasta pedras numa única gravação. `false` sem tocar no estado quando falta
+   * saldo, o valor é inválido ou a gravação falha (o jogador não pode ganhar Gu
+   * sem pagar por causa de um save quebrado).
+   */
+  spendStones(amount: number): boolean {
+    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > this.current.spiritStones) {
+      return false;
+    }
+    try {
+      this.commit({ ...this.current, spiritStones: this.current.spiritStones - amount });
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Venda na banca: consome material e soma pedras no mesmo commit, para que um
+   * save interrompido não apague o material sem pagar. A entrada zerada sai do
+   * registro, mantendo o formato do save enxuto.
+   */
+  tradeMaterial(id: string, quantity: number, stoneGain: number): boolean {
+    if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(id)) return false;
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) return false;
+    if (!Number.isSafeInteger(stoneGain) || stoneGain <= 0) return false;
+    const owned = this.current.materials[id] ?? 0;
+    if (owned < quantity) return false;
+    if (!Number.isSafeInteger(this.current.spiritStones + stoneGain)) return false;
+    const materials = { ...this.current.materials };
+    const left = owned - quantity;
+    if (left > 0) materials[id] = left; else delete materials[id];
+    try {
+      this.commit({ ...this.current, spiritStones: this.current.spiritStones + stoneGain, materials });
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
   receiveMaterial(id: string, amount: number): void {
     if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(id)
       || !Number.isSafeInteger(amount) || amount <= 0

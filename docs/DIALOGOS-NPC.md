@@ -23,19 +23,43 @@ guarda **de onde veio cada ideia** e o que é **adaptação de teste**, não cit
 - Nada de comércio real: as falas de mercador **não** anunciam preço ou item
   comprável, porque essas mecânicas não existem nesta versão.
 
-## Quem é o vendedor
+## Quem é o vendedor (banca implementada)
 
-**Jiang Ya** interpreta o vendedor: na novel ele é o Gu Master de Rank 1 que
-cuida da loja do clã ao lado da Câmara de Gu, vende boneco de palha para treino e
-pétalas de orquídea-da-lua para alimentar a Gu Luar-da-Lua, e conhece Jiang He,
-seu irmão mais velho. No jogo ele fica na praça do mercado e traz o rótulo
-**"banca de Gu"** acima do nome; Tia Hua, mortal, tem **"banca de comida"**.
+**Jiang Ya** é o vendedor: na novel ele é o Gu Master de Rank 1 que cuida da loja
+do clã ao lado da Câmara de Gu, vende boneco de palha para treino e pétalas de
+orquídea-da-lua para alimentar a Gu Luar-da-Lua, e conhece Jiang He, seu irmão
+mais velho. No jogo ele fica na praça do mercado e traz o rótulo **"banca de Gu"**
+acima do nome; Tia Hua, mortal, tem **"banca de comida"** e não negocia.
 
-Esse rótulo (`stall` em `NpcDefinition`) é só identificação visual de teste:
-**não existe loja, carrinho, preço ou troca**. Por isso as falas do vendedor
-dizem o que ele vende, mas o preço é sempre atribuído ao clã — nenhuma fala
-promete compra, desconto ou item jogável. Quando o comércio for aprovado, Jiang Ya
-é o NPC que já tem papel, posição e texto de mercador prontos.
+Tocar em Jiang Ya abre a **Banca do clã** (`src/ui/vendorPanel.ts`) em vez da fala
+comum. A fala dele fica no cabeçalho do painel.
+
+### O que a banca faz
+
+| Operação | Escopo | Valores |
+| --- | --- | --- |
+| Comprar material de ruptura | `ruptura-rank-1` a `ruptura-rank-4` | 8 / 24 / 70 / 200 pedras por unidade |
+| Vender Gu Rank 1 | Seta Estelar, Lança de Osso, Pele de Besta, Pele de Rocha, Roda de Vento, Pequena Luz | preço de referência do catálogo (650–700 pedras) |
+
+- Preços de Gu **não são novos números**: vêm de `price` em `guCatalog.ts`, o mesmo
+  valor já exibido na ficha. A tabela de materiais é balanceamento de teste.
+- A banca **não compra Gu**, não vende Gu selvagem, não tem estoque rotativo, não
+  dá desconto e não tem receita/refino.
+- O inventário de teste ainda entrega uma cópia de cada Gu Rank 1; comprar na
+  banca soma pilha. Quando esse inventário de teste for retirado, a banca passa a
+  ser a fonte das Gu simples — o estoque curto e barato já está no lugar.
+
+### Regras de segurança da troca (`src/combat/vendor.ts`)
+
+- Compra: confere estoque, saldo e limite de pilha (99); grava as pedras, entrega
+  a Gu e, se o inventário não aceitar, **devolve o pagamento** na mesma sessão.
+- Venda: consumir o material e creditar as pedras acontece numa **única gravação**
+  (`CharacterCultivation.tradeMaterial`), então um save interrompido não apaga o
+  material sem pagar. A entrada zerada sai do save em vez de virar zero.
+- Falha de gravação aborta a troca com mensagem e sem alterar o estado; valores
+  inválidos (quantidade zero, fracionária, negativa) são recusados.
+- Recarregar a página mantém pedras, materiais e Gu — não existe mercador
+  reabastecendo estoque, porque o estoque é fixo.
 
 ## Ganchos de mundo (o NPC comenta seu progresso)
 

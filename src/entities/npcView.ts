@@ -55,6 +55,8 @@ export function createTestNpcViews(
   /** Lido a cada toque: o NPC comenta o Rank/pedras/Gu do momento, sem guardar histórico. */
   context: () => Readonly<NpcContext> = () => ({ rank: 1, stage: 'Inicial',
     spiritStones: 0, equippedGu: 0 }),
+  /** Intercepta o toque (ex.: abrir a banca do vendedor). Retornar true dispensa a fala. */
+  onInteract?: (definition: Readonly<NpcDefinition>) => boolean,
 ): NpcViewRecord[] {
   return definitions.flatMap((definition) => {
     if (!isFree(definition.x, definition.y)) return [];
@@ -84,6 +86,7 @@ export function createTestNpcViews(
     sprite.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
       event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
+      if (onInteract?.(definition)) return;
       const metBefore = Number.isFinite(brain.agent.memory.lastInteractionAt);
       brain.interact(scene.time.now, context());
       // Cada conversa avança uma fala do NPC (em ciclo); ver npcLine em npc.ts.
