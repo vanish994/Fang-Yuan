@@ -379,6 +379,7 @@ O combate será **em tempo real, diretamente no mapa top-down**, sem transição
 - Cada efeito especifica alvo, duração, prioridade, empilhamento, remoção e interação com outros efeitos.
 - Movimento, colisão, alcance, linha de visão, interrupções e condições de acerto devem ser explícitos e testáveis.
 - Animações e efeitos visuais não podem alterar resultados mecânicos.
+- **Poses e partículas do protótipo (implementado, só apresentação):** as quatro poses enviadas pelo usuário — caminhada, conjuração, arremetida e queda — são animações 4×4 de 64px (32px no mundo) e não mudam hitbox, velocidade, dano, alcance nem recarga. Ativar um Gu toca a pose de conjuração (Gu de movimento toca a arremetida) por ~0,4 s e volta sozinha à caminhada; a morte toca a pose de queda, travada até o respawn. As partículas vêm de uma folha de quatro formas (redemoinho, corte, fumaça, rastro) publicada como máscara clara e pintada com o `visual.color` do Gu ativo, então qualquer Gu — inclusive os Rank 2 — tem efeito próprio sem arte nova. As três poses de ação são escaladas pelo mesmo fator da caminhada e ancoradas pelo centro dos pés, para o corpo não crescer nem deslizar ao trocar de animação.
 - O servidor validará ações e resultados nas partidas competitivas.
 - Não introduzir turnos ou ativação automática de Gu ativos sem decisão explícita.
 

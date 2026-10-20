@@ -26,6 +26,8 @@ import { createTestNpcViews, preloadNpcSprites, registerNpcAnimations,
 import { bossFrame } from './combat/bossSprites';
 import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world/mobRespawn';
 import { mobFrame } from './combat/mobSprites';
+import { effectForGu } from './ui/guEffects';
+import { GuEffectView } from './ui/guEffectView';
 
 class QingMaoScene extends Phaser.Scene {
   private player!: FangYuan;
@@ -40,6 +42,8 @@ class QingMaoScene extends Phaser.Scene {
     x: number; y: number; boss: boolean; frame: (id: string, direction: Direction) => number }>();
   private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
+  /** Partículas recoloríveis: forma pela função do Gu, cor pelo catálogo. */
+  private guEffects?: GuEffectView;
   private enemyProjectileViews: Phaser.GameObjects.Graphics[] = [];
   /** Fila de recompensas: entrega Gu/pedras/material com retry e degradação. */
   private readonly rewards = new RewardQueue();
@@ -85,8 +89,22 @@ class QingMaoScene extends Phaser.Scene {
     this.load.image('logs', 'assets/qing-mao/Tree%20Stumps%20and%20Logs%201.2.PNG');
     this.load.image('mushrooms', 'assets/qing-mao/Mushrooms.png');
     // Quadros 2× a resolução lógica: 64px na textura, 32px no mapa.
+    // Quatro poses da mesma arte: caminhada, conjuração, arremetida e queda.
     this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-64.png', {
       frameWidth: 64, frameHeight: 64,
+    });
+    this.load.spritesheet('fang-yuan-cast', 'assets/characters/fang-yuan-cast-64.png', {
+      frameWidth: 64, frameHeight: 64,
+    });
+    this.load.spritesheet('fang-yuan-dash', 'assets/characters/fang-yuan-dash-64.png', {
+      frameWidth: 64, frameHeight: 64,
+    });
+    this.load.spritesheet('fang-yuan-down', 'assets/characters/fang-yuan-down-64.png', {
+      frameWidth: 64, frameHeight: 64,
+    });
+    // Partículas de Gu: 4 formas × 4 quadros em tons neutros, pintadas em tempo real.
+    this.load.spritesheet('gu-effects', 'assets/characters/gu-effects-4x4-32.png', {
+      frameWidth: 32, frameHeight: 32,
     });
     preloadNpcSprites(this);
     // Atlas: 15 mobs × 4 direções; todos os 15 têm spawn definido no mundo.
@@ -105,6 +123,7 @@ class QingMaoScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     registerWalkAnimations(this);
     registerNpcAnimations(this);
+    this.guEffects = new GuEffectView(this);
     this.player = new FangYuan(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
@@ -147,6 +166,8 @@ class QingMaoScene extends Phaser.Scene {
       this.rewards.clear();
       this.minimap?.destroy();
       this.minimap = undefined;
+      this.guEffects?.destroy();
+      this.guEffects = undefined;
       this.combatHUD?.destroy();
       this.combatHUD = undefined;
       this.combat.destroy(); // cancela a assinatura do cultivo
@@ -279,6 +300,7 @@ class QingMaoScene extends Phaser.Scene {
         this.player.move(null);
         (this.player.body as Phaser.Physics.Arcade.Body).reset(this.combat.hero.x, this.combat.hero.y);
         this.player.setAlpha(1);
+        this.player.resetPose();
         this.combatHUD?.say('Retorno ao início. Penalidade de pedras ainda não definida.');
       }
       return;
@@ -292,6 +314,9 @@ class QingMaoScene extends Phaser.Scene {
     const movementDirection = this.combatHUD?.direction ?? this.player.movingDirection ?? this.player.facingDirection;
     let result: ActionResult;
     let message = '';
+    // Gu que originou a ação: define a animação e a cor das partículas.
+    let usedGu: GuId = 'moonlight';
+    let usedDash = false;
     if (action === 'basic') {
       result = this.combat.basicAttack(now, this.isFree);
       message = 'Ataque básico!';
@@ -301,6 +326,7 @@ class QingMaoScene extends Phaser.Scene {
     } else if (action === 'dash') {
       result = this.combat.dash(now, movementDirection, this.isFree);
       message = 'Arrancada! Velocidade temporária aumentada.';
+      usedDash = true;
     } else if (action === 'attack' || action === 'movement' || action === 'support') {
       const slot = action === 'attack' ? 'attack' : action === 'movement' ? 'movement' : 'support';
       const equipped = this.combat.equipment[slot];
@@ -311,18 +337,38 @@ class QingMaoScene extends Phaser.Scene {
       const direction = slot === 'movement' ? movementDirection : aiming;
       result = this.combat.activate(equipped, now, direction, this.isFree);
       message = this.activationMessage(equipped);
+      usedGu = equipped;
+      usedDash = GU_CATALOG[equipped].slot === 'movement';
       if (result.ok && slot === 'movement') this.settleAfterDash();
     } else if (action.startsWith('item:')) {
-      result = this.combat.useItem(action.slice(5) as GuId, now);
+      usedGu = action.slice(5) as GuId;
+      result = this.combat.useItem(usedGu, now);
       message = result.ok ? 'Clarão ofuscante!' : '';
     } else return;
     if (result.ok && (action === 'dash' || action === 'movement')) this.settleAfterDash();
     if (!result.ok) this.combatHUD?.say(result.reason ?? 'Ação indisponível.');
     else {
       if (message) this.combatHUD?.say(message);
+      this.playActionPresentation(usedGu, usedDash, now);
       // Recompensa/morte têm prioridade sobre a mensagem genérica da ação.
       this.handleCombatEvents(result.events);
     }
+  }
+
+  /**
+   * Pose + partículas da ação. É puramente visual: quem resolve dano/efeito é o
+   * motor de combate, e a pose volta sozinha para a caminhada.
+   */
+  private playActionPresentation(guId: GuId, dash: boolean, now: number): void {
+    this.player.playPose(dash ? 'dash' : 'cast', now);
+    const effect = effectForGu(guId);
+    this.guEffects?.burst(dash ? 'dash' : 'cast', this.player.x, this.player.y - 14,
+      effect.shape, effect.tint);
+  }
+
+  /** Fumaça neutra para mortes: não pertence a nenhum Gu. */
+  private playDefeatPresentation(x: number, y: number): void {
+    this.guEffects?.burst('defeat', x, y - 12, 'smoke', 0x2b2b33);
   }
 
   private activationMessage(id: GuId): string {
@@ -388,6 +434,9 @@ class QingMaoScene extends Phaser.Scene {
       if (event.type === 'hero-death') {
         this.waypoints = []; this.destination?.destroy(); this.destination = undefined;
         this.player.move(null); this.player.setAlpha(0.5);
+        // Pose de queda travada no último quadro até o respawn.
+        this.player.playPose('down', this.time.now, null);
+        this.guEffects?.burst('death', this.player.x, this.player.y - 12, 'smoke', 0x3a1f24);
         this.combatHUD?.say('Derrotado. A penalidade por morte ainda não foi definida.');
       }
       if (event.type === 'dash' && event.x !== undefined && event.y !== undefined) {
@@ -396,6 +445,7 @@ class QingMaoScene extends Phaser.Scene {
         this.tweens.add({ targets: trail, alpha: 0, duration: 280, onComplete: () => trail.destroy() });
       }
       if (event.type === 'defeat' && event.targetId) {
+        this.playDefeatPresentation(event.x ?? this.player.x, event.y ?? this.player.y);
         const key = this.instanceSpawns.get(event.targetId)
           ?? `${this.currentArea.definition.id}:${event.targetId}`;
         this.defeatedInArea.add(key);

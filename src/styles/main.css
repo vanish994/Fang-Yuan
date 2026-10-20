@@ -88,7 +88,8 @@
   .sheet-identity { display: flex; gap: 14px; align-items: center; padding: 16px 18px; }
   .sheet-portrait { position: relative; flex: 0 0 64px; height: 96px;
     background-color: #343854; image-rendering: pixelated; overflow: hidden; }
-  /* Recorta só o primeiro quadro (baixo) do novo atlas 4×4; sem vazar a linha seguinte. */
+  /* Recorta só o primeiro quadro (baixo) do atlas 4×4 de 32px ampliado 2×; sem vazar a
+     linha seguinte. A arte do retrato é a mesma pose de caminhada enviada pelo usuário. */
   .sheet-portrait::before { position: absolute; top: 16px; left: 0; content: '';
     width: 64px; height: 64px; background: url('./assets/characters/fang-yuan-walk-32.png')
       0 0 / 256px 256px no-repeat; }

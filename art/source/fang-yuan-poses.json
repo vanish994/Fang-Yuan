@@ -1,0 +1,48 @@
+{
+  "schema": "fang-yuan.animation.poses.v1",
+  "note": "As quatro poses enviadas pelo usuário. Cada master é uma grade 4×4 (480px por célula): linhas na ordem down/left/up/right, quatro quadros por linha. A escala é única para todas as poses (ver scripts/build-sprite-atlases.py).",
+  "direction_order": ["down", "left", "up", "right"],
+  "grid": [4, 4],
+  "cell": 480,
+  "poses": {
+    "walk": {
+      "master": "fang-yuan-walk-4dir-4frames-master.png",
+      "atlas": "fang-yuan-walk-64.png",
+      "frame_rate": 8,
+      "loop": true,
+      "use": "locomoção"
+    },
+    "cast": {
+      "master": "fang-yuan-cast-4dir-4frames-master.png",
+      "atlas": "fang-yuan-cast-64.png",
+      "frame_rate": 10,
+      "loop": false,
+      "duration_ms": 380,
+      "use": "ativação de Gu (ataque, apoio, item)"
+    },
+    "dash": {
+      "master": "fang-yuan-dash-4dir-4frames-master.png",
+      "atlas": "fang-yuan-dash-64.png",
+      "frame_rate": 12,
+      "loop": false,
+      "duration_ms": 420,
+      "use": "Gu de movimento / arremetida"
+    },
+    "down": {
+      "master": "fang-yuan-down-4dir-4frames-master.png",
+      "atlas": "fang-yuan-down-64.png",
+      "frame_rate": 8,
+      "loop": false,
+      "duration_ms": null,
+      "use": "queda do herói: fica no último quadro até o respawn"
+    }
+  },
+  "effects": {
+    "master": "gu-effects-4x4-32.png",
+    "atlas": "../public/assets/characters/gu-effects-4x4-32.png",
+    "frame_size": [32, 32],
+    "grid": [4, 4],
+    "rows": { "swirl": 0, "slash": 1, "smoke": 2, "streak": 3 },
+    "note": "A folha publicada é uma máscara clara: a cor vem do visual.color do Gu em tempo real (setParticleTint), então não é preciso arte por cor."
+  }
+}
