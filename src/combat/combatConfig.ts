@@ -6,7 +6,7 @@ export interface CombatSettings {
     aggroRange: number; speed: number; attackCooldownMs: number; lootStones: number;
     lootMaterialId: string; lootMaterialQuantity: number };
   basic: { damage: number; range: number; cooldownMs: number };
-  moonlight: { damage: number; range: number; width: number; speed: number;
+  moonlight: { rank: number; damage: number; range: number; width: number; speed: number;
     essenceCost: number; cooldownMs: number };
   liquorWorm: { bonusEssenceRegenPerSecond: number };
   stoneSkin: { defenseBonus: number };
@@ -18,7 +18,8 @@ export interface CombatSettings {
 
 /**
  * Balance v0.2: R1 deve derrotar fauna comum sem transformar Gu da Lua em botão de vitória.
- * Os valores de Cigarra continuam os definidos pelo GDD; o restante é balanceamento de combate.
+ * O Rank do Gu é independente do Rank do cultivador; a essência do usuário apenas
+ * altera a potência de ativação através da qualidade da essência.
  */
 export const COMBAT_CONFIG: CombatSettings = {
   hero: { maxHealth: 100, defense: 2, maxEssence: 100, baseEssenceRegenPerSecond: 1 },
@@ -26,7 +27,7 @@ export const COMBAT_CONFIG: CombatSettings = {
     speed: 32, attackCooldownMs: 1450, lootStones: 8,
     lootMaterialId: 'ruptura-rank-1', lootMaterialQuantity: 1 },
   basic: { damage: 14, range: 62, cooldownMs: 600 },
-  moonlight: { damage: 26, range: 224, width: 26, speed: 320,
+  moonlight: { rank: 1, damage: 26, range: 224, width: 26, speed: 320,
     essenceCost: 16, cooldownMs: 1800 },
   liquorWorm: { bonusEssenceRegenPerSecond: 2 },
   stoneSkin: { defenseBonus: 4 },
@@ -37,11 +38,11 @@ export const COMBAT_CONFIG: CombatSettings = {
 } as const;
 
 /** Nomes visuais enviados pelo usuário; Whirlwind é a grafia provisória de “redemoinho”. */
-export const GU_CATALOG: Readonly<Record<GuId, { label: string; slot: GuSlot }>> = {
-  moonlight: { label: 'Moonlight Gu · Gu da Lua', slot: 'attack' },
-  'stone-skin': { label: 'Stone Skin Gu · Pele de Pedra', slot: 'passive' },
-  'liquor-worm': { label: 'Liquor Gu · Verme do Licor', slot: 'support' },
-  'whirlwind': { label: 'Whirlwind Gu · Redemoinho (teste)', slot: 'movement' },
+export const GU_CATALOG: Readonly<Record<GuId, { label: string; slot: GuSlot; rank: number }>> = {
+  moonlight: { label: 'Moonlight Gu · Gu da Lua', slot: 'attack', rank: 1 },
+  'stone-skin': { label: 'Stone Skin Gu · Pele de Pedra', slot: 'passive', rank: 1 },
+  'liquor-worm': { label: 'Liquor Gu · Verme do Licor', slot: 'support', rank: 1 },
+  'whirlwind': { label: 'Whirlwind Gu · Redemoinho (teste)', slot: 'movement', rank: 1 },
 };
 
 /** Distâncias de teste: inimigos ficam fora da detecção inicial para permitir preparar Gu. */
