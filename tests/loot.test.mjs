@@ -23,7 +23,7 @@ const { CombatEngine } = await import(engineURL);
 const { COMBAT_CONFIG } = await import(configURL);
 const { GuStateStore } = await import(guStateURL);
 const { TEST_MOBS } = await import(mobURL);
-const { CharacterCultivation, CULTIVATION_STORAGE_KEY } = await import(sessionURL);
+const { CharacterCultivation } = await import(sessionURL);
 
 const mobOf = id => TEST_MOBS.find(mob => mob.id === id);
 

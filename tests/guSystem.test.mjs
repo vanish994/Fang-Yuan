@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { moduleURL } from './support/tsModule.mjs';
 
 const { CombatEngine } = await import(moduleURL('combat/combatEngine'));
-const { GU_CATALOG, GU_IDS, GU_BY_SLOT, RANK_ONE_GU_COUNT, PENDING_GU_SLOTS,
-  isAssimilable, isEquippable } = await import(moduleURL('combat/guCatalog'));
+const { GU_CATALOG, GU_IDS, GU_BY_SLOT, RANK_ONE_GU_COUNT,
+  PENDING_GU_SLOTS } = await import(moduleURL('combat/guCatalog'));
 const { GU_RECIPES, recipeById, validateRecipes } = await import(moduleURL('combat/guRecipes'));
 const { GuStateStore, GU_STATE_STORAGE_KEY, GU_STATE_VERSION, MAX_GU_STACK,
   emptyInventory, normalizeGuSnapshot } = await import(moduleURL('combat/guState'));

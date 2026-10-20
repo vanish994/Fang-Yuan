@@ -2,7 +2,8 @@ import { characterSheetState, FANG_YUAN_PROFILE } from '../entities/characterPro
 import { breakthroughMaterialName } from '../entities/cultivationBalance';
 import { recipeAvailability, recipeBlockReason, recipeRenderKey, type RecipeContext }
   from './recipeView';
-import { CharacterCultivation, TEST_STONE_GRANT } from '../entities/characterCultivation';
+import { TEST_STONE_GRANT } from '../entities/characterCultivation';
+import type { CharacterCultivation } from '../entities/characterCultivation';
 import type { CardinalDirection } from '../entities/directions';
 import { AdvanceIntent } from './advanceIntent';
 import type { CombatEngine } from '../combat/combatEngine';

@@ -1,5 +1,7 @@
-import Phaser from 'phaser';
-import { AREA_TILES, TILES_PER_CHUNK, INITIAL_WORLD, type Side } from './initialWorld';
+/** Só tipos: este módulo desenha, não instancia nada do Phaser. */
+import type Phaser from 'phaser';
+import { AREA_TILES, TILES_PER_CHUNK, INITIAL_WORLD } from './initialWorld';
+import type { Side } from './initialWorld';
 import type { GeneratedArea, WorldLayer } from './areaGenerator';
 
 const VISUAL_LAYERS: readonly (readonly [WorldLayer, string, number])[] = [

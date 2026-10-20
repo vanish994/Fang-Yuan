@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { moduleURL } from './support/tsModule.mjs';
 
 const agentURL = moduleURL('agents/agentBrain');

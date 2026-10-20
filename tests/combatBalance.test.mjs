@@ -7,7 +7,6 @@ const root = new URL('../', import.meta.url);
 const combat = readFileSync(new URL('src/combat/combatEngine.ts', root), 'utf8');
 const mitigation = readFileSync(new URL('src/combat/damageFormula.ts', root), 'utf8');
 const mobs = readFileSync(new URL('src/combat/mobCatalog.ts', root), 'utf8');
-const cultivation = readFileSync(new URL('src/entities/cultivationCombat.ts', root), 'utf8');
 const { cultivationCombatStats } = await import(moduleURL('entities/cultivationCombat'));
 const catalog = readFileSync(new URL('src/combat/guCatalog.ts', root), 'utf8');
 
