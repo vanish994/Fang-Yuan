@@ -9,9 +9,10 @@ Método: leitura do código + medições executadas (testes, build, simulações
 
 O projeto está em boa forma estrutural (TypeScript `strict`, zero `any`, zero `@ts-ignore`, 118 testes, save normalizado, acessibilidade com `aria-live`, CSS sem código morto, 0 vulnerabilidades). Os problemas que restam não são de estilo: são de **comportamento** e de **processo**.
 
-> **Status (2026-10-20):** **Ondas 1 e 2 implementadas** nesta branch, com testes de regressão e medições antes/depois.
+> **Status (2026-10-20):** **Ondas 1, 2 e 3 implementadas** nesta branch, com testes de regressão e medições antes/depois.
 > Onda 1: itens 1, 2, 3, 4, 5, 7, 8. Onda 2: RNG injetável (4.1), degradação para memória (3.3), assinatura de render das receitas (3.6) e extração do fluxo de recompensa (4.7).
-> Ver “Progresso da Onda 1” e “Progresso da Onda 2” no fim do documento; o restante (Onda 3) segue como proposta.
+> Onda 3: `Enemy.wild` (4.4), exports mortos (4.2/4.3), `enemyAbilities`/`wildGuDrops` fora do motor (4.5), render de projéteis unificado, asserts de texto reduzidos (4.6) e todo o polimento da seção 5.
+> Ver “Progresso da Onda 1”, “Onda 2” e “Onda 3” no fim do documento. O que continua em aberto está em “Pendências (não bloqueiam features)”.
 
 | # | Achado | Severidade | Impacto medido | Esforço |
 |---|---|---|---|---|
@@ -303,7 +304,7 @@ Recomendo executar a **Onda 1** inteira de uma vez: são correções pequenas, c
 
 **Balanceamento do novo loot:** a curva é suave em risco normalizado — 0,144 a 0,288 pedras por PV em todas as criaturas; chefes pagam 2–4 materiais de Rank superior. Nenhuma criatura domina o farm por pedra/PV, e o respawn continua inexistente na sessão.
 
-**Pendente da Onda 2/3:** RNG injetável no `tick`, extração de `rewardFlow` para teste, `renderRecipes` com assinatura (perda de foco), agrupamento de `Enemy.wild`, remoção de exports mortos e do default duplicado, redução de asserts sobre texto do código.
+**Pendente na época (hoje concluído na Onda 3):** RNG injetável no `tick`, extração de `rewardFlow` para teste, `renderRecipes` com assinatura (perda de foco), agrupamento de `Enemy.wild`, remoção de exports mortos e do default duplicado, redução de asserts sobre texto do código.
 
 
 ---
@@ -330,4 +331,37 @@ Recomendo executar a **Onda 1** inteira de uma vez: são correções pequenas, c
 - Depois de degradar, uma nova falha vira `stalled` (fila pausada por 30 s) em vez de reiniciar o ciclo: não existe caminho de laço infinito.
 - O RNG nunca é serializado; o save continua só com inventário, equipamento, assimilados, pedras e materiais.
 
-**Onda 3 (segue pendente):** agrupar o estado selvagem em `Enemy.wild`, remover os 5 exports mortos e o default duplicado de inventário, reduzir asserts sobre texto do código, dividir `enemyAbilities`/`wildGuDrops` do motor, unificar o render dos projéteis e o polimento da seção 5.
+---
+
+## 12. Progresso da Onda 3 (implementado)
+
+| Item | Correção | Evidência antes → depois |
+|---|---|---|
+| 4.4 Estado selvagem espalhado em `Enemy` | `WildGuState { gu, casts, nextAt?, buffUntil?, damageBonus?, lowHealthDefense? }`; `Enemy.wild?: WildGuState` | **6** campos opcionais soltos em `Enemy` (fáceis de esquecer ao criar/serializar) → **1** objeto opcional; o motor lê `enemy.wild?.gu`, nunca um Gu sorteado na morte |
+| 4.2 Exports mortos | Removidos `activeOf`, `passiveOf` (guCatalog), `enemyTraits` (mobCatalog), `CULTIVATION_COMBAT_STATES` (cultivationCombat), `PRIMORDIAL_SEA_FRAME_SIZE` (primordialSea) | **5** símbolos exportados sem um único importador → **0** |
+| 4.3 Default duplicado | `CombatEngine.defaultSnapshot` e a cópia do inventário inicial eliminados; regra única em `defaultGuSnapshot()` | mesma regra escrita em 2 lugares → **1** |
+| 4.5 Motor monolítico | Novos `enemyAbilities.ts` (`useWildGu`, `stepEnemyProjectiles`, `wildMeleeMultiplier`), `geometry.ts` (vetores/distância/caminho livre) e `wildGuDrops.ts` (log puro de drops) com contexto injetado | `combatEngine.ts` **1.032 → 902 linhas**; as habilidades passaram a ser testáveis sem sessão/save (15 testes novos) |
+| 4.5 Render de projéteis duplicado | `src/ui/projectileView.ts` (funções puras) + um único ciclo de pooling em `main.ts`, redesenho só quando a assinatura `guId:width`/`guId` muda | dois blocos quase idênticos (jogador/inimigo), redraw a cada quadro → **1** caminho de render (8 testes) |
+| 4.6 Asserts sobre texto do código | Curva de mitigação, Moonlight e fauna passaram a ler dados e a exercitar o motor; `combatBalance.test.mjs` não lê mais `.ts` | **163 de 1.027 asserts (16%)** → **137 de 1.256 (10,9%)**; o resto é CSS, manifesto de sprites e guardrails de conteúdo |
+| 5. Bundle único | `manualChunks` separa o Phaser (forma de função — o Vite 8/rolldown rejeita a forma de objeto) | `index-*.js` **1.510,77 kB (gzip 400)** → **136,52 kB (gzip 43,24)**; Phaser 1.374,10 kB fica em cache entre versões |
+| 5. Sourcemap em produção | `SOURCEMAP=true` só em `npm run build:debug`; build normal sem `.map` | `sourcemap: 'hidden'` publicaria **11,2 MB** de mapa do Phaser em todo deploy → `dist` de 3,2 MB sem mapa |
+| 5. `strictPort` no dev | `server.strictPort: false` (o `preview` continua estrito) | `npm run dev` falhava com a 5173 ocupada → escolhe outra porta |
+| 5. `index.html` monolítico | CSS movido para `src/styles/main.css`, ligado por `<link>`; `tests/support/markup.mjs` centraliza `readHtml()`/`readStyles()` | **570 linhas / 33,4 kB, `<style>` de 436 linhas** → HTML **9,5 kB** + CSS **24,0 kB (gzip 5,55)** com hash próprio |
+| 5. Sem lint/format | ESLint 9 + `typescript-eslint` com config mínima (`npm run lint`, `npm run check`) e `.editorconfig` | 0 verificações estáticas além do `tsc` → lint cobrindo `src`, `tests` e `vite.config.ts`; **5 erros e 2 avisos preexistentes corrigidos** |
+| 5. Cobertura invisível | `npm run test:coverage` (`--experimental-test-coverage`) | nenhuma métrica → **99,93 % linhas / 96,66 % branches / 94,96 % funções** |
+| 5. Rótulos derivados por `split('·')` | Campo `short` explícito em `GuDefinition`, preenchido nas 26 entradas do catálogo; teste garante presença, unicidade e ≤ 14 caracteres | rótulo dependia da posição do separador no texto de exibição → dado explícito, independente do `label` |
+
+**Decisões que valem registro**
+
+- O `SHORT_NAMES` do HUD **não** virou duplicata: o botão tem 72 px e mostra `rótulo ·custo`, então ele mantém um conjunto próprio (mais curto que o `short` do mundo). O catálogo continua sendo a fonte dos nomes completos; a decisão está comentada em `combatHUD.ts`.
+- Prettier ficou de fora de propósito: reformataria todos os arquivos de uma vez e esconderia o histórico do que mudou de verdade. As regras de estilo que importam (imports de tipo, `any`, variáveis mortas) estão no ESLint.
+- Os asserts restantes sobre arquivos são, em sua maioria, CSS (`.combat-joystick`, `.combat-minimap`) e manifestos de sprites — verificam o que o navegador consome, não como o código está escrito.
+- `sourcemap: 'hidden'` é o modo correto (depura produção sem expor a fonte), mas só faz sentido sob demanda enquanto o Phaser gerar um mapa de 11 MB.
+
+**Pendências (não bloqueiam features)**
+
+1. **Balanceamento R1 → R2:** `R1 Pico` (130 PV) → `R2 Inicial` (142 PV) = **+12 PV**, o mesmo salto de `R1 Superior` → `R1 Pico` (118 → 130). O GDD diz que o Rank é o salto principal; os valores foram mantidos intactos e a questão segue aberta (precisa de teste de jogo, não de refactor).
+2. **Prettier:** pode entrar depois de um commit de formatação isolado (`git blame` ignorando o commit), quando houver janela para o diff grande.
+3. **Asserts de texto restantes:** os 137 são predominantemente CSS/arte; converter os de `npc.test.mjs` e `combat.test.mjs` exigiria um DOM de teste (jsdom), o que adicionaria dependência sem ganho imediato.
+4. **`main.ts` ainda grande (≈600 linhas):** a cena concentra entrada, render e orquestração. A extração de projéteis já reduziu o pior trecho; dividir por sistemas (input, mundo, HUD) é o próximo passo natural, não um pré-requisito.
+
