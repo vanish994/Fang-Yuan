@@ -4,7 +4,7 @@ import { AgentBrain } from '../agents/agentBrain';
 import type { MobDefinition } from './mobCatalog';
 import type { CultivationState } from '../entities/cultivation';
 import { CharacterCultivation } from '../entities/characterCultivation';
-import { cultivationCombatStats, type CultivationCombatStats } from '../entities/cultivationCombat';
+import { cultivationCombatStats, primordialEssenceQualityMultiplier, type CultivationCombatStats } from '../entities/cultivationCombat';
 import { mitigatedDamage } from './damageFormula';
 
 const vectors: Record<Direction, Point> = {
@@ -28,6 +28,7 @@ export class CombatEngine {
   combatUntil = 0;
   speedBonusUntil = 0;
   private cultivationStats: CultivationCombatStats;
+  private cultivationState: CultivationState;
   private readonly unsubscribeCultivation: () => void;
   private readonly cooldowns = new Map<string, number>();
   private readonly projectiles: Projectile[] = [];
@@ -41,7 +42,8 @@ export class CombatEngine {
 
   constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0,
     cultivation?: CultivationState) {
-    this.cultivationStats = cultivationCombatStats(cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} });
+    this.cultivationState = cultivation ?? { rank: 1, stage: 'Inicial', spiritStones: 0, materials: {} };
+    this.cultivationStats = cultivationCombatStats(this.cultivationState);
     this.hero = { x, y, health: this.cultivationStats.maxHealth, maxHealth: this.cultivationStats.maxHealth, alive: true };
     this.essence = this.cultivationStats.maxEssence;
     this.unsubscribeCultivation = CharacterCultivation.subscribe(state => this.applyCultivation(state));
@@ -49,6 +51,7 @@ export class CombatEngine {
 
   applyCultivation(state: CultivationState): void {
     const previousRatio = this.hero.maxHealth > 0 ? this.hero.health / this.hero.maxHealth : 1;
+    this.cultivationState = state;
     this.cultivationStats = cultivationCombatStats(state);
     this.hero.maxHealth = this.cultivationStats.maxHealth;
     this.hero.health = this.hero.alive
@@ -59,7 +62,15 @@ export class CombatEngine {
 
   destroy(): void { this.unsubscribeCultivation(); }
   get attack(): number { return this.cultivationStats.attack; }
-  get moonlightDamage(): number { return Math.max(this.config.moonlight.damage, Math.round(this.attack * (26 / 14))); }
+
+  /**
+   * Gu da Lua é Rank 1. O cultivador mais forte fornece essência de melhor
+   * qualidade, aumentando a eficiência do mesmo Gu sem mudar o Rank dele.
+   */
+  get moonlightDamage(): number {
+    const quality = primordialEssenceQualityMultiplier(this.cultivationState);
+    return Math.max(1, Math.round(this.config.moonlight.damage * quality));
+  }
 
   addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
     mob?: Readonly<MobDefinition>): Enemy {
