@@ -1,18 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-function moduleURL(path, imports = {}) {
-  const source = readFileSync(new URL(`../src/${path}.ts`, import.meta.url), 'utf8');
-  let javascript = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  for (const [from, url] of Object.entries(imports)) {
-    javascript = javascript.replace(`from '${from}'`, `from '${url}'`);
-  }
-  return `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`;
-}
 
 const profile = moduleURL('entities/characterProfile');
 const rules = moduleURL('entities/cultivation');
@@ -124,17 +114,30 @@ test('ficha touch: requisitos, confirmação, resultado e proteção contra toqu
       preventDefault() {} });
     assert.equal(elements.get('panel-inventory').hidden, false);
     assert.equal(elements.get('gu-slot-count').textContent, '1 / 4');
-    assert.deepEqual(elements.get('gu-attack').children.map(option => option.value), ['moonlight']);
+    // O seletor lista somente Gu possuídos do slot, com a opção vazia primeiro.
+    const attackOptions = elements.get('gu-attack').children.map(option => option.value);
+    assert.equal(attackOptions[0], '');
+    assert.ok(attackOptions.includes('moonlight'));
+    assert.ok(attackOptions.includes('bone-spear'));
     assert.match(elements.get('gu-effect-attack').textContent, /Ativo/);
+    // A coleção mostra todos os Gu publicados e documenta os slots pendentes.
     const shelf = elements.get('gu-collection').children;
-    assert.equal(shelf.length, 4);
-    assert.deepEqual(shelf.map(choice => choice.children[0].attributes['data-gu']),
-      ['moonlight', 'liquor-worm', 'stone-skin', 'whirlwind']);
-    assert.equal(shelf[0].attributes['aria-pressed'], 'true');
-    shelf[2].click(); // tocar no ícone equipa Stone Skin.
+    const cards = shelf.filter(child => child.attributes['data-gu']);
+    assert.equal(cards.length, 26); // 24 Gu Rank 1 + 2 resultados de refino Rank 2
+    assert.equal(cards.filter(card => card.attributes['data-gu'] === 'moonlight').length, 1);
+    assert.ok(shelf.some(child => /Pendente no slot de movimento/.test(child.textContent)));
+    // A coleção é reconstruída a cada troca: sempre consultar os cartões atuais.
+    const cardFor = id => elements.get('gu-collection').children
+      .find(child => child.attributes['data-gu'] === id);
+    const actionButton = (id, index) => cardFor(id).children.at(-1).children[index];
+    // Camadas de atributos: base, equipados, temporários e permanentes têm fonte única no motor.
+    assert.match(elements.get('stat-base').textContent, /Vida 100 · Ataque 14/);
+    assert.match(elements.get('stat-equipped').textContent, /defesa/);
+    assert.match(elements.get('stat-temporary').textContent, /Nenhum efeito/);
+    actionButton('stone-skin', 0).click(); // equipar pelo cartão
     assert.equal(combat.equipment.passive, 'stone-skin');
     assert.equal(elements.get('gu-icon-passive').attributes['data-gu'], 'stone-skin');
-    shelf[2].click(); // tocar novamente remove.
+    actionButton('stone-skin', 0).click(); // remover
     assert.equal(combat.equipment.passive, null);
     const passive = elements.get('gu-passive');
     passive.value = 'stone-skin'; passive.change();

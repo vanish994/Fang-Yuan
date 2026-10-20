@@ -53,7 +53,7 @@ export const TEST_MOBS: readonly Readonly<MobDefinition>[] = [
     { plannedAbility: 'atordoamento' }),
   mob('jade-serpent', 'Serpente de Jade', 3, 40, 16, 260, 12, 65, 50, 170, 75, 'ruptura-rank-3', 1,
     { plannedAbility: 'veneno' }),
-  mob('demon-tiger', 'Tigre Demoníaco', 3, 42, 28, 500, 25, 70, 58, 200, 110, 'ruptura-rank-3', 1,
+  mob('demon-tiger', 'Tigre Demoníaco', 3, 39, 24, 500, 25, 70, 58, 200, 110, 'ruptura-rank-3', 1,
     { plannedAbility: 'emboscada' }),
   mob('boar-king', 'Rei Javali', 3, 38, 34, 700, 30, 85, 45, 220, 140, 'ruptura-rank-3', 1,
     { plannedAbility: 'carga e rugido' }),

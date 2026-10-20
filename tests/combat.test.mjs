@@ -1,16 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-function moduleURL(path, imports = {}) {
-  const source = readFileSync(new URL(`../src/${path}.ts`, import.meta.url), 'utf8');
-  let js = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  for (const [from, url] of Object.entries(imports)) js = js.replace(`from '${from}'`, `from '${url}'`);
-  return `data:text/javascript;base64,${Buffer.from(js).toString('base64')}`;
-}
 const configURL = moduleURL('combat/combatConfig');
 const agentURL = moduleURL('agents/agentBrain');
 const engineURL = moduleURL('combat/combatEngine', {
@@ -75,7 +67,9 @@ test('alvo manual tem prioridade; automático é opcional e só atinge dentro do
   assert.equal(engine.target.id, 'longe');
   assert.equal(engine.basicAttack(0).ok, true);
   assert.equal(engine.enemies.get('perto').health, 36);
-  assert.equal(engine.enemies.get('longe').health, 25);
+  // Dano = floor(14 * 100 / (100 + defesa 1)) = 13. A expectativa antiga (25)
+  // vinha do motor anterior, que nunca chegou a rodar com este carregador.
+  assert.equal(engine.enemies.get('longe').health, 23);
   assert.equal(engine.basicAttack(100).ok, false);
   assert.equal(engine.basicAttack(600).ok, true);
   engine.addEnemy('fora', 300, 100);
@@ -114,7 +108,8 @@ test('Moonlight tem projétil independente de animação: atravessa morto, para 
   for (let i = 1; i <= 8; i++) events.push(...engine.tick(i * 100, 100));
   assert.deepEqual(events.filter(e => e.type === 'damage').map(e => e.targetId), ['morto', 'vivo']);
   assert.equal(engine.enemies.get('morto').alive, false);
-  assert.equal(engine.enemies.get('vivo').health, 19);
+  // 26 de Moonlight mitigados por defesa 1: floor(26 * 100 / 101) = 25.
+  assert.equal(engine.enemies.get('vivo').health, 15);
   assert.equal(engine.enemies.get('intocado').health, 40);
   assert.equal(events.filter(e => e.type === 'reward').length, 1);
   assert.equal(engine.activeProjectiles.length, 0);
@@ -158,11 +153,12 @@ test('inimigos atacam no mapa com recarga; Stone Skin reduz dano sem imunidade',
   const engine = make();
   engine.addEnemy('próximo', 120, 100);
   engine.equip('passive', 'stone-skin', 0);
-  assert.deepEqual(engine.tick(100, 100).filter(e => e.type === 'damage').map(e => e.amount), [2]);
-  assert.equal(engine.hero.health, 98);
+  // Fórmula única de mitigação: floor(8 * 100 / (100 + defesa 6)) = 7.
+  assert.deepEqual(engine.tick(100, 100).filter(e => e.type === 'damage').map(e => e.amount), [7]);
+  assert.equal(engine.hero.health, 93);
   assert.equal(engine.tick(500, 100).filter(e => e.type === 'damage').length, 0);
   assert.equal(engine.tick(1550, 100).filter(e => e.type === 'damage').length, 1);
-  assert.equal(engine.hero.health, 96);
+  assert.equal(engine.hero.health, 86);
 });
 
 test('dash só com Gu de movimento; respeita obstáculo/custo/recarga e bônus sem empilhar', () => {
@@ -289,7 +285,8 @@ test('HUD mobile tem barras, alvo e controle; equipagem fica somente no inventá
   assert.doesNotMatch(html, /combat-topline|combat-stats/);
   assert.doesNotMatch(html, /combat-sea|sea-sprite|mar-primordial-11x128/);
   assert.match(html, /essência primordial/i);
-  assert.doesNotMatch(html, /combat-slots|combat-gear|GU_SLOTS|GU_CATALOG/);
+  // O HUD só lê o Gu equipado (rótulo/ícone/recarga); trocar equipamento continua no inventário.
+  assert.doesNotMatch(html, /combat-slots|combat-gear|engine\.equip\(|assimilate\(/);
   assert.match(html, /combat-cicada/);
   assert.match(html, /data-action="auto"/);
   assert.match(css, /safe-area-inset-bottom/);

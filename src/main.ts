@@ -10,8 +10,10 @@ import { shouldTurnForSegment, type CardinalDirection } from './entities/directi
 import { CharacterSheet } from './ui/characterSheet';
 import { CharacterCultivation } from './entities/characterCultivation';
 import { CombatEngine } from './combat/combatEngine';
+import { GuStateStore } from './combat/guState';
+import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
-import type { ActionResult, CombatEvent, Direction } from './combat/types';
+import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
@@ -71,7 +73,7 @@ class QingMaoScene extends Phaser.Scene {
       frameWidth: 64, frameHeight: 64,
     });
     preloadNpcSprites(this);
-    // Atlas: 15 mobs (12 em jogo + 3 artes reservadas) × 4 direções.
+    // Atlas: 15 mobs × 4 direções; todos os 15 têm spawn definido no mundo.
     this.load.spritesheet('mob-static-4dir', 'assets/mobs/mob-static-4dir-64.png', {
       frameWidth: 64, frameHeight: 64,
     });
@@ -91,7 +93,8 @@ class QingMaoScene extends Phaser.Scene {
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
     this.cultivation.grantTestStonesOnce();
-    this.combat = new CombatEngine(undefined, this.player.x, this.player.y);
+    this.combat = new CombatEngine(undefined, this.player.x, this.player.y, undefined,
+      new GuStateStore());
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
     this.minimap = new MinimapView(this.combatHUD.root);
@@ -125,6 +128,7 @@ class QingMaoScene extends Phaser.Scene {
       this.minimap = undefined;
       this.combatHUD?.destroy();
       this.combatHUD = undefined;
+      this.combat.destroy(); // cancela a assinatura do cultivo
     });
   }
 
@@ -194,27 +198,56 @@ class QingMaoScene extends Phaser.Scene {
     const aiming: Direction = target && Math.abs(dx) + Math.abs(dy) > 1
       ? Math.abs(dx) >= Math.abs(dy) ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up'
       : this.combatHUD?.direction ?? this.player.facingDirection;
+    const movementDirection = this.combatHUD?.direction ?? this.player.movingDirection ?? this.player.facingDirection;
     let result: ActionResult;
-    if (action === 'basic') result = this.combat.basicAttack(now, this.isFree);
-    else if (action === 'moonlight') result = this.combat.castMoonlight(now, aiming);
-    else if (action === 'dash') {
-      result = this.combat.dash(now,
-        this.combatHUD?.direction ?? this.player.movingDirection ?? this.player.facingDirection, this.isFree);
-      if (result.ok) {
-        this.waypoints = [];
-        this.destination?.destroy(); this.destination = undefined;
-        this.player.move(null);
-        (this.player.body as Phaser.Physics.Arcade.Body).reset(this.combat.hero.x, this.combat.hero.y);
+    let message = '';
+    if (action === 'basic') {
+      result = this.combat.basicAttack(now, this.isFree);
+      message = 'Ataque básico!';
+    } else if (action === 'moonlight') {
+      result = this.combat.castMoonlight(now, aiming);
+      message = 'Corte lunar lançado!';
+    } else if (action === 'dash') {
+      result = this.combat.dash(now, movementDirection, this.isFree);
+      message = 'Arrancada! Velocidade temporária aumentada.';
+    } else if (action === 'attack' || action === 'movement' || action === 'support') {
+      const slot = action === 'attack' ? 'attack' : action === 'movement' ? 'movement' : 'support';
+      const equipped = this.combat.equipment[slot];
+      if (!equipped) {
+        this.combatHUD?.say(`Nenhum Gu de ${slot === 'support' ? 'apoio' : slot === 'attack' ? 'ataque' : 'movimento'} equipado.`);
+        return;
       }
+      const direction = slot === 'movement' ? movementDirection : aiming;
+      result = this.combat.activate(equipped, now, direction, this.isFree);
+      message = this.activationMessage(equipped);
+      if (result.ok && slot === 'movement') this.settleAfterDash();
+    } else if (action.startsWith('item:')) {
+      result = this.combat.useItem(action.slice(5) as GuId, now);
+      message = result.ok ? 'Clarão ofuscante!' : '';
     } else return;
+    if (result.ok && (action === 'dash' || action === 'movement')) this.settleAfterDash();
     if (!result.ok) this.combatHUD?.say(result.reason ?? 'Ação indisponível.');
     else {
-      if (action === 'basic') this.combatHUD?.say('Ataque básico!');
-      if (action === 'moonlight') this.combatHUD?.say('Corte lunar lançado!');
-      if (action === 'dash') this.combatHUD?.say('Arrancada! Velocidade temporária aumentada.');
+      if (message) this.combatHUD?.say(message);
       // Recompensa/morte têm prioridade sobre a mensagem genérica da ação.
       this.handleCombatEvents(result.events);
     }
+  }
+
+  private activationMessage(id: GuId): string {
+    const active = GU_CATALOG[id].active;
+    if (active?.kind === 'dash') return 'Arrancada! Velocidade temporária aumentada.';
+    if (active?.kind === 'heal') return 'Água purificadora restaura a vida.';
+    if (active?.kind === 'buff') return 'Efeito temporário ativado.';
+    if (active?.kind === 'empower') return 'Próxima ativação amplificada.';
+    return `${GU_CATALOG[id].label} ativado.`;
+  }
+
+  private settleAfterDash(): void {
+    this.waypoints = [];
+    this.destination?.destroy(); this.destination = undefined;
+    this.player.move(null);
+    (this.player.body as Phaser.Physics.Arcade.Body).reset(this.combat.hero.x, this.combat.hero.y);
   }
 
   private handleCombatEvents(events: CombatEvent[]): void {
@@ -227,6 +260,17 @@ class QingMaoScene extends Phaser.Scene {
         this.tweens.add({ targets: text, y: text.y - 25, alpha: 0, duration: 720,
           onComplete: () => text.destroy() });
       }
+      if (event.type === 'heal' && event.x !== undefined && event.y !== undefined) {
+        const text = this.add.text(event.x, event.y - 40, `+${event.amount}`, {
+          fontSize: '13px', color: '#bce8c2', stroke: '#17301c', strokeThickness: 3,
+        }).setDepth(1000);
+        this.tweens.add({ targets: text, y: text.y - 25, alpha: 0, duration: 720,
+          onComplete: () => text.destroy() });
+      }
+      if (event.type === 'barrier') {
+        this.combatHUD?.say(`Barreira absorveu ${event.amount} de dano.`);
+      }
+      if (event.type === 'blind') this.cameras.main.flash(140, 255, 252, 224);
       if (event.type === 'resurrect') {
         this.combatHUD?.say('Cigarra da Primavera e Outono! 50% de vida restaurada.');
         this.cameras.main.flash(300, 194, 211, 134);
@@ -402,11 +446,13 @@ class QingMaoScene extends Phaser.Scene {
     const shots = this.combat.activeProjectiles;
     while (this.projectileViews.length > shots.length) this.projectileViews.pop()?.destroy();
     while (this.projectileViews.length < shots.length) {
+      const shot = shots[this.projectileViews.length];
+      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
       const slash = this.add.graphics().setDepth(900);
-      slash.fillStyle(0xcdefff, 0.95).lineStyle(1, 0x468bcc);
+      slash.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
       slash.beginPath();
-      slash.arc(0, 0, 12, -Math.PI / 2, Math.PI / 2);
-      slash.arc(5, 0, 9, Math.PI / 2, -Math.PI / 2, true);
+      slash.arc(0, 0, shot.width / 2, -Math.PI / 2, Math.PI / 2);
+      slash.arc(5, 0, Math.max(5, shot.width / 2 - 4), Math.PI / 2, -Math.PI / 2, true);
       slash.closePath(); slash.fillPath(); slash.strokePath();
       this.projectileViews.push(slash);
     }

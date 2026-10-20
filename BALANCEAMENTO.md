@@ -62,6 +62,100 @@ Os custos atuais continuam:
 
 As chances e materiais de ruptura permanecem como estão no motor até um playtest específico de economia. A próxima etapa do balanceamento é substituir os IDs técnicos `ruptura-rank-N` por materiais obtidos de criaturas/áreas e medir renda por hora, custo por avanço e risco de morte.
 
+**Moeda única:** pedras espirituais. Não existe segunda moeda, XP nem ouro. As fontes previstas são o **drop direto de inimigos** (8 pedras + 1 material por criatura comum no estado atual) e, no futuro, a **troca dos itens dropados pelos inimigos por pedras** num NPC/loja. Ainda não há **taxas de drop, itens aceitos nem valores de troca definidos**; nenhuma loja está ligada ao jogo, e os preços de referência dos Gu (`price` em `guCatalog.ts`) servem apenas de âncora de balanceamento.
+
+Os Gu também são economia: receitas de refino consomem Gu possuídos de forma determinística (sem sorteio). Os materiais de refino usam a mesma moeda de essência do motor de combate (`essenceCost`), separada das pedras espirituais gastas na ficha de cultivo.
+
+## Gu e combate v0.2 — catálogo implementado
+
+Dados centralizados: `src/combat/types.ts` (modelo), `src/combat/guCatalog.ts` (catálogo),
+`src/combat/guRecipes.ts` (refino), `src/combat/guState.ts` (inventário/save) e
+`src/combat/combatEngine.ts` (efeitos). Nenhum número de Gu vive na UI: a ficha lê o motor.
+
+**Categorias funcionais são independentes de Rank:** equipável, ativável, assimilável,
+material de refino e consumível. Um material pode ser também equipável (Jade Skin, Little Light).
+
+### Catálogo Rank 1
+
+24 Gu com Rank 1 confirmado; nenhum nome inventado para completar cota e nenhuma inclusão de
+Blood Moon (Rank 3), Moonglow/White Jade (Rank 2) ou Moon Raiment (Rank 2) no Rank 1. Cada
+entrada registra `source.reference`, `fidelity` (`canonical`, `canonical-adapted`, `fan-made`)
+e `price` entre 500 e 1.000 pedras.
+
+| Slot | Rank 1 equipáveis | Situação |
+|---|---:|---|
+| Ataque | 6 | Moonlight, Bone Spear, Star Arrow, Star Dart, Ghost Fire, Exploding Egg |
+| Passivo | 6 | Stone, Jade, Bronze, Iron, Rock e Beast Skin |
+| Apoio | 5 | Liquor Worm, Little Light, Amplify Effect, Cleansing Water, All-Out Effort (+ Flash Blink consumível) |
+| Movimento | 3 | Whirlwind, Clear Wind Wheel, Dragonpill Cricket |
+
+**Pendente:** faltam 3 Gu de movimento para a meta de 6 por slot. Somente nomes com Rank 1
+verificado entram; Jumping Grass (Rank não confirmado), Chasing Wind (Rank 4), Lightning Flash
+(Rank 5) e Footless Bird (Rank 3) foram rejeitados. A lacuna está declarada em
+`PENDING_GU_SLOTS` e aparece na ficha; não será preenchida com invenção.
+
+Os três Gu assimiláveis (Bear Strength, White Boar, Black Boar) não são equipáveis nem
+consumíveis: a única ação é a assimilação permanente.
+
+### Valores ativos
+
+- **Moonlight (base preservada):** 26 de dano, 224 px, 26 px de largura, 320 px/s, 16 de essência,
+  1.800 ms. Escala pela qualidade da essência do cultivo (`primordialEssenceQualityMultiplier`),
+  não pelo ataque bruto.
+- **Whirlwind (base preservada):** 96 px, 20 de essência, 5.000 ms, 1,5× de velocidade por 1.800 ms.
+- Bone Spear 32 / 200 px / perfurante · 22 de essência · 2.200 ms.
+- Star Arrow 20 / 260 px / 520 px/s · 13 · 1.400 ms.
+- Star Dart 12×3 / 190 px · 18 · 1.700 ms (cada projétil sofre mitigação separada).
+- Ghost Fire 30 espírito / 180 px · 22 · 2.000 ms.
+- Exploding Egg 16 em área de 56 px / 150 px · 26 · 2.600 ms.
+
+### Passivos e mitigação
+
+| Gu | Efeito | Limitação |
+|---|---|---|
+| Stone Skin | +4 defesa | sem bônus secundário |
+| Jade Skin | +3 defesa e +8% vida máxima | valor de defesa menor |
+| Bronze Skin | +3 defesa, +2 abaixo de 50% de vida | depende de estar ferido |
+| Iron Skin | +5 defesa | −20% regeneração de essência |
+| Rock Skin | +6 defesa | −10% velocidade |
+| Beast Skin | +3 defesa e +6% velocidade | defesa menor |
+
+Fórmula única: `max(1, floor(dano × 100 / (100 + defesa)))`. Defesa alta reduz, mas nunca
+zera o dano de inimigos comuns (testado até 1.000.000 de defesa).
+
+### Essência, temporários e assimilação
+
+- Essência nunca fica negativa: custo, recarga e Rank são verificados antes de qualquer gasto.
+- Regeneração: 1/s base + 2/s do Liquor Worm (eficiência, não multiplicador), interrompida
+  na morte e limitada ao máximo do Rank.
+- Buffs temporários: +15% a +25% de dano por 5–10 s. Regra de combinação: **o maior valor
+  prevalece e a maior duração é mantida**; reaplicar não soma (Little Light continua 1,25×).
+- Amplify Effect: a próxima ativação custa +50% e produz +50%; é consumido na ativação
+  (efeito único, sem empilhamento).
+- Assimilação: +6% dano físico (Bear Strength), +4% dano físico (White Boar) e +4% corpo a
+  corpo (Black Boar). Permanente, não desfeita por morte, troca de equipamento ou reset de UI.
+  **Limite:** cada Gu pode ser assimilado uma única vez; não há outro teto numérico. O Gu é
+  consumido; falha (Rank, combate, item ausente, save) não consome nada. Um save que contenha
+  o Gu e a assimilação ao mesmo tempo tem a quantidade forçada a zero.
+
+### Refino determinístico
+
+| Receita | Ingredientes | Essência | Rank | Resultado |
+|---|---|---:|---:|---|
+| Moonglow Gu (R2) | 1 Moonlight + 2 Little Light | 30 | 2 | 40 dano / 250 px / 380 px/s · 24 de essência · 2.200 ms |
+| White Jade Gu (R2) | 1 White Boar + 1 Jade Skin | 30 | 2 | +8 defesa e +12% vida máxima |
+
+Sem sorteio: `successChance = 1`; ingredientes e essência só são gastos com save concluído.
+Um ingrediente equipado sai do slot ao ser consumido. Rank 2 tem dados próprios, não recicla
+os números do Rank 1.
+
+### Save
+
+Chave `fang-yuan.gu.v1`, versão 1. Saves v0 (sem inventário persistente) são migrados
+preservando apenas o equipamento/lista que comprovadamente possuíam — nunca o catálogo
+inteiro —, e a migração é idempotente. IDs desconhecidos, quantidades inválidas, Gu duplicado
+em dois slots e equipamento sem posse são descartados na leitura.
+
 ## Regra de trabalho
 
 Não vamos inflar HP/DEF para criar dificuldade. Toda alteração deve ser validada contra TTK, dano recebido, custo em essência, disponibilidade de recursos, risco/recompensa e progressão de Rank. Depois dos testes de combate, a economia será recalibrada para que a progressão seja exigente sem virar grind vazio.

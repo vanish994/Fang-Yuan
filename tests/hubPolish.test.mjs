@@ -1,15 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-function moduleURL(path, imports = {}) {
-  let js = ts.transpileModule(readFileSync(new URL(`../src/${path}.ts`, import.meta.url), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  for (const [from, url] of Object.entries(imports)) js = js.replace(`from '${from}'`, `from '${url}'`);
-  return `data:text/javascript;base64,${Buffer.from(js).toString('base64')}`;
-}
 const npc = moduleURL('entities/npc', { '../agents/agentBrain': moduleURL('agents/agentBrain') });
 const mob = moduleURL('combat/mobCatalog');
 const world = moduleURL('world/initialWorld', { '../entities/npc': npc, '../combat/mobCatalog': mob });
@@ -75,19 +68,35 @@ test('novos pés não ocultam nenhum encontro existente ao carregar as nove áre
 });
 
 test('segundo dedo aciona Lua enquanto primeiro mantém joystick; click não duplica', async () => {
-  const stick = moduleURL('ui/cardinalStick');
-  const { CombatHUD } = await import(moduleURL('ui/combatHUD', { './cardinalStick': stick }));
+  const { CombatHUD } = await import(moduleURL('ui/combatHUD'));
   const controls = new Map();
-  const element = () => ({
-    dataset: {}, listeners: new Map(), captured: new Set(),
-    addEventListener(name, handler) { this.listeners.set(name, handler); },
-    emit(name, event) { this.listeners.get(name)?.(event); },
-    setPointerCapture(id) { this.captured.add(id); },
-    hasPointerCapture(id) { return this.captured.has(id); },
-    getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; },
-  });
-  for (const action of ['basic', 'moonlight', 'dash', 'auto', 'respawn']) {
+  const buttons = [];
+  const element = () => {
+    const node = {
+      dataset: {}, listeners: new Map(), captured: new Set(), style: {}, textContent: '',
+      hidden: false, disabled: false, title: '', attributes: {},
+      addEventListener(name, handler) { this.listeners.set(name, handler); },
+      emit(name, event) { this.listeners.get(name)?.(event); },
+      setPointerCapture(id) { this.captured.add(id); },
+      hasPointerCapture(id) { return this.captured.has(id); },
+      getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; },
+      setAttribute(key, value) { this.attributes[key] = value; },
+      removeAttribute(key) { delete this.attributes[key]; },
+      querySelector(selector) {
+        if (selector === '.gu-icon' || selector === 'small') {
+          this.children ??= {};
+          this.children[selector] ??= element();
+          return this.children[selector];
+        }
+        return null;
+      },
+    };
+    return node;
+  };
+  // O HUD atual usa botões genéricos por slot, não ações fixas de Gu.
+  for (const action of ['basic', 'attack', 'movement', 'support', 'item:flash-blink', 'auto', 'respawn']) {
     const button = element(); button.dataset.action = action;
+    buttons.push(button);
     controls.set(`[data-action="${action}"]`, button);
   }
   controls.set('.combat-joystick', element());
@@ -95,7 +104,7 @@ test('segundo dedo aciona Lua enquanto primeiro mantém joystick; click não dup
   globalThis.document = {
     createElement() {
       return { querySelector(selector) { return controls.get(selector) ?? element(); },
-        querySelectorAll() { return [...controls.values()].slice(0, 5); },
+        querySelectorAll() { return buttons; },
         remove() {} };
     },
     body: { append() {} },
@@ -107,18 +116,18 @@ test('segundo dedo aciona Lua enquanto primeiro mantém joystick; click não dup
     const preventDefault = () => {};
     joystick.emit('pointerdown', { pointerId: 1, clientX: 100, clientY: 50, preventDefault });
     assert.equal(hud.direction, 'right');
-    const moon = controls.get('[data-action="moonlight"]');
-    moon.emit('pointerdown', { pointerId: 2, pointerType: 'touch', preventDefault });
-    assert.deepEqual(actions, ['moonlight']);
+    const attack = controls.get('[data-action="attack"]');
+    attack.emit('pointerdown', { pointerId: 2, pointerType: 'touch', preventDefault });
+    assert.deepEqual(actions, ['attack']);
     assert.equal(hud.direction, 'right');
-    moon.emit('click', { detail: 1 }); // navegador sintetizou click após pointerdown
-    assert.deepEqual(actions, ['moonlight']);
+    attack.emit('click', { detail: 1 }); // navegador sintetizou click após pointerdown
+    assert.deepEqual(actions, ['attack']);
     joystick.emit('pointerup', { pointerId: 2 });
     assert.equal(hud.direction, 'right');
     joystick.emit('pointerup', { pointerId: 1 });
     assert.equal(hud.direction, null);
-    moon.emit('click', { detail: 0 }); // teclado
-    assert.deepEqual(actions, ['moonlight', 'moonlight']);
+    attack.emit('click', { detail: 0 }); // teclado
+    assert.deepEqual(actions, ['attack', 'attack']);
   } finally { globalThis.document = originalDocument; }
 });
 
