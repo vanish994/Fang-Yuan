@@ -58,7 +58,7 @@ test('criatura nasce sem Gu na maioria dos casos (raridade preservada)', () => {
   // cenário de jogo é quem passa Math.random.
   const { engine } = make();
   const plain = engine.addEnemy('sem-gu', 300, 300, 45, mobOf('mob-wild-boar'));
-  assert.equal(plain.wildGu, null, 'sem RNG explícito não há sorteio');
+  assert.equal(plain.wild?.gu, undefined, 'sem RNG explícito não há sorteio');
 
   // Sorteio real: 500 nascimentos com a chance de 2% rendem pouquíssimos Gu.
   const storage = memoryStorage();
@@ -67,7 +67,7 @@ test('criatura nasce sem Gu na maioria dos casos (raridade preservada)', () => {
   for (let i = 0; i < 500; i += 1) {
     const enemy = lucky.addEnemy(`r1-${i}`, 400 + i, 400, 45, mobOf('mob-wild-boar'),
       { random: Math.random });
-    if (enemy.wildGu) withGu += 1;
+    if (enemy.wild?.gu) withGu += 1;
   }
   assert.ok(withGu < 40, `2% não pode virar regra (obtido ${withGu}/500)`);
   assert.equal(wild.wildGuChance(1, false), 0.02);
@@ -81,27 +81,27 @@ test('chance é sorteada só no nascimento; lutar não re-sorteia', () => {
   let calls = 0;
   const random = () => { calls += 1; return 0; };
   const enemy = engine.addEnemy('sorteado', 180, 100, 60, mobOf('mob-grey-wolf'), { random });
-  assert.ok(enemy.wildGu, 'com random()=0 o sorteio sempre concede Gu');
+  assert.ok(enemy.wild?.gu, 'com random()=0 o sorteio sempre concede Gu');
   const callsAfterBirth = calls;
   assert.ok(callsAfterBirth <= 2, `no máximo nascimento + escolha do pool, obtido ${callsAfterBirth}`);
 
   for (let i = 0; i < 200; i += 1) engine.tick(1000 + i * 50, 50);
   assert.equal(calls, callsAfterBirth, 'tick nunca consome aleatoriedade do nascimento');
 
-  const guAtBirth = enemy.wildGu;
+  const guAtBirth = enemy.wild?.gu;
   for (let i = 0; i < 200; i += 1) engine.tick(20_000 + i * 100, 100);
-  assert.equal(enemy.wildGu, guAtBirth, 'o Gu é o mesmo durante toda a luta');
+  assert.equal(enemy.wild?.gu, guAtBirth, 'o Gu é o mesmo durante toda a luta');
 });
 
 test('Gu permanece fixo na instância até a morte, mesmo após vários golpes', () => {
   const { engine } = make();
   const enemy = engine.addEnemy('fixo', 120, 100, 80, mobOf('mob-green-snake'),
     { forcedWildGu: 'ghost-fire' });
-  assert.equal(enemy.wildGu, 'ghost-fire');
+  assert.equal(enemy.wild?.gu, 'ghost-fire');
   engine.select('fixo');
   engine.basicAttack(1000);
   engine.tick(1200, 100);
-  assert.equal(enemy.wildGu, 'ghost-fire');
+  assert.equal(enemy.wild?.gu, 'ghost-fire');
   const events = kill(engine, 'fixo', 2000);
   assert.equal(rewards(events)[0].guReward, 'ghost-fire');
 });
@@ -125,13 +125,14 @@ test('nenhum Gu acima do Rank da criatura pode ser sorteado ou forçado', () => 
   const { engine } = make();
   // Tentativa explícita de burlar: criatura Rank 1 com Gu Rank 2 é recusada.
   const cheater = engine.addEnemy('cheat', 300, 300, 45, rank1, { forcedWildGu: 'white-jade' });
-  assert.equal(cheater.wildGu, null);
+  assert.equal(cheater.wild?.gu, undefined);
 
   // Sorteio real: 2000 tentativas em Rank 1 nunca produzem Rank 2.
   const random = () => 0; // sempre "passa" na chance e escolhe o 1º do pool
   for (let i = 0; i < 300; i += 1) {
     const enemy = engine.addEnemy(`cap-${i}`, 400 + i, 400, 45, rank1, { random });
-    assert.ok(enemy.wildGu === null || GU_CATALOG[enemy.wildGu].rank <= 1);
+    // Sem Gu, `wild` fica ausente; com Gu, o Rank nunca passa do Rank 1.
+    assert.ok(enemy.wild === undefined || GU_CATALOG[enemy.wild.gu].rank <= 1);
   }
 });
 
@@ -148,7 +149,7 @@ test('criatura usa o Gu em combate com efeito identificável', () => {
   const shots = abilities(events).filter(event => event.guId === 'star-arrow');
   assert.ok(shots.length >= 1, 'deve disparar o Gu da Estrela');
   assert.ok(engine.hero.health < healthBefore, 'o projétil precisa causar dano');
-  assert.ok(archer.wildGuCasts >= 1);
+  assert.ok(archer.wild?.casts >= 1);
 
   // Defensivo: passivo aplicado no nascimento, visível em vida/defesa.
   const { engine: tank } = make();
@@ -193,7 +194,7 @@ test('derrotar criatura com Gu entrega exatamente o Gu registrado', () => {
   const { engine } = make();
   const enemy = engine.addEnemy('portador', 120, 100, 30, mobOf('mob-mountain-monkey'),
     { forcedWildGu: 'dragonpill-cricket' });
-  assert.equal(enemy.wildGu, 'dragonpill-cricket');
+  assert.equal(enemy.wild?.gu, 'dragonpill-cricket');
   const events = kill(engine, 'portador');
   const reward = rewards(events)[0];
   assert.equal(reward.guReward, 'dragonpill-cricket');

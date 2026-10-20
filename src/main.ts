@@ -150,7 +150,7 @@ class QingMaoScene extends Phaser.Scene {
       // O sorteio usa o RNG do motor; `forcedWildGu` só repete o resultado já
       // registrado para esta criatura nesta sessão.
       const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob, { forcedWildGu });
-      if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wildGu ?? null);
+      if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wild?.gu ?? null);
       const boss = mob.tier === 'boss';
       const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
       const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
@@ -162,7 +162,7 @@ class QingMaoScene extends Phaser.Scene {
         fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
       }).setOrigin(0.5).setVisible(boss);
       // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
-      const wild = enemy.wildGu ? GU_CATALOG[enemy.wildGu] : null;
+      const wild = enemy.wild ? GU_CATALOG[enemy.wild.gu] : null;
       const wildLabel = this.add.text(0, boss ? -58 : -44,
         wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
         fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',

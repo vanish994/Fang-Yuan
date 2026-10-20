@@ -342,9 +342,9 @@ export class CombatEngine {
       ? Math.max(1, Math.round(health * passive.maxHealthMultiplier)) : health;
     const enemy: Enemy = { id, name: mob?.name, x, y, health: maxHealth, maxHealth,
       defense: settings.defense, alive: true, rewarded: false, lastAttackAt: -Infinity,
-      // Sem valor inicial: o primeiro tick agenda uma pequena espera (ver useWildGu).
-      wildGu, wildGuCasts: 0,
-      wildLowHealthDefense: passive?.lowHealthDefense?.defense };
+      // Sem `nextAt`: o primeiro tick agenda uma pequena espera (ver useWildGu).
+      wild: wildGu ? { gu: wildGu, casts: 0, lowHealthDefense: passive?.lowHealthDefense?.defense }
+        : undefined };
     this.enemies.set(id, enemy);
     this.enemyHomes.set(id, { x, y });
     this.enemyStats.set(id, settings);
@@ -693,14 +693,15 @@ export class CombatEngine {
   // ── Dano ──────────────────────────────────────────────────────────────────
   /** Defesa efetiva: passivos aplicados no nascimento + Bronze Skin condicional. */
   private enemyDefense(enemy: Enemy): number {
-    const low = enemy.wildLowHealthDefense ?? 0;
+    const low = enemy.wild?.lowHealthDefense ?? 0;
     const lowActive = low > 0 && enemy.maxHealth > 0 && enemy.health / enemy.maxHealth <= 0.5;
     return Math.max(0, enemy.defense + (lowActive ? low : 0));
   }
 
   /** Buff de Gu selvagem ativo (Little Light, All-Out Effort, Amplify Effect). */
   private wildMeleeMultiplier(enemy: Enemy, now: number): number {
-    return 1 + (enemy.wildBuffUntil && now < enemy.wildBuffUntil ? enemy.wildDamageBonus ?? 0 : 0);
+    const wild = enemy.wild;
+    return 1 + (wild?.buffUntil && now < wild.buffUntil ? wild.damageBonus ?? 0 : 0);
   }
 
   private damageEnemy(enemy: Enemy, amount: number, now: number): CombatEvent[] {
@@ -714,7 +715,7 @@ export class CombatEngine {
       events.push({ type: 'defeat', targetId: enemy.id, x: enemy.x, y: enemy.y });
       if (!enemy.rewarded && !this.processedRewards.has(enemy.id)) {
         enemy.rewarded = true; this.processedRewards.add(enemy.id);
-        const guReward = enemy.wildGu ?? undefined;
+        const guReward = enemy.wild?.gu;
         // O Gu é registrado na morte a partir da instância — nunca sorteado aqui.
         if (guReward) this.wildGuDrops.set(enemy.id, guReward);
         // Pedras e material vêm da criatura derrotada (Rank/risco), não de um valor fixo.
@@ -919,20 +920,21 @@ export class CombatEngine {
    * (bloqueio já tratado no laço principal).
    */
   private useWildGu(enemy: Enemy, now: number, isFree: (x: number, y: number) => boolean): CombatEvent[] {
-    const guId = enemy.wildGu;
-    if (!guId) return [];
+    const wild = enemy.wild;
+    if (!wild) return [];
+    const guId = wild.gu;
     const gu = GU_CATALOG[guId];
     const behavior = wildBehavior(gu);
     if (behavior.kind === 'passive') return [];
     // Uma pequena janela após o nascimento evita abrir a luta com o golpe especial.
-    if (enemy.wildGuNextAt === undefined) { enemy.wildGuNextAt = now + 900; return []; }
-    if (now < enemy.wildGuNextAt) return [];
+    if (wild.nextAt === undefined) { wild.nextAt = now + 900; return []; }
+    if (now < wild.nextAt) return [];
     if (!this.hero.alive) return [];
     const active = gu.active;
     if (!active) return [];
     const gap = distance(enemy, this.hero);
     const events: CombatEvent[] = [];
-    const casts = (enemy.wildGuCasts ?? 0) + 1;
+    const casts = wild.casts + 1;
 
     if (behavior.kind === 'projectile' && active.kind === 'projectile') {
       const range = wildProjectileRange(gu);
@@ -974,16 +976,16 @@ export class CombatEngine {
         x: enemy.x, y: enemy.y });
     } else if (behavior.kind === 'buff' && (active.kind === 'buff' || active.kind === 'empower')) {
       if (gap > 200) return [];
-      enemy.wildDamageBonus = wildDamageBonus(active);
-      enemy.wildBuffUntil = now + wildBuffDuration(active);
+      wild.damageBonus = wildDamageBonus(active);
+      wild.buffUntil = now + wildBuffDuration(active);
       events.push({ type: 'enemy-ability', targetId: enemy.id, guId, x: enemy.x, y: enemy.y,
-        amount: Math.round((enemy.wildDamageBonus ?? 0) * 100) });
+        amount: Math.round((wild.damageBonus ?? 0) * 100) });
     } else {
       return [];
     }
 
-    enemy.wildGuCasts = casts;
-    enemy.wildGuNextAt = now + behavior.cooldownMs;
+    wild.casts = casts;
+    wild.nextAt = now + behavior.cooldownMs;
     this.engage(now);
     return events;
   }

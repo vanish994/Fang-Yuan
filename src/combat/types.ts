@@ -22,21 +22,31 @@ export type GuId =
 export type Direction = 'up' | 'down' | 'left' | 'right';
 export interface Point { x: number; y: number }
 export interface Combatant extends Point { health: number; maxHealth: number; defense: number; alive: boolean }
+/**
+ * Estado do Gu selvagem de uma criatura. Só existe quando ela nasceu com Gu,
+ * então `enemy.wild === undefined` já significa "criatura comum" — não há mais
+ * três estados possíveis em um campo solto (`ausente` / `null` / id).
+ */
+export interface WildGuState {
+  /** Gu sorteado no nascimento; nunca muda durante a luta. */
+  gu: GuId;
+  /** Quantidade de ativações; compõe o id único de cada golpe. */
+  casts: number;
+  /** Próximo instante em que o Gu pode ser usado; ausente até o 1º tick. */
+  nextAt?: number;
+  /** Bônus de dano de buff ativo até este instante. */
+  buffUntil?: number;
+  damageBonus?: number;
+  /** Defesa condicional (Bronze Skin) avaliada a cada golpe recebido. */
+  lowHealthDefense?: number;
+}
+
 export interface Enemy extends Combatant {
   id: string; name?: string; lastAttackAt: number; rewarded: boolean;
   /** Cegueira temporária (Flash Blink Gu); não concede imunidade, só pausa a IA. */
   blindedUntil?: number;
-  /** Gu sorteado no nascimento; nunca muda durante a luta. */
-  wildGu?: GuId | null;
-  /** Próximo instante em que o Gu selvagem pode ser usado. */
-  wildGuNextAt?: number;
-  /** Quantidade de ativações; compõe o id único de cada golpe. */
-  wildGuCasts?: number;
-  /** Bônus de dano de buff ativo até este instante. */
-  wildBuffUntil?: number;
-  wildDamageBonus?: number;
-  /** Defesa condicional (Bronze Skin) avaliada a cada golpe recebido. */
-  wildLowHealthDefense?: number;
+  /** Presente apenas em criaturas que nasceram com um Gu. */
+  wild?: WildGuState;
 }
 export interface CombatEvent {
   type: 'damage' | 'defeat' | 'reward' | 'resurrect' | 'hero-death'

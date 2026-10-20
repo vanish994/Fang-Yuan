@@ -72,7 +72,7 @@ test('sem RNG injetado o motor mantém o comportamento anterior', () => {
   const engine = build(undefined);
   // Criatura sem opção explícita continua nascendo sem Gu (determinístico).
   const plain = engine.addEnemy('sem-gu', 300, 300, 45, mobOf('mob-wild-boar'));
-  assert.equal(plain.wildGu, null);
+  assert.equal(plain.wild?.gu, undefined);
   // E o motor ainda funciona com Math.random por padrão.
   const events = [];
   for (let i = 0; i < 60; i += 1) events.push(...engine.tick(1000 + i * 100, 100));
@@ -83,15 +83,15 @@ test('RNG injetado também governa o sorteio do Gu selvagem', () => {
   // random() = 0 passa em qualquer chance e escolhe o primeiro do pool.
   const lucky = build(() => 0);
   const enemy = lucky.addEnemy('sortudo', 300, 300, 45, mobOf('mob-wild-boar'));
-  assert.ok(enemy.wildGu, 'com RNG injetado o nascimento sorteia');
+  assert.ok(enemy.wild?.gu, 'com RNG injetado o nascimento sorteia');
 
   // Sem RNG e sem opção explícita: nasce sem Gu.
-  assert.equal(build(undefined).addEnemy('sem-rng', 300, 300, 45, mobOf('mob-wild-boar')).wildGu, null);
+  assert.equal(build(undefined).addEnemy('sem-rng', 300, 300, 45, mobOf('mob-wild-boar')).wild?.gu, undefined);
 
   // RNG determinístico: a mesma seed concede o mesmo Gu em cada spawn.
   const first = build(seeded(99)).addEnemy('a', 300, 300, 45, mobOf('mob-wild-boar'));
   const second = build(seeded(99)).addEnemy('a', 300, 300, 45, mobOf('mob-wild-boar'));
-  assert.equal(first.wildGu, second.wildGu);
+  assert.equal(first.wild?.gu, second.wild?.gu);
 });
 
 test('revive da Cigarra usa o RNG do motor', () => {
@@ -140,7 +140,7 @@ test('a mesma seed dá a mesma sequência de decisões com Gu selvagem em jogo',
         if (event.type === 'enemy-ability') log.push(`${event.guId}@${i}`);
       }
     }
-    return { log, x: enemy.x.toFixed(2), y: enemy.y.toFixed(2), casts: enemy.wildGuCasts };
+    return { log, x: enemy.x.toFixed(2), y: enemy.y.toFixed(2), casts: enemy.wild?.casts };
   };
   assert.deepEqual(withGu(3), withGu(3));
   assert.ok(withGu(3).log.length >= 1, 'a investida precisa acontecer no cenário');
