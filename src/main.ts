@@ -15,6 +15,7 @@ import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { wildGuShortLabel } from './combat/wildGu';
+import { bladeShape, guColor, orbShape, placementOf, syncPool } from './ui/projectileView';
 import { RewardQueue, type RewardMessage } from './combat/rewardFlow';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
@@ -336,6 +337,49 @@ class QingMaoScene extends Phaser.Scene {
     if (this.rewards.size > 0 && this.time.now >= this.rewards.nextRetryAt) this.flushRewards();
   }
 
+  /**
+   * Desenha os dois tipos de projétil com o mesmo ciclo de pooling e a mesma
+   * regra de rotação; só a forma muda (lâmina do jogador, orbe da criatura).
+   */
+  private renderProjectiles(): void {
+    const shots = this.combat.activeProjectiles;
+    syncPool(this.projectileViews, shots.length, () => this.add.graphics().setDepth(900),
+      view => view.destroy());
+    shots.forEach((shot, index) => {
+      const shape = bladeShape(shot.width);
+      const color = guColor(GU_CATALOG[shot.guId].visual.color);
+      const blade = this.projectileViews[index]!;
+      // A forma só é redesenhada quando o Gu muda (largura/cor vêm dele).
+      if (blade.getData('signature') !== `${shot.guId}:${shot.width}`) {
+        blade.setData('signature', `${shot.guId}:${shot.width}`);
+        blade.clear().fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
+        blade.beginPath();
+        blade.arc(0, 0, shape.radius, -Math.PI / 2, Math.PI / 2);
+        blade.arc(5, 0, shape.inner, Math.PI / 2, -Math.PI / 2, true);
+        blade.closePath(); blade.fillPath(); blade.strokePath();
+      }
+      const placement = placementOf(shot);
+      blade.setPosition(placement.x, placement.y).setRotation(placement.rotation);
+    });
+
+    const enemyShots = this.combat.activeEnemyProjectiles;
+    syncPool(this.enemyProjectileViews, enemyShots.length, () => this.add.graphics().setDepth(901),
+      view => view.destroy());
+    const orb = orbShape();
+    enemyShots.forEach((shot, index) => {
+      const color = guColor(GU_CATALOG[shot.guId].visual.color);
+      const view = this.enemyProjectileViews[index]!;
+      if (view.getData('signature') !== shot.guId) {
+        view.setData('signature', shot.guId);
+        view.clear()
+          .fillStyle(0x120d06, 0.85).fillCircle(0, 0, orb.halo)
+          .fillStyle(color, 0.95).fillCircle(0, 0, orb.core)
+          .lineStyle(1, 0xffe6a8, 0.9).strokeCircle(0, 0, orb.ring);
+      }
+      view.setPosition(shot.x, shot.y);
+    });
+  }
+
   private flushRewards(): void {
     const messages = this.rewards.drain(this.combat, this.cultivation, this.time.now);
     for (const message of messages) this.announceReward(message);
@@ -483,39 +527,8 @@ class QingMaoScene extends Phaser.Scene {
       const width = 28 * enemy.health / enemy.maxHealth;
       if (hp.width !== width) hp.width = width;
     }
-    const shots = this.combat.activeProjectiles;
-    while (this.projectileViews.length > shots.length) this.projectileViews.pop()?.destroy();
-    while (this.projectileViews.length < shots.length) {
-      const shot = shots[this.projectileViews.length];
-      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
-      const slash = this.add.graphics().setDepth(900);
-      slash.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
-      slash.beginPath();
-      slash.arc(0, 0, shot.width / 2, -Math.PI / 2, Math.PI / 2);
-      slash.arc(5, 0, Math.max(5, shot.width / 2 - 4), Math.PI / 2, -Math.PI / 2, true);
-      slash.closePath(); slash.fillPath(); slash.strokePath();
-      this.projectileViews.push(slash);
-    }
-    shots.forEach((shot, i) => this.projectileViews[i].setPosition(shot.x, shot.y)
-      .setRotation(shot.direction === 'right' ? 0 : shot.direction === 'left' ? Math.PI
-        : shot.direction === 'up' ? -Math.PI / 2 : Math.PI / 2));
-    // Projéteis de Gu selvagem: orbes coloridos, visualmente distintos das lâminas do jogador.
-    const enemyShots = this.combat.activeEnemyProjectiles;
-    while (this.enemyProjectileViews.length > enemyShots.length) {
-      this.enemyProjectileViews.pop()?.destroy();
-    }
-    while (this.enemyProjectileViews.length < enemyShots.length) {
-      const orb = this.add.graphics().setDepth(901);
-      this.enemyProjectileViews.push(orb);
-    }
-    enemyShots.forEach((shot, i) => {
-      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
-      const orb = this.enemyProjectileViews[i];
-      orb.clear().setPosition(shot.x, shot.y);
-      orb.fillStyle(0x120d06, 0.85).fillCircle(0, 0, 7);
-      orb.fillStyle(color, 0.95).fillCircle(0, 0, 4.5);
-      orb.lineStyle(1, 0xffe6a8, 0.9).strokeCircle(0, 0, 6.5);
-    });
+    this.renderProjectiles();
+
     this.combatHUD?.update(time);
     this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
     if (!this.combat.hero.alive) { this.player.move(null); return; }
