@@ -36,6 +36,8 @@ export interface NpcDefinition {
   dialogues?: readonly string[];
   /** Reações ao progresso do jogador; cada uma é dita uma vez por sessão. */
   hints?: readonly NpcHint[];
+  /** Rótulo de teste acima da cabeça marcando uma banca; comércio ainda não existe. */
+  stall?: string;
   wanderRadius: number; rank: string; health: number; defense: number;
   /** Metadados locais de layout, não biografia/facção canônica. */
   faction?: string; routine?: readonly Point[];
@@ -146,6 +148,7 @@ interface NpcExtra {
   wanderRadius?: number;
   dialogues?: readonly string[];
   hints?: readonly NpcHint[];
+  stall?: string;
 }
 
 const npc = (id: string, name: string, role: NpcRole, x: number, y: number,
@@ -155,6 +158,7 @@ const npc = (id: string, name: string, role: NpcRole, x: number, y: number,
   wanderRadius: extra.wanderRadius ?? 64,
   ...(extra.dialogues?.length ? { dialogues: extra.dialogues } : {}),
   ...(extra.hints?.length ? { hints: extra.hints } : {}),
+  ...(extra.stall ? { stall: extra.stall } : {}),
 });
 
 /**
@@ -188,16 +192,21 @@ export const TEST_NPCS: readonly Readonly<NpcDefinition>[] = [
         line: 'Sua essência mudou de cor. Verde-cobre vira vermelho-aço; o Rank 2 tem outro peso.',
       }],
     }),
-  npc('npc-zhao-he', 'Zhao He', 'merchant', 23, 26, '1', 55, 2,
-    'Tenho materiais de cultivo. Os melhores não ficam baratos.', {
+  // Vendedor: Jiang Ya é o dono da loja do clã na novel (ao lado da Câmara de Gu).
+  npc('npc-jiang-ya', 'Jiang Ya', 'merchant', 23, 26, '1', 55, 2,
+    'Banca do clã. Pétalas de orquídea-da-lua, boneco de palha e o que a caravana deixar.', {
       wanderRadius: 48,
+      stall: 'banca de Gu',
       dialogues: [
-        'Pétalas de orquídea-da-lua, duas por refeição, de manhã e à noite. Criar Gu é como criar esposa: custa todo dia.',
-        'Pedra primária vale mais que elogio por aqui. Guarde as suas, que eu aceito quando sobrarem.',
+        'Todo discípulo compra pétala: a Gu Luar-da-Lua come duas por refeição, de manhã e à noite. Pétala não dura uma semana.',
+        'Quem fixa preço é o clã, não o vendedor. Eu peso, conto e anoto — reclamar, só com o ancião.',
       ],
       hints: [{
+        minRank: 2,
+        line: 'Rank 2 já olha a prateleira de cima. O que vem da caravana chega caro e nem todo mês.',
+      }, {
         minEquippedGu: 3,
-        line: 'Três Gu equipadas e nenhuma pedra sobrando, aposto. Manter Gu custa mais que achar Gu.',
+        line: 'Três Gu na mão? Então já aprendeu: manter Gu custa mais do que achar Gu.',
       }],
     }),
   npc('npc-old-chen', 'Velho Chen', 'guard', 25.75, 24, '1', 90, 5,
@@ -240,6 +249,7 @@ export const TEST_NPCS: readonly Readonly<NpcDefinition>[] = [
   npc('npc-aunt-hua', 'Tia Hua', 'merchant', 17, 30, 'Mortal', 50, 1,
     'A banca está aberta, meu bem. O que você trouxe da floresta?', {
       wanderRadius: 48,
+      stall: 'banca de comida',
       dialogues: [
         'Pétalas e vinho de bambu verde. Tem Gu nesta vila que come melhor do que muita gente.',
         'Os anciãos se cumprimentam com sorrisos e partem a academia em dois. Eu só vendo comida e escuto.',

@@ -23,6 +23,20 @@ guarda **de onde veio cada ideia** e o que é **adaptação de teste**, não cit
 - Nada de comércio real: as falas de mercador **não** anunciam preço ou item
   comprável, porque essas mecânicas não existem nesta versão.
 
+## Quem é o vendedor
+
+**Jiang Ya** interpreta o vendedor: na novel ele é o Gu Master de Rank 1 que
+cuida da loja do clã ao lado da Câmara de Gu, vende boneco de palha para treino e
+pétalas de orquídea-da-lua para alimentar a Gu Luar-da-Lua, e conhece Jiang He,
+seu irmão mais velho. No jogo ele fica na praça do mercado e traz o rótulo
+**"banca de Gu"** acima do nome; Tia Hua, mortal, tem **"banca de comida"**.
+
+Esse rótulo (`stall` em `NpcDefinition`) é só identificação visual de teste:
+**não existe loja, carrinho, preço ou troca**. Por isso as falas do vendedor
+dizem o que ele vende, mas o preço é sempre atribuído ao clã — nenhuma fala
+promete compra, desconto ou item jogável. Quando o comércio for aprovado, Jiang Ya
+é o NPC que já tem papel, posição e texto de mercador prontos.
+
 ## Ganchos de mundo (o NPC comenta seu progresso)
 
 Cada NPC pode ter `hints: NpcHint[]`, falas condicionadas ao estado atual do
@@ -45,7 +59,8 @@ Regras atuais, todas de teste:
 | --- | --- | --- |
 | Gu Yue Mei | Rank ≥ 2 | "Agora que você é Rank 2, o bairro inteiro comenta quando você passa." |
 | Lin Shan | Rank ≥ 2 | "Sua essência mudou de cor. Verde-cobre vira vermelho-aço; o Rank 2 tem outro peso." |
-| Zhao He | 3 Gu equipadas | "Três Gu equipadas e nenhuma pedra sobrando, aposto. Manter Gu custa mais que achar Gu." |
+| Jiang Ya | Rank ≥ 2 | "Rank 2 já olha a prateleira de cima. O que vem da caravana chega caro e nem todo mês." |
+| Jiang Ya | 3 Gu equipadas | "Três Gu na mão? Então já aprendeu: manter Gu custa mais do que achar Gu." |
 | Velho Chen | Rank ≥ 3 | "Rank 3 no meu portão? O clã vai querer seu nome escrito na muralha." |
 | Velho Chen | Rank ≥ 2 | "Já está no Rank 2. Então passe do portão sem escolta — mas volte antes do escuro." |
 | Gu Yue Lan | Rank ≥ 2 | "Você já é Rank 2 e eu ainda treino no boneco de palha. O instrutor vai comparar." |
@@ -70,13 +85,14 @@ de Chi Lian são adaptação; a novela não tem essas réplicas.
 | 2 | Cerimônia do Despertar: os jovens atravessam um mar de **orquídeas-da-lua** sob pressão crescente; o número de passos define o grau (A–D) e a abertura do apertura. | Gu Yue Lan ("mal cheguei ao grau C") e Mei (as flores antes da cerimônia). |
 | 3 | A **Gu Luar-da-Lua** é a Gu-assinatura do clã, entregue a todo discípulo; a primeira tarefa é movê-la até a palma, onde vira uma marca de meia-lua, e lançar a lâmina de luar em bonecos de palha. | Lin Shan, Gu Yue Lan e Gu Yue Fang. |
 | 4 | Quem refinar a Gu Luar-da-Lua primeiro no treino ganha **vinte pedras primárias**. | Fala de Gu Yue Fang. |
-| 5 | Criar Gu custa caro: a Luar-da-Lua come **pétalas de orquídea-da-lua duas vezes ao dia**; o bordão do protagonista é que criar uma Gu é como criar uma esposa. | Zhao He e Tia Hua; a comparação vai na fala de Zhao He. |
-| 6 | **Pedras primárias** são moeda e combustível de cultivo; a essência primária é limitada e se gasta. | Lin Shan e Zhao He. |
+| 5 | Criar Gu custa caro: a Luar-da-Lua come **pétalas de orquídea-da-lua duas vezes ao dia**; o bordão do protagonista é que criar uma Gu é como criar uma esposa. | Jiang Ya e Tia Hua; a comparação vai na fala de Tia Hua. |
+| 6 | **Pedras primárias** são moeda e combustível de cultivo; a essência primária é limitada e se gasta. | Lin Shan e Jiang Ya. |
 | 7 | A **onda de lobos** desce a montanha em ciclos (a cada três anos, no relato do clã), com os lobos de coroa de trovão na frente. | Velho Chen e Mei. |
 | 8 | **Gu Yue Bo**: líder do clã, Rank 4 no estágio médio, praticamente estagnado desde que assumiu o posto; adotou Gu Yue Qing Shu como herdeiro. | Falas 2 e 3 de Gu Yue Bo. |
 | 9 | **Gu Yue Chi Lian**: ancião Rank 3, chefe da facção Chi, avô de Chi Chen. | Três falas de Chi Lian, incluindo a defesa do neto. |
 | 10 | **Gu Yue Mo Bei**: discípulo alto, rosto de cavalo, neto do ancião Mo Chen, da facção Mo; rivalidade Chi × Mo dentro do clã. | Mo Bei, Fang ("os Chi e os Mo dividem os corredores"). |
 | 11 | A academia ensina lâmina de luar, essência e avaliações; instrutor e anciãos assistem aos testes dos jovens. | Lan e Fang (instrutor, academia). |
+| 12 | **Jiang Ya** é o Gu Master de Rank 1 que toma conta da loja ao lado da Câmara de Gu, em Gu Yue: vende bonecos de palha e pétalas de orquídea-da-lua (uma pedra por dez pétalas), atende os discípulos da academia e tem um irmão mais velho, Jiang He. | Jiang Ya é o vendedor da vila e a fala de abertura da banca. |
 
 Fontes consultadas em 2026-10-20: `reverend-insanity.fandom.com` (Gu Yue Bo,
 Gu Yue Chi Lian, Gu Yue Mo Bei, Gu Yue Clan, Qing Mao Mountain, Moonlight Gu,
@@ -91,7 +107,7 @@ de pedras primárias sob as cavernas da Gu Yue).
 | --- | --- | --- | --- |
 | Gu Yue Mei | moradora | 3 | Rotina da vila, orquídeas-da-lua, aviso de onda de lobos (fatos 2 e 7). |
 | Lin Shan | cultivador Rank 1 | 3 | Marca da Meia-Lua na palma e economia de essência (fatos 3 e 6). |
-| Zhao He | mercador | 3 | Pétalas como comida de Gu e pedras primárias como moeda (fatos 5 e 6). |
+| Jiang Ya | vendedor (mercador) | 3 | Banca do clã, pétala como comida de Gu, preço fixado pelo clã e caravana (fatos 5, 6, 11 e 12). |
 | Velho Chen | guarda | 3 | Ciclo de três anos dos lobos e o erro de confiar só na lâmina de luar (fato 7). |
 | Gu Yue Lan | discípulo | 3 | Treino nos bonecos de palha e passos na cerimônia do despertar (fatos 2 e 3). |
 | Gu Yue Fang | discípulo | 3 | Aposta das vinte pedras e a divisão Chi × Mo na academia (fatos 4, 10 e 11). |

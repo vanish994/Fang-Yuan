@@ -40,7 +40,7 @@ const poi = (id: string, kind: PointOfInterest['kind'], x: number, y: number): P
 const VILLAGE_NPC_POSITIONS: Readonly<Record<string, readonly [number, number]>> = {
   'npc-gu-yue-mei': [13, 21],
   'npc-lin-shan': [34, 22],
-  'npc-zhao-he': [17, 29],
+  'npc-jiang-ya': [17, 29],
   'npc-old-chen': [40, 24],
   'npc-gu-yue-lan': [19, 19],
   'npc-gu-yue-fang': [34, 27],
@@ -143,7 +143,7 @@ export const INITIAL_WORLD: Readonly<Record<AreaId, AreaDefinition>> = {
 const ROUTINES: Readonly<Record<string, readonly (readonly [number, number])[]>> = {
   'npc-gu-yue-mei': [[13, 21], [14, 21]],
   'npc-lin-shan': [[34, 22], [35, 22]],
-  'npc-zhao-he': [[17, 29], [17, 30]],
+  'npc-jiang-ya': [[17, 29], [17, 30]],
   'npc-old-chen': [[40, 24], [41, 24]],
   'npc-gu-yue-lan': [[19, 19], [20, 19]],
   'npc-gu-yue-fang': [[34, 27], [34, 28]],

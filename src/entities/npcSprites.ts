@@ -3,7 +3,7 @@ import type { Direction } from '../combat/types';
 /** Linhas do manifesto enviado; a ordem do elenco no mapa é diferente. */
 export const NPC_ROWS: Readonly<Record<string, number>> = {
   'npc-gu-yue-mei': 0,
-  'npc-zhao-he': 1,
+  'npc-jiang-ya': 1,
   'npc-old-chen': 2,
   'npc-lin-shan': 3,
   'npc-gu-yue-lan': 4,

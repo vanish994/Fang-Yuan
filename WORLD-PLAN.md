@@ -25,7 +25,7 @@ Todos estão na Vila por decisão de layout **provisória**; ID, nome, role, ran
 | ID | Nome | Área / subárea | Spawn (tile) | Home/território e itinerário provisório | Papel / facção / Rank existente |
 |---|---|---|---|---|---|
 | npc-gu-yue-mei | Gu Yue Mei | Vila / residencial | (13,21) | Residencial; ronda curta | Aldeã; facção a definir; Mortal |
-| npc-zhao-he | Zhao He | Vila / mercado | (17,29) | Mercado; ronda curta | Mercador; facção a definir; 1 |
+| npc-jiang-ya | Jiang Ya | Vila / mercado | (17,29) | Mercado; ronda curta | Vendedor da banca do clã; 1 |
 | npc-old-chen | Velho Chen | Vila / portão | (40,24) | Portão; patrulha curta | Guarda; facção a definir; 1 |
 | npc-lin-shan | Lin Shan | Vila / treino | (34,22) | Treino; ronda curta | Cultivador; facção a definir; 1 · Inicial |
 | npc-gu-yue-lan | Gu Yue Lan | Vila / residencial | (19,19) | Residencial; ronda curta | Discípula; facção a definir; 1 |

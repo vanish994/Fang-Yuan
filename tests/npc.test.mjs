@@ -173,22 +173,22 @@ test('gancho de Rank é dito uma vez e não interrompe o rodízio das falas comu
   assert.equal(chen.hints.length, 2, 'conversar não altera os dados do NPC');
 });
 
-test('gancho de Gu equipadas exige a condição completa do mercador', () => {
-  const zhao = TEST_NPCS.find(npc => npc.id === 'npc-zhao-he');
-  const brain = new NpcBrain(zhao);
+test('gancho de Gu equipadas exige a condição completa do vendedor', () => {
+  const vendor = TEST_NPCS.find(npc => npc.id === 'npc-jiang-ya');
+  const brain = new NpcBrain(vendor);
   const context = equippedGu => ({ rank: 1, stage: 'Inicial', spiritStones: 0, equippedGu });
   brain.interact(10, context(2));
-  assert.equal(brain.line, zhao.dialogue);
+  assert.equal(brain.line, vendor.dialogue);
   brain.interact(20, context(3));
-  assert.match(brain.line, /Três Gu equipadas/);
+  assert.match(brain.line, /Três Gu na mão/);
   brain.interact(30, context(4));
-  assert.equal(brain.line, npcLines(zhao)[1], 'o mesmo gancho não se repete');
+  assert.equal(brain.line, npcLines(vendor)[1], 'o mesmo gancho não se repete');
 });
 
 test('dez NPCs na clareira com identidades e cérebro independente do Phaser', () => {
   assert.equal(TEST_NPCS.length, 10);
   assert.deepEqual(TEST_NPCS.slice(0, 4).map(n => n.name),
-    ['Gu Yue Mei', 'Lin Shan', 'Zhao He', 'Velho Chen']);
+    ['Gu Yue Mei', 'Lin Shan', 'Jiang Ya', 'Velho Chen']);
   assert.ok(TEST_NPCS.every(n => isFree(n.x, n.y)));
   const first = new NpcBrain(TEST_NPCS[0]);
   const second = new NpcBrain(TEST_NPCS[0]);
@@ -264,8 +264,8 @@ test('sprites e nomes no Y-sort: toque mostra fala, registra memória e não mov
   const records = createTestNpcViews(scene, layer, isFree, text => messages.push(text));
   assert.equal(records.length, 10);
   assert.equal(layer.items.length, 10);
-  assert.deepEqual(texts.slice(0, 4),
-    ['Gu Yue Mei', 'Lin Shan', 'Zhao He', 'Velho Chen']);
+  const names = texts.filter(text => TEST_NPCS.some(npc => npc.name === text));
+  assert.deepEqual(names.slice(0, 4), ['Gu Yue Mei', 'Lin Shan', 'Jiang Ya', 'Velho Chen']);
   let stopped = false;
   sprites[0].handler({}, 0, 0, { stopPropagation() { stopped = true; } });
   assert.equal(stopped, true);
@@ -310,6 +310,28 @@ test('toque informa o Rank do jogador e o NPC comenta uma vez antes de voltar à
   assert.doesNotMatch(messages[2], /Rank 2/);
 });
 
+test('vendedor tem banca identificada, fala de mercador e nenhuma promessa de venda', () => {
+  const vendors = TEST_NPCS.filter(npc => npc.stall);
+  assert.deepEqual(vendors.map(npc => npc.name), ['Jiang Ya', 'Tia Hua']);
+  assert.ok(vendors.every(npc => npc.role === 'merchant'));
+  assert.deepEqual(vendors.map(npc => npc.stall), ['banca de Gu', 'banca de comida']);
+  const jiang = vendors[0];
+  assert.match(jiang.dialogue, /Banca do clã/);
+  assert.match(npcLines(jiang).join(' '), /pétala/i, 'o vendedor precisa citar o que vende');
+  assert.match(npcLines(jiang).join(' '), /preço/i, 'sem comércio, o preço é assunto do clã');
+  // Nenhum texto de banca promete compra, desconto ou item jogável.
+  for (const npc of vendors) {
+    for (const line of [...npcLines(npc), ...(npc.hints ?? []).map(hint => hint.line)]) {
+      assert.doesNotMatch(line, /desconto|promoção|compre agora|grátis|R\$/i, line);
+    }
+  }
+  const { scene, layer, texts } = fakeScene();
+  createTestNpcViews(scene, layer, isFree, () => {});
+  assert.ok(texts.includes('banca de Gu') && texts.includes('banca de comida'),
+    'a banca precisa aparecer no mapa');
+  assert.equal(texts.filter(text => text.startsWith('banca')).length, 2);
+});
+
 test('atlas específico tem 10 NPCs em ordem de manifesto, poses estáticas e direções corretas', () => {
   const png = readFileSync(new URL('../public/assets/npcs/npc-static-4dir-32.png', import.meta.url));
   assert.equal(png.readUInt32BE(16), 128);
@@ -317,7 +339,7 @@ test('atlas específico tem 10 NPCs em ordem de manifesto, poses estáticas e di
   assert.equal(png[25], 6);
   assert.deepEqual(Object.values(NPC_ROWS), Array.from({ length: 10 }, (_, i) => i));
   assert.deepEqual(new Set(TEST_NPCS.map(n => n.id)), new Set(Object.keys(NPC_ROWS)));
-  assert.equal(npcFrame('npc-zhao-he', 'right'), 7);
+  assert.equal(npcFrame('npc-jiang-ya', 'right'), 7);
   assert.equal(npcFrame('npc-lin-shan', 'up'), 14);
   assert.throws(() => npcFrame('inexistente', 'down'), /NPC sem sprite/);
   const { scene, layer, sprites, views } = fakeScene(true);

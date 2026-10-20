@@ -74,7 +74,12 @@ export function createTestNpcViews(
     const name = scene.add.text(0, -32, definition.name, {
       fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
     }).setOrigin(0.5);
-    const view = scene.add.container(definition.x, definition.y, [shadow, sprite, name])
+    // Rótulo de teste: identifica quem tem banca. Não há comércio nem preço no jogo.
+    const stall = definition.stall ? scene.add.text(0, -40, definition.stall, {
+      fontSize: '7px', color: '#e6d2a2', backgroundColor: '#192318bb',
+    }).setOrigin(0.5) : null;
+    const view = scene.add.container(definition.x, definition.y,
+      stall ? [shadow, sprite, name, stall] : [shadow, sprite, name])
       .setName(`NPC:${definition.id}`).setDepth(definition.y);
     sprite.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
       event: Phaser.Types.Input.EventData) => {
