@@ -9,7 +9,9 @@ Método: leitura do código + medições executadas (testes, build, simulações
 
 O projeto está em boa forma estrutural (TypeScript `strict`, zero `any`, zero `@ts-ignore`, 118 testes, save normalizado, acessibilidade com `aria-live`, CSS sem código morto, 0 vulnerabilidades). Os problemas que restam não são de estilo: são de **comportamento** e de **processo**.
 
-> **Status (2026-10-20):** a **Onda 1** foi implementada nesta branch. Itens 1, 2, 3, 4, 5, 7, 8 e — antecipado da Onda 2 — o backoff do item 5 de robustez estão corrigidos, com testes de regressão. Ver “Progresso da Onda 1” no fim do documento; o restante segue como proposta.
+> **Status (2026-10-20):** **Ondas 1 e 2 implementadas** nesta branch, com testes de regressão e medições antes/depois.
+> Onda 1: itens 1, 2, 3, 4, 5, 7, 8. Onda 2: RNG injetável (4.1), degradação para memória (3.3), assinatura de render das receitas (3.6) e extração do fluxo de recompensa (4.7).
+> Ver “Progresso da Onda 1” e “Progresso da Onda 2” no fim do documento; o restante (Onda 3) segue como proposta.
 
 | # | Achado | Severidade | Impacto medido | Esforço |
 |---|---|---|---|---|
@@ -302,3 +304,30 @@ Recomendo executar a **Onda 1** inteira de uma vez: são correções pequenas, c
 **Balanceamento do novo loot:** a curva é suave em risco normalizado — 0,144 a 0,288 pedras por PV em todas as criaturas; chefes pagam 2–4 materiais de Rank superior. Nenhuma criatura domina o farm por pedra/PV, e o respawn continua inexistente na sessão.
 
 **Pendente da Onda 2/3:** RNG injetável no `tick`, extração de `rewardFlow` para teste, `renderRecipes` com assinatura (perda de foco), agrupamento de `Enemy.wild`, remoção de exports mortos e do default duplicado, redução de asserts sobre texto do código.
+
+
+---
+
+## 11. Progresso da Onda 2 (implementado)
+
+| Item | Correção | Evidência antes → depois |
+|---|---|---|
+| 4.7 Fluxo de recompensa sem teste | `src/combat/rewardFlow.ts` com `RewardQueue` (enqueue/drain/degrade) e mensagens prontas para o HUD; `main.ts` só decide quando drenar | lógica de gravação dentro da cena Phaser (0 testes) → **9 testes**, incluindo integração com motor e saves reais |
+| 3.3 Retry sem limite | Após **5 falhas seguidas**: persistência desligada nos dois lados, aviso único, entrega em memória | retry a cada 2 s para sempre → **2 s → 4 s → 8 s → 16 s → 30 s**, degradação e entrega no mesmo instante |
+| 4.1 RNG não injetável | `CombatEngine(..., random?)` governa IA, revive da Cigarra e sorteio de Gu selvagem | testes de combate dependiam de `Math.random` → mesma seed reproduz **exatamente** a mesma simulação (8 testes) |
+| 3.6 Ficha reconstruía o DOM a cada quadro | `src/ui/recipeView.ts` (chave de render sem a essência) + `refreshRecipeButtons` | **600 reconstruções em 10 s** (foco de teclado destruído ~60×/s) → **1** |
+
+**Como foi medido**
+
+- Reconstruções da ficha: 600 quadros com o motor real, contando mudanças da chave de render — 600 → 1.
+- Fila degradada: simulação com `setItem` lançando sempre; mensagens em 0 s, 14 s e 30 s, entrega do Gu + 22 pedras + material no instante da degradação, fila vazia ao fim.
+- Determinismo: `mulberry32` com seeds 1, 7 e 1234; retratos de posição/vida/eventos idênticos entre execuções e distintos entre seeds.
+
+**Detalhes de projeto que valem registro**
+
+- `claimWildGu` passou a devolver `retryable`: a UI não decide mais por regex no texto do motivo.
+- Inventário de Gu cheio continua sendo falha **não** retentável — pedras e material entram normalmente.
+- Depois de degradar, uma nova falha vira `stalled` (fila pausada por 30 s) em vez de reiniciar o ciclo: não existe caminho de laço infinito.
+- O RNG nunca é serializado; o save continua só com inventário, equipamento, assimilados, pedras e materiais.
+
+**Onda 3 (segue pendente):** agrupar o estado selvagem em `Enemy.wild`, remover os 5 exports mortos e o default duplicado de inventário, reduzir asserts sobre texto do código, dividir `enemyAbilities`/`wildGuDrops` do motor, unificar o render dos projéteis e o polimento da seção 5.
