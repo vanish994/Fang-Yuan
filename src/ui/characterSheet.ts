@@ -4,8 +4,10 @@ import { CharacterCultivation, TEST_STONE_GRANT } from '../entities/characterCul
 import type { CardinalDirection } from '../entities/directions';
 import { AdvanceIntent } from './advanceIntent';
 import type { CombatEngine } from '../combat/combatEngine';
-import { GU_CATALOG, GU_SLOTS, type CombatSettings } from '../combat/combatConfig';
-import type { GuId, GuSlot } from '../combat/types';
+import { GU_SLOTS } from '../combat/combatConfig';
+import { CATEGORY_LABELS, FIDELITY_LABELS, GU_CATALOG, GU_IDS, PENDING_GU_SLOTS,
+  isAssimilable, isEquippable } from '../combat/guCatalog';
+import type { GuDefinition, GuId, GuSlot } from '../combat/types';
 import { primordialSeaOffset, SHEET_SEA_SIZE } from './primordialSea';
 
 type SheetTab = 'advance' | 'inventory';
@@ -13,21 +15,122 @@ const slotLabels: Record<GuSlot, string> = {
   attack: 'ataque', passive: 'passivo', movement: 'movimento', support: 'apoio',
 };
 
-/** Textos da adaptação de teste; parâmetros vêm da configuração do motor. */
-function guEffect(id: GuId | null, config: CombatSettings): string {
-  switch (id) {
-    case 'moonlight': return `Ativo · ${config.moonlight.damage} dano, ${config.moonlight.range}px · ${config.moonlight.essenceCost} essência primordial · ${(config.moonlight.cooldownMs / 1000).toFixed(1)}s de recarga.`;
-    case 'stone-skin': return `Passivo · +${config.stoneSkin.defenseBonus} defesa enquanto equipado.`;
-    case 'whirlwind': return `Ativo · dash ${config.movement.distance}px · ${config.movement.essenceCost} essência primordial · ${(config.movement.cooldownMs / 1000).toFixed(1)}s de recarga e bônus temporário de velocidade.`;
-    case 'liquor-worm': return `Passivo · +${config.liquorWorm.bonusEssenceRegenPerSecond} essência primordial por segundo enquanto equipado.`;
-    default: return 'Slot vazio · nenhum efeito ativo.';
-  }
-}
-
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Elemento da ficha não encontrado: ${id}`);
   return element as T;
+}
+
+function create(tag: string, className = '', text = ''): HTMLElement {
+  const element = document.createElement(tag);
+  element.className = className;
+  if (text) element.textContent = text;
+  return element;
+}
+
+const seconds = (ms: number) => `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`;
+
+/**
+ * Só quatro Gu têm arte própria (atlas 2x2). Os demais usam o glifo declarado
+ * em `visual.glyph`, para que nenhum Gu fique sem identificação visual.
+ */
+function applyGuIcon(element: HTMLElement, id: GuId | null): void {
+  if (!id) {
+    element.removeAttribute('data-gu');
+    element.removeAttribute('data-glyph');
+    element.removeAttribute('data-sprite');
+    element.style.backgroundColor = '';
+    element.textContent = '';
+    return;
+  }
+  const gu = GU_CATALOG[id];
+  element.setAttribute('data-gu', id);
+  if (gu.visual.sprite) {
+    element.setAttribute('data-glyph', gu.visual.glyph);
+    element.setAttribute('data-sprite', '');
+    element.style.backgroundColor = '';
+    element.textContent = '';
+  } else {
+    element.setAttribute('data-glyph', gu.visual.glyph);
+    element.removeAttribute('data-sprite');
+    element.style.backgroundColor = gu.visual.color;
+    element.textContent = gu.visual.glyph;
+  }
+}
+
+/** Texto derivado exclusivamente da definição central do Gu. */
+function guEffectText(gu: GuDefinition): string {
+  if (gu.assimilation) {
+    const parts: string[] = [];
+    if (gu.assimilation.physicalDamageBonus !== undefined) {
+      parts.push(`+${Math.round(gu.assimilation.physicalDamageBonus * 100)}% dano físico`);
+    }
+    if (gu.assimilation.meleeDamageBonus !== undefined) {
+      parts.push(`+${Math.round(gu.assimilation.meleeDamageBonus * 100)}% dano corpo a corpo`);
+    }
+    if (gu.assimilation.maxHealthBonus) parts.push(`+${gu.assimilation.maxHealthBonus} vida`);
+    return `Assimilável · ${parts.join(' · ')} permanente.`;
+  }
+  if (gu.categories.includes('consumable') && gu.active) {
+    if (gu.active.kind === 'blind') {
+      return `Consumível · cega inimigos num raio de ${gu.active.radius}px por ${seconds(gu.active.durationMs)}. Uso único.`;
+    }
+    return 'Consumível · efeito de uso único.';
+  }
+  const passiveParts: string[] = [];
+  if (gu.passive) {
+    if (gu.passive.defense) passiveParts.push(`+${gu.passive.defense} defesa`);
+    if (gu.passive.maxHealthMultiplier) {
+      passiveParts.push(`+${Math.round((gu.passive.maxHealthMultiplier - 1) * 100)}% vida máxima`);
+    }
+    if (gu.passive.maxHealthBonus) passiveParts.push(`+${gu.passive.maxHealthBonus} vida`);
+    if (gu.passive.essenceRegenBonus) passiveParts.push(`+${gu.passive.essenceRegenBonus} essência/s`);
+    if (gu.passive.essenceRegenMultiplier) {
+      passiveParts.push(`${Math.round((gu.passive.essenceRegenMultiplier - 1) * 100)}% regeneração de essência`);
+    }
+    if (gu.passive.movementMultiplier && gu.passive.movementMultiplier !== 1) {
+      passiveParts.push(`${Math.round((gu.passive.movementMultiplier - 1) * 100)}% velocidade`);
+    }
+    if (gu.passive.lowHealthDefense) {
+      passiveParts.push(`+${gu.passive.lowHealthDefense.defense} defesa abaixo de `
+        + `${Math.round(gu.passive.lowHealthDefense.healthRatio * 100)}% de vida`);
+    }
+  }
+  if (passiveParts.length) {
+    return `Passivo · ${passiveParts.join(' · ')} enquanto equipado.`;
+  }
+  const active = gu.active;
+  if (!active) return 'Efeito ainda não configurado.';
+  const cost = `${gu.usage.essenceCost} essência`;
+  const cooldown = `${seconds(gu.usage.cooldownMs)} de recarga`;
+  if (active.kind === 'projectile') {
+    const count = active.count > 1 ? ` ×${active.count}` : '';
+    return `Ativo · ${active.damage} dano${count}, ${active.range}px · ${cost} · ${cooldown}`
+      + `${active.pierce ? ' · perfurante' : ''}${active.splashRadius > 0 ? ' · área' : ''}.`;
+  }
+  if (active.kind === 'dash') {
+    return `Ativo · deslocamento ${active.distance}px · ${cost} · ${cooldown} e `
+      + `${active.speedMultiplier}× velocidade por ${seconds(active.durationMs)}.`;
+  }
+  if (active.kind === 'buff') {
+    const parts: string[] = [];
+    if (active.damageMultiplier > 1) parts.push(`+${Math.round((active.damageMultiplier - 1) * 100)}% dano`);
+    if (active.movementMultiplier > 1) parts.push(`+${Math.round((active.movementMultiplier - 1) * 100)}% velocidade`);
+    if (active.defenseBonus) parts.push(`${active.defenseBonus > 0 ? '+' : ''}${active.defenseBonus} defesa`);
+    return `Ativo · ${parts.join(' · ')} por ${seconds(active.durationMs)} · ${cost} · ${cooldown}.`;
+  }
+  if (active.kind === 'empower') {
+    return `Ativo · próxima ativação +${Math.round((active.effectMultiplier - 1) * 100)}% de efeito e `
+      + `+${Math.round((active.costMultiplier - 1) * 100)}% de custo por ${seconds(active.durationMs)} · ${cost} · ${cooldown}.`;
+  }
+  if (active.kind === 'heal') {
+    return `Ativo · restaura ${active.amount} de vida · ${cost} · ${cooldown}.`;
+  }
+  return `Ativo · ${cost} · ${cooldown}.`;
+}
+
+function slotRequirements(gu: GuDefinition): string {
+  return `${slotLabels[gu.slot]} · Rank mínimo ${gu.usage.requiresRank}`;
 }
 
 /** Ficha de leitura e comando: validações e sorteios permanecem no motor de cultivo. */
@@ -61,19 +164,30 @@ export class CharacterSheet {
   };
   private readonly selects = new Map<GuSlot, HTMLSelectElement>();
   private readonly equipHandlers = new Map<GuSlot, () => void>();
+  private readonly optionSignatures = new Map<GuSlot, string>();
   private readonly generatedOptions: HTMLOptionElement[] = [];
   private readonly effects = new Map<GuSlot, HTMLElement>();
   private readonly icons = new Map<GuSlot, HTMLElement>();
   private readonly collection = requiredElement<HTMLElement>('gu-collection');
-  private readonly choices = new Map<GuId, HTMLButtonElement>();
-  private readonly choiceHandlers = new Map<GuId, () => void>();
   private readonly gearLock = requiredElement<HTMLElement>('gear-lock');
   private readonly guFeedback = requiredElement<HTMLElement>('gu-feedback');
   private readonly slotCount = requiredElement<HTMLElement>('gu-slot-count');
+  private readonly statHealth = requiredElement<HTMLElement>('stat-health');
+  private readonly statAttack = requiredElement<HTMLElement>('stat-attack');
+  private readonly statDefense = requiredElement<HTMLElement>('stat-defense');
+  private readonly statEssence = requiredElement<HTMLElement>('stat-essence');
+  private readonly statBase = requiredElement<HTMLElement>('stat-base');
+  private readonly statEquipped = requiredElement<HTMLElement>('stat-equipped');
+  private readonly statTemporary = requiredElement<HTMLElement>('stat-temporary');
+  private readonly statPermanent = requiredElement<HTMLElement>('stat-permanent');
+  private readonly recipeList = requiredElement<HTMLElement>('recipe-list');
+  private readonly refineFeedback = requiredElement<HTMLElement>('refine-feedback');
   private activeTab: SheetTab = 'advance';
   private facing: CardinalDirection = 'down';
   private moving = false;
   private lastCultivation = '';
+  private lastInventoryKey = '';
+  private lastPaintAt = -Infinity;
 
   private readonly onToggle = () => {
     if (this.panel.hidden) this.open(); else this.close();
@@ -124,6 +238,7 @@ export class CharacterSheet {
       }
     }
     this.renderCultivation();
+    this.renderEquipment(true);
   };
 
   constructor(private readonly cultivation: CharacterCultivation,
@@ -143,46 +258,11 @@ export class CharacterSheet {
       this.selects.set(slot, select);
       this.effects.set(slot, requiredElement(`gu-effect-${slot}`));
       this.icons.set(slot, requiredElement(`gu-icon-${slot}`));
-      if (combat) {
-        for (const [id, gu] of Object.entries(GU_CATALOG)) {
-          if (gu.slot !== slot || !combat.testInventory.has(id as GuId)) continue;
-          const option = document.createElement('option');
-          option.value = id;
-          option.textContent = gu.label;
-          select.appendChild(option);
-          this.generatedOptions.push(option);
-        }
-      }
       const handler = () => this.onEquip(slot);
       this.equipHandlers.set(slot, handler);
       select.addEventListener('change', handler);
     }
-    if (combat) {
-      for (const id of ['moonlight', 'liquor-worm', 'stone-skin', 'whirlwind'] as const) {
-        if (!combat.testInventory.has(id)) continue;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'gu-choice';
-        button.setAttribute('aria-label', `Equipar ou remover ${GU_CATALOG[id].label}`);
-        const icon = document.createElement('span');
-        icon.className = 'gu-icon';
-        icon.setAttribute('data-gu', id);
-        icon.setAttribute('aria-hidden', 'true');
-        const label = document.createElement('span');
-        label.textContent = {
-          moonlight: 'Moonlight', 'liquor-worm': 'Licor', 'stone-skin': 'Stone Skin', whirlwind: 'Whirlwind',
-        }[id];
-        button.appendChild(icon);
-        button.appendChild(label);
-        const handler = () => this.changeEquipment(GU_CATALOG[id].slot,
-          combat.equipment[GU_CATALOG[id].slot] === id ? null : id);
-        button.addEventListener('click', handler);
-        this.choiceHandlers.set(id, handler);
-        this.choices.set(id, button);
-        this.collection.appendChild(button);
-      }
-    }
-    this.renderEquipment();
+    this.renderEquipment(true);
     this.toggle.addEventListener('click', this.onToggle);
     this.closeButton.addEventListener('click', this.onClose);
     this.advanceButton.addEventListener('click', this.onAdvance);
@@ -201,7 +281,13 @@ export class CharacterSheet {
     }
     if (!this.panel.hidden) {
       if (this.activeTab === 'advance') this.renderSea();
-      else this.renderEquipment();
+      else {
+        this.renderEquipment();
+        this.renderStats();
+        // Essência regenera a cada quadro: os botões de refino precisam refletir
+        // o custo atual mesmo quando inventário e equipamento não mudaram.
+        this.renderRecipes();
+      }
       const state = this.cultivation.state;
       const key = `${state.rank}:${state.stage}:${state.spiritStones}:${JSON.stringify(state.materials)}`;
       if (key !== this.lastCultivation) this.renderCultivation();
@@ -222,7 +308,11 @@ export class CharacterSheet {
       this.panels[name].hidden = !selected;
     }
     this.panel.scrollTop = 0;
-    if (tab === 'inventory') this.renderEquipment();
+    if (tab === 'inventory') {
+      this.renderEquipment(true);
+      this.renderStats();
+      this.renderRecipes();
+    }
     if (focus) this.tabs[tab].focus();
   }
 
@@ -238,39 +328,233 @@ export class CharacterSheet {
       ? chosen ? `${GU_CATALOG[chosen].label} equipado no slot de ${slotLabels[slot]}.`
         : `Slot de ${slotLabels[slot]} vazio.`
       : result.reason ?? 'Não foi possível equipar o Gu.';
-    this.renderEquipment(); // Também restaura a seleção anterior após uma tentativa bloqueada.
+    this.renderEquipment(true); // Também restaura a seleção anterior após uma tentativa bloqueada.
+    this.renderStats();
   }
 
-  private renderEquipment(): void {
+  private onAssimilate(id: GuId): void {
+    if (!this.combat) return;
+    const result = this.combat.assimilate(id, this.getNow());
+    this.guFeedback.textContent = result.ok
+      ? `${GU_CATALOG[id].label} assimilado. O benefício permanente não pode ser obtido de novo.`
+      : result.reason ?? 'Não foi possível assimilar o Gu.';
+    this.renderEquipment(true);
+    this.renderStats();
+  }
+
+  private onUseItem(id: GuId): void {
+    if (!this.combat) return;
+    const result = this.combat.useItem(id, this.getNow());
+    this.guFeedback.textContent = result.ok
+      ? `${GU_CATALOG[id].label} usado.`
+      : result.reason ?? 'Não foi possível usar o item.';
+    this.renderEquipment(true);
+  }
+
+  private onRefine(recipeId: string): void {
+    if (!this.combat) return;
+    const result = this.combat.refine(recipeId, this.getNow());
+    this.refineFeedback.textContent = result.ok
+      ? `Refino concluído: ${this.combat.recipes.find(recipe => recipe.id === recipeId)?.name ?? recipeId}.`
+      : result.reason ?? 'Não foi possível refinar.';
+    this.renderEquipment(true);
+    this.renderStats();
+    this.renderSea();
+  }
+
+  private renderEquipment(force = false): void {
     const combat = this.combat;
-    const locked = !combat || !combat.hero.alive || combat.inCombat(this.getNow());
+    const now = this.getNow();
+    const locked = !combat || !combat.hero.alive || combat.inCombat(now);
     this.gearLock.textContent = !combat ? 'Inventário de teste indisponível.'
       : !combat.hero.alive ? 'Troca bloqueada enquanto Fang Yuan está derrotado.'
         : locked ? 'Em combate · não é possível trocar Gu agora.'
-          : 'Fora de combate · toque em um slot para equipar ou remover Gu.';
+          : 'Fora de combate · toque em um cartão para equipar, assimilar ou usar.';
     this.gearLock.setAttribute('data-locked', String(locked));
     this.slotCount.textContent = `${combat ? GU_SLOTS.filter(slot => combat.equipment[slot] !== null).length : 0} / 4`;
     for (const slot of GU_SLOTS) {
       const select = this.selects.get(slot)!;
       const equipped = combat?.equipment[slot] ?? null;
+      const owned = combat ? GU_IDS.filter(id => {
+        const gu = GU_CATALOG[id];
+        return gu.slot === slot && isEquippable(gu) && combat.inventoryCount(id) > 0;
+      }) : [];
+      const signature = `${owned.join(',')}|${equipped ?? ''}|${locked}`;
+      if (this.optionSignatures.get(slot) !== signature) {
+        this.optionSignatures.set(slot, signature);
+        select.replaceChildren();
+        const empty = document.createElement('option');
+        empty.value = ''; empty.textContent = 'Vazio';
+        select.appendChild(empty);
+        for (const id of owned) {
+          const option = document.createElement('option');
+          option.value = id; option.textContent = GU_CATALOG[id].label;
+          select.appendChild(option);
+          this.generatedOptions.push(option);
+        }
+      }
       select.disabled = locked;
       select.value = equipped ?? '';
-      const icon = this.icons.get(slot)!;
-      if (equipped) icon.setAttribute('data-gu', equipped);
-      else icon.removeAttribute('data-gu');
+      applyGuIcon(this.icons.get(slot)!, equipped);
       this.effects.get(slot)!.textContent = combat
-        ? guEffect(equipped, combat.config) : 'Nenhum Gu disponível.';
+        ? (equipped ? guEffectText(GU_CATALOG[equipped]) : 'Slot vazio · nenhum efeito ativo.')
+        : 'Nenhum Gu disponível.';
     }
-    for (const [id, choice] of this.choices) {
-      choice.disabled = locked;
-      choice.setAttribute('aria-pressed', String(combat?.equipment[GU_CATALOG[id].slot] === id));
+
+    const key = `${GU_IDS.map(id => combat?.inventoryCount(id) ?? 0).join(':')}|`
+      + `${GU_SLOTS.map(slot => combat?.equipment[slot] ?? '').join(':')}|`
+      + `${combat ? [...combat.assimilated].join(':') : ''}|${locked}`;
+    if (force || key !== this.lastInventoryKey) {
+      this.lastInventoryKey = key;
+      this.renderCollection(locked);
+      this.renderRecipes();
     }
+  }
+
+  private renderCollection(locked: boolean): void {
+    const combat = this.combat;
+    this.collection.replaceChildren();
+    this.generatedOptions.length = 0;
+    if (!combat) {
+      this.collection.appendChild(create('p', 'sheet-note', 'Inventário indisponível.'));
+      return;
+    }
+    const now = this.getNow();
+    for (const id of GU_IDS) {
+      const gu = GU_CATALOG[id];
+      const count = combat.inventoryCount(id);
+      const equipped = combat.equipment[gu.slot] === id && isEquippable(gu);
+      const assimilated = combat.assimilated.has(id);
+      const card = create('article', 'gu-card');
+      card.setAttribute('data-gu', id);
+      const head = create('div', 'gu-card-head');
+      const icon = create('span', 'gu-icon');
+      applyGuIcon(icon, id);
+      icon.setAttribute('aria-hidden', 'true');
+      const title = create('div', 'gu-card-title');
+      title.appendChild(create('strong', '', `${gu.label} · Rank ${gu.rank}`));
+      const categories = gu.categories.map(category => CATEGORY_LABELS[category]).join(' · ');
+      title.appendChild(create('small', '', `${categories} · ${slotRequirements(gu)}`));
+      head.appendChild(icon); head.appendChild(title);
+      card.appendChild(head);
+      card.appendChild(create('p', 'gu-card-effect', guEffectText(gu)));
+      const statusParts = [
+        `Quantidade: ${count}`,
+        `Custo: ${gu.usage.essenceCost} essência`,
+        gu.usage.cooldownMs > 0 ? `Recarga: ${seconds(gu.usage.cooldownMs)}` : 'Sem recarga',
+        `Fidelidade: ${FIDELITY_LABELS[gu.fidelity]}`,
+        `Preço ref.: ${gu.price} pedras`,
+        equipped ? 'Equipado' : '',
+        assimilated ? 'Assimilado' : '',
+        count <= 0 && !assimilated ? 'Não possuído' : '',
+      ].filter(Boolean);
+      card.appendChild(create('small', 'gu-card-status', statusParts.join(' · ')));
+      const actions = create('div', 'gu-card-actions');
+      if (isEquippable(gu)) {
+        const equip = document.createElement('button');
+        equip.type = 'button'; equip.className = 'gu-card-action';
+        equip.disabled = locked;
+        equip.textContent = equipped ? 'Remover' : count > 0 ? 'Equipar' : 'Indisponível';
+        equip.setAttribute('aria-label', equipped ? `Remover ${gu.label}` : `Equipar ${gu.label}`);
+        equip.addEventListener('click', () => this.changeEquipment(gu.slot, equipped ? null : id));
+        actions.appendChild(equip);
+      }
+      if (isAssimilable(gu)) {
+        const assimilate = document.createElement('button');
+        assimilate.type = 'button'; assimilate.className = 'gu-card-action';
+        assimilate.disabled = locked || count <= 0 || assimilated;
+        assimilate.textContent = assimilated ? 'Assimilado' : count > 0 ? 'Assimilar' : 'Indisponível';
+        assimilate.setAttribute('aria-label', `Assimilar ${gu.label}`);
+        assimilate.addEventListener('click', () => this.onAssimilate(id));
+        actions.appendChild(assimilate);
+      }
+      if (gu.categories.includes('consumable')) {
+        const use = document.createElement('button');
+        use.type = 'button'; use.className = 'gu-card-action';
+        use.disabled = !combat.hero.alive || count <= 0;
+        use.textContent = count > 0 ? 'Usar' : 'Indisponível';
+        use.setAttribute('aria-label', `Usar ${gu.label}`);
+        use.addEventListener('click', () => this.onUseItem(id));
+        actions.appendChild(use);
+      }
+      card.appendChild(actions);
+      const cooldown = combat.cooldownRemaining(id, now);
+      if (cooldown > 0) card.appendChild(create('small', 'gu-card-cooldown', `Em recarga: ${seconds(cooldown)}`));
+      this.collection.appendChild(card);
+    }
+    for (const pending of PENDING_GU_SLOTS) {
+      this.collection.appendChild(create('p', 'sheet-note gu-pending',
+        `Pendente no slot de ${slotLabels[pending.slot]}: ${pending.missing} Gu. ${pending.reason}`));
+    }
+  }
+
+  private renderRecipes(): void {
+    const combat = this.combat;
+    this.recipeList.replaceChildren();
+    if (!combat) {
+      this.recipeList.appendChild(create('p', 'sheet-note', 'Refino indisponível.'));
+      return;
+    }
+    const now = this.getNow();
+    for (const recipe of combat.recipes) {
+      const card = create('article', 'recipe-card');
+      card.appendChild(create('strong', '', recipe.name));
+      const ingredients = recipe.ingredients.map(ingredient =>
+        `${combat.inventoryCount(ingredient.id)}/${ingredient.quantity}× ${GU_CATALOG[ingredient.id].label}`).join(' · ');
+      card.appendChild(create('small', '', `Ingredientes: ${ingredients} · Essência: ${recipe.essenceCost}`
+        + ` · Rank mínimo: ${recipe.requiresRank} · Resultado: ${GU_CATALOG[recipe.result].label}`));
+      card.appendChild(create('small', 'recipe-source', `${FIDELITY_LABELS[recipe.fidelity]} · ${recipe.source.reference}`));
+      const canRank = combat.cultivationRank >= recipe.requiresRank;
+      const canIngredients = recipe.ingredients.every(ingredient =>
+        combat.inventoryCount(ingredient.id) >= ingredient.quantity);
+      const canEssence = combat.essence >= recipe.essenceCost;
+      const usable = canRank && canIngredients && canEssence && combat.hero.alive && !combat.inCombat(now);
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'gu-card-action';
+      button.textContent = 'Refinar';
+      button.disabled = !usable;
+      button.setAttribute('aria-label', `Refinar ${recipe.name}`);
+      button.title = !canRank ? `Exige Rank ${recipe.requiresRank}`
+        : !canIngredients ? 'Ingredientes insuficientes'
+          : !canEssence ? 'Essência insuficiente' : 'Executar receita determinística';
+      button.addEventListener('click', () => this.onRefine(recipe.id));
+      card.appendChild(button);
+      this.recipeList.appendChild(card);
+    }
+  }
+
+  private renderStats(): void {
+    const combat = this.combat;
+    if (!combat) return;
+    const now = this.getNow();
+    if (now === this.lastPaintAt) return;
+    this.lastPaintAt = now;
+    const stats = combat.stats(now);
+    this.statHealth.textContent = `${Math.ceil(combat.hero.health)} / ${stats.total.maxHealth}`;
+    this.statAttack.textContent = `${stats.base.attack} · x${combat.meleeDamageMultiplier(now).toFixed(2)} corpo a corpo`;
+    this.statDefense.textContent = `${stats.total.defense}`;
+    this.statEssence.textContent = `${Math.floor(combat.essence)} / ${stats.total.maxEssence} · +${stats.total.essenceRegen.toFixed(1)}/s`;
+    this.statBase.textContent = `Vida ${stats.base.maxHealth} · Ataque ${stats.base.attack}`
+      + ` · Defesa ${stats.base.defense} · Essência ${stats.base.maxEssence}`
+      + ` · Regeneração ${stats.base.essenceRegen.toFixed(1)}/s`;
+    this.statEquipped.textContent = `+${stats.equipped.defense} defesa · `
+      + `${stats.equipped.maxHealth >= 0 ? '+' : ''}${stats.equipped.maxHealth} vida · `
+      + `${stats.equipped.essenceRegen >= 0 ? '+' : ''}${stats.equipped.essenceRegen.toFixed(1)} essência/s · `
+      + `x${stats.equipped.movementMultiplier.toFixed(2)} velocidade`;
+    const temporary = combat.activeEffects(now).map(effect =>
+      `${effect.label} (${seconds(effect.remainingMs)})`);
+    if (stats.temporary.barrier > 0) temporary.push(`Barreira ${stats.temporary.barrier}`);
+    if (combat.empowerRemaining(now) > 0) temporary.push('Próxima ativação amplificada');
+    this.statTemporary.textContent = temporary.length ? temporary.join(' · ') : 'Nenhum efeito temporário ativo.';
+    this.statPermanent.textContent = `+${Math.round(stats.permanent.physicalDamageBonus * 100)}% dano físico · `
+      + `+${Math.round(stats.permanent.meleeDamageBonus * 100)}% corpo a corpo · `
+      + `${combat.assimilated.size} Gu assimilado(s)`;
   }
 
   private renderSea(): void {
     if (!this.combat) return;
-    const { essence, config } = this.combat;
-    const maximum = config.hero.maxEssence;
+    const { essence } = this.combat;
+    const maximum = this.combat.cultivationMaxEssence;
     this.sea.style.backgroundPositionX = `${primordialSeaOffset(essence, maximum, SHEET_SEA_SIZE)}px`;
     this.sea.setAttribute('aria-label', `Mar Primordial na abertura: ${Math.floor(essence)} de ${maximum} de essência primordial`);
     this.seaAmount.textContent = `${Math.floor(essence)} / ${maximum} de essência primordial`;
@@ -329,7 +613,9 @@ export class CharacterSheet {
     this.renderMovement();
     this.renderCultivation();
     this.renderSea();
-    this.renderEquipment();
+    this.renderEquipment(true);
+    this.renderStats();
+    this.renderRecipes();
     this.panel.hidden = false;
     this.toggle.setAttribute('aria-expanded', 'true');
     this.closeButton.focus();
@@ -354,9 +640,9 @@ export class CharacterSheet {
     this.tabs.advance.removeEventListener('keydown', this.onTabKeyDown);
     this.tabs.inventory.removeEventListener('keydown', this.onTabKeyDown);
     for (const [slot, select] of this.selects) select.removeEventListener('change', this.equipHandlers.get(slot)!);
-    for (const [id, choice] of this.choices) choice.removeEventListener('click', this.choiceHandlers.get(id)!);
     for (const option of this.generatedOptions) option.remove();
     this.collection.replaceChildren();
+    this.recipeList.replaceChildren();
     document.removeEventListener('keydown', this.onKeyDown);
   }
 }

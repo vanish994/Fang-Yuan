@@ -14,8 +14,8 @@ export const MOB_ROWS: Readonly<Record<string, number>> = {
   'mob-stone-lizard': 9,
   'mob-demon-wolf': 10,
   'mob-demon-bear': 11,
-  'mob-jade-snake': 12,
-  'mob-demonic-tiger': 13,
+  'mob-jade-serpent': 12,
+  'mob-demon-tiger': 13,
   'mob-boar-king': 14, // Rei Javali do atlas de mobs ≠ boss Rei Javali Demoníaco.
 };
 const COLUMNS: Readonly<Record<Direction, number>> = {

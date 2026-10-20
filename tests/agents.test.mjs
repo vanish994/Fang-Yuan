@@ -1,22 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-function moduleURL(path, imports = {}) {
-  let js = ts.transpileModule(readFileSync(new URL(`../src/${path}.ts`, import.meta.url), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  for (const [from, url] of Object.entries(imports)) js = js.replace(`from '${from}'`, `from '${url}'`);
-  return `data:text/javascript;base64,${Buffer.from(js).toString('base64')}`;
-}
 const agentURL = moduleURL('agents/agentBrain');
 const { AgentBrain, perceive } = await import(agentURL);
 const { TEST_MOBS } = await import(moduleURL('combat/mobCatalog'));
-const configURL = moduleURL('combat/combatConfig');
-const { CombatEngine } = await import(moduleURL('combat/combatEngine', {
-  './combatConfig': configURL, '../agents/agentBrain': agentURL,
-}));
+const { CombatEngine } = await import(moduleURL('combat/combatEngine'));
 const { isWalkableTile } = await import(moduleURL('world/qingMaoGround'));
 
 const traits = { kind: 'enemy', vision: 100, attackRange: 32, memoryMs: 30000,
@@ -39,8 +29,8 @@ test('Perception → Memory → Goal → Decision → Action para inimigos e NPC
   assert.equal(npc.memory.lastInteractionAt, 123);
 });
 
-test('catálogo provisório contém 12 mobs e 4 bosses e nenhum surge dentro da mata', () => {
-  assert.equal(TEST_MOBS.filter(m => m.tier !== 'boss').length, 12);
+test('catálogo provisório contém 15 mobs e 4 bosses e nenhum surge dentro da mata', () => {
+  assert.equal(TEST_MOBS.filter(m => m.tier !== 'boss').length, 15);
   assert.equal(TEST_MOBS.filter(m => m.tier === 'boss').length, 4);
   assert.equal(new Set(TEST_MOBS.map(m => m.id)).size, TEST_MOBS.length);
   for (const mob of TEST_MOBS) {
@@ -57,9 +47,10 @@ test('motor aplica HP, defesa, dano e detecção por criatura; habilidades plane
   assert.equal(enemy.maxHealth, 45);
   assert.equal(enemy.defense, 2);
   engine.tick(100, 100);
-  assert.equal(engine.hero.health, 93); // 9 dano - 2 defesa padrão
+  // Fórmula única: floor(9 * 100 / (100 + defesa 2)) = 8.
+  assert.equal(engine.hero.health, 92);
   engine.select(boar.id);
-  assert.equal(engine.basicAttack(1000).events[0].amount, 10); // 12 dano - 2 defesa
+  assert.equal(engine.basicAttack(1000).events[0].amount, 13); // floor(14 * 100 / 102)
   const boss = TEST_MOBS.find(m => m.tier === 'boss');
   const bossEnemy = engine.addEnemy(boss.id, 1000, 1000, boss.health, boss);
   assert.equal(bossEnemy.maxHealth, 1200);

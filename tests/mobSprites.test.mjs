@@ -25,7 +25,7 @@ test('atlas recebido tem 15 mobs e quatro poses transparentes de 32 px por linha
   assert.throws(() => mobFrame('mob-demonic-boar-king', 'down'), /Mob sem sprite/);
 });
 
-test('somente os 12 mobs com atributos existentes surgem; Rei Javali não substitui o boss', async () => {
+test('todos os 15 mobs com sprites surgem; Rei Javali não substitui o boss', async () => {
   const catalog = readFileSync(new URL('../src/combat/mobCatalog.ts', import.meta.url), 'utf8');
   const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(catalog, /mob\('demonic-boar-king', 'Rei Javali Demoníaco'/);
@@ -42,7 +42,9 @@ test('somente os 12 mobs com atributos existentes surgem; Rei Javali não substi
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const { TEST_MOBS } = await import(`data:text/javascript;base64,${Buffer.from(jsCatalog).toString('base64')}`);
-  assert.equal(TEST_MOBS.filter(m => m.tier !== 'boss').length, 12);
+  assert.equal(TEST_MOBS.filter(m => m.tier !== 'boss').length, 15);
   assert.ok(TEST_MOBS.filter(m => m.tier !== 'boss').every(m => m.id in MOB_ROWS));
-  assert.ok(!TEST_MOBS.some(m => m.id === 'mob-boar-king'));
+  // Rei Javali (tier 3) é um encontro de elite, não o boss Rei Javali Demoníaco.
+  assert.ok(TEST_MOBS.some(m => m.id === 'mob-boar-king' && m.tier === 3));
+  assert.ok(!TEST_MOBS.some(m => m.id === 'mob-boar-king' && m.tier === 'boss'));
 });

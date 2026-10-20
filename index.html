@@ -201,8 +201,44 @@
       .gu-icon[data-gu="liquor-worm"] { background-position: -48px 0; }
       .gu-icon[data-gu="stone-skin"] { background-position: 0 -48px; }
       .gu-icon[data-gu="whirlwind"] { background-position: -48px -48px; }
-      .gu-collection { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 5px; margin: 0 0 14px; }
+      /* Só quatro Gu têm arte; os demais exibem o glifo canônico sobre a cor do elemento. */
+      .gu-icon[data-glyph] { display: grid; place-items: center; box-sizing: border-box;
+        background-image: none; border: 1px solid #6f6a8f; color: #10142a;
+        font: bold 20px/1 Georgia, serif; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+      .gu-icon[data-sprite] { display: block; background-image: url('./assets/ui/gu-icons-2x2-64.png');
+        background-size: 96px 96px; background-repeat: no-repeat; border: 0; }
+      .gu-collection { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 7px; margin: 0 0 14px; }
+      .gu-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 8px;
+        border: 1px solid #7d6a8d; background: #161b33; color: #efe6f7;
+        font: 11px/1.4 Arial, sans-serif; }
+      .gu-card-head { display: flex; align-items: center; gap: 8px; }
+      .gu-card-title { min-width: 0; display: grid; gap: 2px; }
+      .gu-card-title strong { color: #f9e3b0; font: bold 12px/1.3 Arial, sans-serif; overflow-wrap: anywhere; }
+      .gu-card-title small, .gu-card-status { color: #bdb6d0; font-size: 10px; overflow-wrap: anywhere; }
+      .gu-card-effect { margin: 0; color: #dcd6ec; }
+      .gu-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+      .gu-card-action { flex: 1 1 auto; min-height: 44px; padding: 6px 8px; border: 1px solid #c3a07f;
+        background: #263050; color: #ffe6b8; font: bold 12px Arial, sans-serif; cursor: pointer; }
+      .gu-card-action:disabled { opacity: .55; cursor: not-allowed; }
+      .gu-card-action:focus-visible { outline: 2px solid #ebcc8e; outline-offset: 2px; }
+      .gu-card-cooldown { color: #f3b3a4; }
+      .gu-pending { border-left: 3px solid #b98a4b; padding-left: 8px; }
+      .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 7px;
+        margin: 0 0 12px; }
+      .stat-grid div { padding: 7px 9px; border: 1px solid #5f5779; background: #141a30; }
+      .stat-grid dt { color: #c9b7d8; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+      .stat-grid dd { margin: 3px 0 0; color: #fff1cf; font: 13px/1.35 Georgia, serif; }
+      .stat-layers { display: grid; gap: 5px; margin: 0 0 14px; }
+      .stat-layers div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px;
+        padding: 6px 8px; background: #191f36; border-left: 3px solid #7f9dbb; font-size: 11px; }
+      .stat-layers dt { color: #b9cbe0; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; }
+      .stat-layers dd { margin: 0; color: #e9eeff; overflow-wrap: anywhere; }
+      .recipe-card { display: grid; gap: 5px; padding: 9px; margin-bottom: 7px;
+        border: 1px solid #7d6a8d; background: #161b33; font-size: 11px; line-height: 1.4; }
+      .recipe-card strong { color: #f9e3b0; font-size: 12px; }
+      .recipe-card small { color: #bdb6d0; overflow-wrap: anywhere; }
+      .recipe-source { color: #9fbfa8; }
       .gu-choice { display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
         gap: 3px; min-width: 0; min-height: 88px; padding: 5px 2px; border: 7px solid transparent;
         border-image: url('./assets/ui/panel-9slice.png') 12 fill / 7px / 0 stretch;
@@ -490,6 +526,19 @@
         <section class="sheet-section" aria-label="Inventário de Gu">
           <h3>Gu equipados <span class="slot-count" id="gu-slot-count">0 / 4</span></h3>
           <p class="gear-lock" id="gear-lock" role="status" aria-live="polite">Equipagem liberada fora de combate.</p>
+          <div class="stat-grid" aria-label="Atributos de combate">
+            <div><dt>Vida</dt><dd id="stat-health">—</dd></div>
+            <div><dt>Ataque</dt><dd id="stat-attack">—</dd></div>
+            <div><dt>Defesa</dt><dd id="stat-defense">—</dd></div>
+            <div><dt>Essência</dt><dd id="stat-essence">—</dd></div>
+          </div>
+          <dl class="stat-layers" aria-label="Origem dos atributos">
+            <div><dt>Base</dt><dd id="stat-base">—</dd></div>
+            <div><dt>Equipados</dt><dd id="stat-equipped">—</dd></div>
+            <div><dt>Temporários</dt><dd id="stat-temporary">—</dd></div>
+            <div><dt>Permanentes</dt><dd id="stat-permanent">—</dd></div>
+          </dl>
+          <h4>Coleção</h4>
           <div id="gu-collection" class="gu-collection" aria-label="Gu disponíveis para teste"></div>
           <p class="sheet-note inventory-disclaimer">Além do Gu da Lua, os Gu disponíveis aqui são somente para testar o combate; ainda não foram obtidos na história.</p>
           <div class="gu-slots">
@@ -507,6 +556,9 @@
               <small id="gu-effect-support" class="gu-effect"></small></div></div>
           </div>
           <p id="gu-feedback" class="sheet-note gu-feedback" role="status" aria-live="polite"></p>
+          <h4>Refino</h4>
+          <div id="recipe-list" class="recipe-list" aria-label="Receitas de refino"></div>
+          <p id="refine-feedback" class="sheet-note" role="status" aria-live="polite"></p>
           <div class="gu-intrinsic"><span class="eyebrow">Passiva intrínseca</span>
             <strong>Cigarra da Primavera e Outono</strong>
             <small>Não ocupa slot. Pode ressuscitar com 50% da vida em 5% das mortes quando estiver pronta.</small></div>

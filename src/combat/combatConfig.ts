@@ -1,4 +1,8 @@
-import type { GuId, GuSlot } from './types';
+import { GU_SLOTS, type GuId, type GuSlot } from './types';
+
+export { GU_CATALOG, GU_IDS, STARTING_INVENTORY, PENDING_GU_SLOTS, RANK_ONE_GU_COUNT }
+  from './guCatalog';
+export { GU_SLOTS };
 
 export interface CombatSettings {
   hero: { maxHealth: number; defense: number; maxEssence: number; baseEssenceRegenPerSecond: number };
@@ -6,10 +10,12 @@ export interface CombatSettings {
     aggroRange: number; speed: number; attackCooldownMs: number; lootStones: number;
     lootMaterialId: string; lootMaterialQuantity: number };
   basic: { damage: number; range: number; cooldownMs: number };
+  /** Valores legados da Moonlight Gu; o catálogo é a fonte usada pelo motor. */
   moonlight: { rank: number; damage: number; range: number; width: number; speed: number;
     essenceCost: number; cooldownMs: number };
   liquorWorm: { bonusEssenceRegenPerSecond: number };
   stoneSkin: { defenseBonus: number };
+  /** Valores legados do Whirlwind Gu; o catálogo é a fonte usada pelo motor. */
   movement: { distance: number; essenceCost: number; cooldownMs: number;
     speedMultiplier: number; speedBonusMs: number };
   cicada: { chance: number; restoredHealthRatio: number; cooldownMs: number };
@@ -37,20 +43,10 @@ export const COMBAT_CONFIG: CombatSettings = {
   combatLockMs: 5000,
 } as const;
 
-/** Nomes visuais enviados pelo usuário; Whirlwind é a grafia provisória de “redemoinho”. */
-export const GU_CATALOG: Readonly<Record<GuId, { label: string; slot: GuSlot; rank: number }>> = {
-  moonlight: { label: 'Moonlight Gu · Gu da Lua', slot: 'attack', rank: 1 },
-  'stone-skin': { label: 'Stone Skin Gu · Pele de Pedra', slot: 'passive', rank: 1 },
-  'liquor-worm': { label: 'Liquor Gu · Verme do Licor', slot: 'support', rank: 1 },
-  'whirlwind': { label: 'Whirlwind Gu · Redemoinho (teste)', slot: 'movement', rank: 1 },
-};
-
 /** Distâncias de teste: inimigos ficam fora da detecção inicial para permitir preparar Gu. */
 export const TEST_ENEMY_OFFSETS: ReadonlyArray<readonly [number, number]> = [
   [124, 0], [-115, -85], [8, 165], [180, 140], [-185, 80], [95, -175],
 ];
-
-export const GU_SLOTS: readonly GuSlot[] = ['attack', 'passive', 'movement', 'support'];
 
 /** Carregamento de teste, não distribuição narrativa: só Moonlight começa equipado. */
 export const STARTING_EQUIPMENT: Readonly<Record<GuSlot, GuId | null>> = {

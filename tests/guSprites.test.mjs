@@ -1,13 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-const source = readFileSync(new URL('../src/combat/combatConfig.ts', import.meta.url), 'utf8');
-const js = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const { GU_CATALOG, GU_SLOTS } = await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
+const { GU_CATALOG, GU_SLOTS } = await import(moduleURL('combat/combatConfig'));
 
 test('sprite enviado mapeia os quatro Gu aos quadrantes reais e aos slots corretos', () => {
   const png = readFileSync(new URL('../public/assets/ui/gu-icons-2x2-64.png', import.meta.url));
@@ -30,7 +26,8 @@ test('sprite enviado mapeia os quatro Gu aos quadrantes reais e aos slots corret
   }
   assert.match(html, /gu-icons-2x2-64\.png/);
   const hud = readFileSync(new URL('../src/ui/combatHUD.ts', import.meta.url), 'utf8');
-  assert.match(hud, /data-action="moonlight"[^>]*><span class="gu-icon" data-gu="moonlight"/);
-  assert.match(hud, /data-action="dash"[^>]*><span class="gu-icon" data-gu="whirlwind"/);
+  // O HUD é genérico por slot: o mesmo botão mostra o Gu equipado no motor.
+  assert.match(hud, /data-action="attack"[^>]*><span class="gu-icon" data-gu="moonlight"/);
+  assert.match(hud, /data-action="movement"[^>]*><span class="gu-icon" data-gu="whirlwind"/);
   assert.doesNotMatch(hud, /data-gu="stone-skin"|data-gu="liquor-worm"/);
 });
