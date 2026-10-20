@@ -20,6 +20,13 @@ const STAGE_POWER = {
   Pico: 1.30,
 } as const;
 
+const STAGE_ESSENCE_QUALITY = {
+  Inicial: 1,
+  Médio: 1.02,
+  Superior: 1.05,
+  Pico: 1.08,
+} as const;
+
 export function cultivationCombatStats(state: CultivationState): CultivationCombatStats {
   const rankFactor = Math.pow(1.42, state.rank - 1);
   const power = rankFactor * STAGE_POWER[state.stage];
@@ -31,6 +38,18 @@ export function cultivationCombatStats(state: CultivationState): CultivationComb
     defense: 2 + Math.floor((state.rank - 1) * 1.8) + Math.floor(stageIndex / 2),
     maxEssence: Math.max(1, Math.round(100 * (1 + (state.rank - 1) * 0.16 + stageIndex * 0.06))),
   };
+}
+
+/**
+ * Qualidade da essência usada para alimentar um Gu.
+ * Um Gu Rank 1 continua sendo Rank 1, mas a essência de um cultivador mais
+ * forte o alimenta com maior potência. Isto fica separado do Rank do Gu para
+ * permitir Gus Rank 2/3/... sem transformar automaticamente um Gu Rank 1 em
+ * um Gu de Rank superior.
+ */
+export function primordialEssenceQualityMultiplier(state: CultivationState): number {
+  const rankQuality = 1 + (state.rank - 1) * 0.08;
+  return rankQuality * STAGE_ESSENCE_QUALITY[state.stage];
 }
 
 /** Ordem canônica: R1 Inicial → R1 Pico → R2 Inicial → ... → R9 Pico. */
