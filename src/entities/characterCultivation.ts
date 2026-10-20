@@ -6,11 +6,11 @@ import {
 } from './cultivation';
 
 export const CULTIVATION_STORAGE_KEY = 'fang-yuan.cultivation.v1';
-/** Crédito somente do protótipo para experimentar os custos; não faz parte da história. */
 export const TEST_STONE_GRANT = 1_000_000;
 const SAVE_VERSION = 1;
 
-/** Adaptador mínimo: no navegador usa localStorage; testes usam memória. */
+type CultivationListener = (state: CultivationState) => void;
+
 export interface CultivationStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -35,7 +35,6 @@ function load(storage: CultivationStorage | null): StoredCultivation | null {
     const record = saved as Record<string, unknown>;
     if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) return null;
     const state = record.state;
-    // Saves anteriores não trazem a marca; recebem o bônus só na próxima abertura do jogo.
     return { state: { ...state, materials: { ...state.materials } },
       testStonesGranted: record.testStonesGranted === true };
   } catch { return null; }
@@ -45,6 +44,7 @@ export type SessionAdvanceResult = AdvanceResult | { status: 'stale'; state: Cul
 
 /** Estado da campanha local: nenhum gasto entra na sessão antes de salvar com sucesso. */
 export class CharacterCultivation {
+  private static readonly listeners = new Set<CultivationListener>();
   private current: CultivationState;
   private version = 0;
   private inFlight = false;
@@ -56,6 +56,18 @@ export class CharacterCultivation {
     const saved = load(storage);
     this.current = saved?.state ?? { ...INITIAL_CULTIVATION, materials: {} };
     this.testStonesGranted = saved?.testStonesGranted ?? false;
+    CharacterCultivation.publish(this.current);
+  }
+
+  /** Permite que sistemas de combate reajustem atributos imediatamente após uma ruptura. */
+  static subscribe(listener: CultivationListener): () => void {
+    CharacterCultivation.listeners.add(listener);
+    return () => CharacterCultivation.listeners.delete(listener);
+  }
+
+  private static publish(state: CultivationState): void {
+    const snapshot = { ...state, materials: { ...state.materials } };
+    for (const listener of CharacterCultivation.listeners) listener(snapshot);
   }
 
   get state(): CultivationState {
@@ -72,16 +84,15 @@ export class CharacterCultivation {
 
   private commit(next: CultivationState, testStonesGranted = this.testStonesGranted): void {
     if (this.storage) {
-      // Grava saldo e marca do bônus juntos: falha não duplica nem publica créditos parciais.
       this.storage.setItem(CULTIVATION_STORAGE_KEY,
         JSON.stringify({ version: SAVE_VERSION, state: next, testStonesGranted }));
     }
     this.current = next;
     this.testStonesGranted = testStonesGranted;
     this.version++;
+    CharacterCultivation.publish(this.current);
   }
 
-  /** Concedido na entrada do jogo, inclusive sobre um save antigo, apenas uma vez por save. */
   grantTestStonesOnce(): boolean {
     if (this.testStonesGranted) return false;
     const amount = Math.min(TEST_STONE_GRANT, Number.MAX_SAFE_INTEGER - this.current.spiritStones);
@@ -90,7 +101,6 @@ export class CharacterCultivation {
     try {
       this.commit(next, true);
     } catch {
-      // Sem localStorage gravável, permite testar na sessão sem fingir persistência.
       this.storage = null;
       this.commit(next, true);
     }
@@ -105,7 +115,6 @@ export class CharacterCultivation {
     this.commit({ ...this.current, spiritStones: this.current.spiritStones + amount });
   }
 
-  /** Um único commit persistido para pedras + material do mesmo inimigo derrotado. */
   receiveLoot(stones: number, materialId: string, quantity: number): void {
     if (!Number.isSafeInteger(stones) || stones <= 0
       || !Number.isSafeInteger(this.current.spiritStones + stones)
@@ -130,7 +139,6 @@ export class CharacterCultivation {
     } });
   }
 
-  /** A revisão vincula a confirmação aos requisitos exibidos; repetição fica obsoleta. */
   advance(expectedRevision: number = this.version, random?: () => number): SessionAdvanceResult {
     if (this.inFlight || expectedRevision !== this.version) return { status: 'stale', state: this.state };
     this.inFlight = true;
