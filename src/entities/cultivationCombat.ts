@@ -10,8 +10,8 @@ export interface CultivationCombatStats {
 /**
  * Curva de poder dos 36 estados de cultivo.
  * O Rank é o salto principal; o estágio refina o poder dentro do Rank.
- * A defesa cresce de forma mais contida para evitar que o cálculo `dano - defesa`
- * transforme inimigos de Rank inferior em sacos de 1 de dano.
+ * A defesa cresce de forma mais contida para evitar que uma diferença de
+ * defesa transforme inimigos de Rank inferior em sacos de 1 de dano.
  */
 const STAGE_POWER = {
   Inicial: 1,
@@ -33,7 +33,7 @@ export function cultivationCombatStats(state: CultivationState): CultivationComb
   };
 }
 
-export const CULTIVATION_COMBAT_STATES = [
-  ...(['Inicial', 'Médio', 'Superior', 'Pico'] as const).flatMap(stage =>
-    Array.from({ length: 9 }, (_, index) => ({ rank: index + 1, stage }))),
-] as const;
+/** Ordem canônica: R1 Inicial → R1 Pico → R2 Inicial → ... → R9 Pico. */
+export const CULTIVATION_COMBAT_STATES = Array.from({ length: 9 }, (_, index) =>
+  (['Inicial', 'Médio', 'Superior', 'Pico'] as const).map(stage => ({ rank: index + 1, stage }))
+).flat() as readonly { rank: number; stage: keyof typeof STAGE_POWER }[];
