@@ -2,6 +2,7 @@ import { GU_CATALOG, GU_IDS, STARTING_INVENTORY, isAssimilable, isEquippable, is
   from './guCatalog';
 import { GU_SLOTS, type GuId, type GuSlot } from './types';
 import { STARTING_EQUIPMENT } from './combatConfig';
+import { backupUnreadable } from '../entities/storageBackup';
 
 export const GU_STATE_STORAGE_KEY = 'fang-yuan.gu.v1';
 export const GU_STATE_VERSION = 1;
@@ -102,17 +103,28 @@ export class GuStateStore {
 
   load(): GuSnapshot | null {
     if (!this.storage) return null;
+    let raw: string | null = null;
     try {
-      const raw = this.storage.getItem(GU_STATE_STORAGE_KEY);
+      raw = this.storage.getItem(GU_STATE_STORAGE_KEY);
       if (!raw) return null;
       const parsed: unknown = JSON.parse(raw);
-      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        backupUnreadable(this.storage, GU_STATE_STORAGE_KEY, raw);
+        return null;
+      }
       const record = parsed as Record<string, unknown>;
       // Save sem versão é o formato v0 (anterior ao inventário persistente) e é
-      // migrado; versões futuras são ignoradas em vez de reinterpretadas.
-      if (record.version !== undefined && record.version !== GU_STATE_VERSION) return null;
+      // migrado; versões futuras são ignoradas em vez de reinterpretadas, com o
+      // conteúdo original preservado em backup antes de qualquer sobrescrita.
+      if (record.version !== undefined && record.version !== GU_STATE_VERSION) {
+        backupUnreadable(this.storage, GU_STATE_STORAGE_KEY, raw);
+        return null;
+      }
       return normalizeGuSnapshot(record);
-    } catch { return null; }
+    } catch {
+      backupUnreadable(this.storage, GU_STATE_STORAGE_KEY, raw);
+      return null;
+    }
   }
 
   /** Grava antes de o motor publicar o novo estado; falha não deixa estado parcial. */

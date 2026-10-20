@@ -1,5 +1,6 @@
 import { INITIAL_CULTIVATION } from './characterProfile';
 import { CULTIVATION_RULES } from './cultivationBalance';
+import { backupUnreadable } from './storageBackup';
 import {
   advanceRequirement, attemptAdvance, isValidCultivationState,
   type AdvanceRequirement, type AdvanceResult, type CultivationState,
@@ -27,17 +28,29 @@ interface StoredCultivation {
 
 function load(storage: CultivationStorage | null): StoredCultivation | null {
   if (!storage) return null;
+  let raw: string | null = null;
   try {
-    const raw = storage.getItem(CULTIVATION_STORAGE_KEY);
+    raw = storage.getItem(CULTIVATION_STORAGE_KEY);
     if (!raw) return null;
     const saved: unknown = JSON.parse(raw);
-    if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) return null;
+    if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) {
+      backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+      return null;
+    }
     const record = saved as Record<string, unknown>;
-    if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) return null;
+    if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) {
+      // Versão futura ou estado inválido: preserva o original antes de o jogo
+      // gravar o estado padrão por cima.
+      backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+      return null;
+    }
     const state = record.state;
     return { state: { ...state, materials: { ...state.materials } },
       testStonesGranted: record.testStonesGranted === true };
-  } catch { return null; }
+  } catch {
+    backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+    return null;
+  }
 }
 
 export type SessionAdvanceResult = AdvanceResult | { status: 'stale'; state: CultivationState };
