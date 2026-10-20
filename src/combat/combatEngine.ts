@@ -5,6 +5,7 @@ import type { MobDefinition } from './mobCatalog';
 import type { CultivationState } from '../entities/cultivation';
 import { CharacterCultivation } from '../entities/characterCultivation';
 import { cultivationCombatStats, type CultivationCombatStats } from '../entities/cultivationCombat';
+import { mitigatedDamage } from './damageFormula';
 
 const vectors: Record<Direction, Point> = {
   up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
@@ -58,6 +59,7 @@ export class CombatEngine {
 
   destroy(): void { this.unsubscribeCultivation(); }
   get attack(): number { return this.cultivationStats.attack; }
+  get moonlightDamage(): number { return Math.max(this.config.moonlight.damage, Math.round(this.attack * (26 / 14))); }
 
   addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
     mob?: Readonly<MobDefinition>): Enemy {
@@ -121,7 +123,7 @@ export class CombatEngine {
 
   private damageEnemy(enemy: Enemy, amount: number, now: number): CombatEvent[] {
     if (!enemy.alive) return [];
-    const damage = Math.min(enemy.health, Math.max(1, Math.floor(amount - enemy.defense)));
+    const damage = Math.min(enemy.health, mitigatedDamage(amount, enemy.defense));
     enemy.health -= damage; this.engage(now);
     const events: CombatEvent[] = [{ type: 'damage', targetId: enemy.id, amount: damage, x: enemy.x, y: enemy.y }];
     if (enemy.health <= 0) {
@@ -181,7 +183,7 @@ export class CombatEngine {
     if (!this.hero.alive || this.processedHits.has(hitId)) return [];
     this.processedHits.add(hitId); this.recentHits.push(hitId);
     if (this.recentHits.length > 512) this.processedHits.delete(this.recentHits.shift()!);
-    const damage = Math.min(this.hero.health, Math.max(1, Math.floor(amount - this.defense)));
+    const damage = Math.min(this.hero.health, mitigatedDamage(amount, this.defense));
     this.hero.health -= damage; this.engage(now);
     const events: CombatEvent[] = [{ type: 'damage', targetId: 'hero', amount: damage, x: this.hero.x, y: this.hero.y }];
     if (this.hero.health <= 0) {
@@ -222,7 +224,7 @@ export class CombatEngine {
         .sort((a, b) => a.along - b.along || a.enemy.id.localeCompare(b.enemy.id));
       let stopped = false;
       for (const { enemy } of hits) {
-        projectile.hit.add(enemy.id); events.push(...this.damageEnemy(enemy, this.config.moonlight.damage, now));
+        projectile.hit.add(enemy.id); events.push(...this.damageEnemy(enemy, this.moonlightDamage, now));
         if (enemy.alive) { stopped = true; break; }
       }
       projectile.x += v.x * step; projectile.y += v.y * step; projectile.traveled += step;
