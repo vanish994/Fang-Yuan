@@ -9,7 +9,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: true,
+    // Sem `strictPort` no dev: se 5173 estiver ocupada o Vite escolhe outra
+    // porta em vez de falhar. O preview continua estrito.
+    strictPort: false,
     allowedHosts: true,
   },
   preview: {
@@ -22,5 +24,18 @@ export default defineConfig({
     outDir: 'dist',
     // Phaser é grande por natureza (~1.5 MB minificado); o aviso padrão de 500 kB não ajuda aqui.
     chunkSizeWarningLimit: 2000,
+    // Sourcemap só sob demanda (`npm run build:debug`): o mapa do Phaser sozinho
+    // passa de 11 MB e iria inteiro para o Pages em todo deploy.
+    sourcemap: process.env.SOURCEMAP === 'true' ? 'hidden' : false,
+    rollupOptions: {
+      output: {
+        // Phaser muda menos que o jogo: separado, continua em cache do jogador
+        // entre versões e o bundle do jogo fica pequeno.
+        // (Vite 8/rolldown aceita só a forma de função.)
+        manualChunks(id: string) {
+          return id.includes('node_modules/phaser') ? 'phaser' : undefined;
+        },
+      },
+    },
   },
 });
