@@ -115,17 +115,23 @@ export class CharacterCultivation {
     this.commit({ ...this.current, spiritStones: this.current.spiritStones + amount });
   }
 
+  /**
+   * Drops podem trazer só pedras ou só material: zero é válido desde que a
+   * recompensa total não seja vazia. Rejeitar zero travava a fila de
+   * recompensas em retry infinito na primeira criatura sem pedras.
+   */
   receiveLoot(stones: number, materialId: string, quantity: number): void {
-    if (!Number.isSafeInteger(stones) || stones <= 0
-      || !Number.isSafeInteger(this.current.spiritStones + stones)
-      || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(materialId)
-      || !Number.isSafeInteger(quantity) || quantity <= 0
-      || !Number.isSafeInteger((this.current.materials[materialId] ?? 0) + quantity)) {
+    const validStones = Number.isSafeInteger(stones) && stones >= 0
+      && Number.isSafeInteger(this.current.spiritStones + stones);
+    const validMaterial = Number.isSafeInteger(quantity) && quantity >= 0
+      && (quantity === 0 || /^[a-z0-9][a-z0-9._-]{0,63}$/.test(materialId))
+      && Number.isSafeInteger((this.current.materials[materialId] ?? 0) + quantity);
+    if (!validStones || !validMaterial || (stones === 0 && quantity === 0)) {
       throw new RangeError('Recompensa inválida');
     }
-    this.commit({ ...this.current, spiritStones: this.current.spiritStones + stones,
-      materials: { ...this.current.materials,
-        [materialId]: (this.current.materials[materialId] ?? 0) + quantity } });
+    const materials = { ...this.current.materials };
+    if (quantity > 0) materials[materialId] = (materials[materialId] ?? 0) + quantity;
+    this.commit({ ...this.current, spiritStones: this.current.spiritStones + stones, materials });
   }
 
   receiveMaterial(id: string, amount: number): void {

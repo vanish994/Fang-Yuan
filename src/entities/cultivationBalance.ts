@@ -24,6 +24,12 @@ export function breakthroughMaterialName(rank: number): string {
   return `Material de ruptura · Rank ${rank}`;
 }
 
+/** Nome de exibição a partir do id persistido; ids desconhecidos aparecem como estão. */
+export function breakthroughMaterialLabel(id: string): string {
+  const match = /^ruptura-rank-(\d+)$/.exec(id);
+  return match ? breakthroughMaterialName(Number(match[1])) : id;
+}
+
 export const CULTIVATION_RULES: CultivationRules = {
   stageCosts: Object.fromEntries(RANK_BALANCE.map(([rank, initial, middle, superior]) =>
     [rank, { Inicial: initial, Médio: middle, Superior: superior }])),

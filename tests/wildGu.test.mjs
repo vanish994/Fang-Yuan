@@ -337,7 +337,10 @@ test('mecânicas existentes continuam válidas para criaturas sem Gu', () => {
   assert.ok(attack.events.some(event => event.type === 'damage'));
   const events = kill(engine, 'javali', 2000);
   const reward = rewards(events)[0];
-  assert.equal(reward.stoneReward, COMBAT_CONFIG.enemy.lootStones);
+  // Loot por criatura: Javali Selvagem rende o que o catálogo declara, não o
+  // valor fixo global (que continua valendo só para inimigos sem `mob`).
+  assert.equal(reward.stoneReward, mobOf('mob-wild-boar').rewardStones);
+  assert.equal(reward.materialId, mobOf('mob-wild-boar').rewardMaterialId);
 
   // Moonlight (attack) e Whirlwind (movement) seguem funcionando como antes.
   const fresh = make().engine;

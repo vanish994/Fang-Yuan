@@ -313,9 +313,13 @@ export class CombatEngine {
   addEnemy(id: string, x: number, y: number, health = this.config.enemy.maxHealth,
     mob?: Readonly<MobDefinition>, wild: WildSpawnOptions = {}): Enemy {
     if (this.enemies.has(id)) throw new Error(`Inimigo duplicado: ${id}`);
+    // Loot por criatura: o catálogo já declara pedras/materiais por Rank; sem
+    // `mob` (inimigos de teste) vale a configuração global.
     const settings = { ...(mob ? { ...this.config.enemy, maxHealth: health, defense: mob.defense,
       damage: mob.damage, speed: mob.speed, aggroRange: mob.aggroRange,
-      attackRange: mob.attackRange, attackCooldownMs: mob.attackCooldownMs } : this.config.enemy) };
+      attackRange: mob.attackRange, attackCooldownMs: mob.attackCooldownMs,
+      lootStones: mob.rewardStones, lootMaterialId: mob.rewardMaterialId,
+      lootMaterialQuantity: mob.rewardMaterialQuantity } : this.config.enemy) };
     // O sorteio acontece aqui e só aqui: nasce uma vez, fica registrado na
     // instância e nunca é recalculado durante a luta.
     const rank = mob?.rank ?? 1;
@@ -700,8 +704,10 @@ export class CombatEngine {
         const guReward = enemy.wildGu ?? undefined;
         // O Gu é registrado na morte a partir da instância — nunca sorteado aqui.
         if (guReward) this.wildGuDrops.set(enemy.id, guReward);
-        events.push({ type: 'reward', targetId: enemy.id, stoneReward: this.config.enemy.lootStones,
-          materialId: this.config.enemy.lootMaterialId, materialQuantity: this.config.enemy.lootMaterialQuantity,
+        // Pedras e material vêm da criatura derrotada (Rank/risco), não de um valor fixo.
+        const loot = this.enemyStats.get(enemy.id) ?? this.config.enemy;
+        events.push({ type: 'reward', targetId: enemy.id, stoneReward: loot.lootStones,
+          materialId: loot.lootMaterialId, materialQuantity: loot.lootMaterialQuantity,
           guReward });
       }
     }

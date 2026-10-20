@@ -15,6 +15,7 @@ import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { wildGuShortLabel } from './combat/wildGu';
+import { breakthroughMaterialLabel } from './entities/cultivationBalance';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
@@ -39,6 +40,8 @@ class QingMaoScene extends Phaser.Scene {
   private enemyProjectileViews: Phaser.GameObjects.Graphics[] = [];
   private pendingRewards: CombatEvent[] = [];
   private nextRewardRetryAt = 0;
+  /** Tentativas consecutivas de gravar a mesma recompensa (backoff com teto). */
+  private rewardAttempts = 0;
   private worldObjects!: Phaser.GameObjects.Layer;
   private currentArea!: GeneratedArea;
   private disposeArea?: () => void;
@@ -332,10 +335,26 @@ class QingMaoScene extends Phaser.Scene {
     if (this.pendingRewards.length && this.time.now >= this.nextRewardRetryAt) this.flushRewards();
   }
 
+  /**
+   * Reagenda a recompensa pendente com backoff exponencial limitado. Sem isso,
+   * um armazenamento bloqueado gerava uma tentativa (e uma mensagem) a cada 2 s,
+   * para sempre, sem nunca avisar o jogador de forma conclusiva.
+   */
+  private scheduleRewardRetry(reason: string): void {
+    this.rewardAttempts += 1;
+    const delay = Math.min(30_000, 2_000 * 2 ** (this.rewardAttempts - 1));
+    this.nextRewardRetryAt = this.time.now + delay;
+    if (this.rewardAttempts === 1) {
+      this.combatHUD?.say(`${reason} Nova tentativa em ${Math.round(delay / 1000)} s.`);
+    } else if (this.rewardAttempts === 5) {
+      this.combatHUD?.say('O armazenamento continua indisponível. A recompensa ficou na fila e o progresso pode não ser salvo.');
+    }
+  }
+
   private flushRewards(): void {
     while (this.pendingRewards.length) {
       const reward = this.pendingRewards[0];
-      let guMessage = '';
+      const parts: string[] = [];
       try {
         // O Gu é o mesmo registrado na criatura no nascimento; `claimWildGu`
         // deduplica e só altera o inventário depois de salvar. Se o save falhar,
@@ -344,21 +363,26 @@ class QingMaoScene extends Phaser.Scene {
           const claim = this.combat.claimWildGu(reward.targetId);
           if (!claim.ok) {
             if (/salvar/.test(claim.reason ?? '')) {
-              this.nextRewardRetryAt = this.time.now + 2000;
-              this.combatHUD?.say('Não foi possível salvar o Gu. Recompensa pendente.');
+              this.scheduleRewardRetry('Não foi possível salvar o Gu.');
               break;
             }
             this.combatHUD?.say(`Gu não coletado: ${claim.reason} Os outros drops foram entregues.`);
           }
-          if (claim.ok && claim.guId) guMessage = ` · +1 ${GU_CATALOG[claim.guId].label}`;
+          if (claim.ok && claim.guId) parts.push(`+1 ${GU_CATALOG[claim.guId].label}`);
         }
         this.cultivation.receiveLoot(reward.stoneReward!, reward.materialId!, reward.materialQuantity!);
         this.pendingRewards.shift();
-        this.combatHUD?.say(`+${reward.stoneReward} pedras espirituais · +${reward.materialQuantity} material de ruptura${guMessage}`);
+        this.rewardAttempts = 0;
+        // Só anuncia o que realmente caiu: criaturas de Rank alto não dão pedras
+        // na mesma proporção, e "+0" poluía a mensagem.
+        if (reward.stoneReward) parts.unshift(`+${reward.stoneReward} pedras espirituais`);
+        if (reward.materialQuantity && reward.materialId) {
+          parts.push(`+${reward.materialQuantity} ${breakthroughMaterialLabel(reward.materialId)}`);
+        }
+        this.combatHUD?.say(parts.join(' · ') || 'Recompensa recebida.');
         this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
       } catch {
-        this.nextRewardRetryAt = this.time.now + 2000;
-        this.combatHUD?.say('Não foi possível salvar o drop. Recompensa pendente; verifique o armazenamento.');
+        this.scheduleRewardRetry('Não foi possível salvar o drop.');
         break;
       }
     }

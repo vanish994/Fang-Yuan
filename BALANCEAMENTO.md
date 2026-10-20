@@ -62,7 +62,7 @@ Os custos atuais continuam:
 
 As chances e materiais de ruptura permanecem como estão no motor até um playtest específico de economia. A próxima etapa do balanceamento é substituir os IDs técnicos `ruptura-rank-N` por materiais obtidos de criaturas/áreas e medir renda por hora, custo por avanço e risco de morte.
 
-**Moeda única:** pedras espirituais. Não existe segunda moeda, XP nem ouro. As fontes previstas são o **drop direto de inimigos** (8 pedras + 1 material por criatura comum no estado atual) e, no futuro, a **troca dos itens dropados pelos inimigos por pedras** num NPC/loja. Ainda não há **taxas de drop, itens aceitos nem valores de troca definidos**; nenhuma loja está ligada ao jogo, e os preços de referência dos Gu (`price` em `guCatalog.ts`) servem apenas de âncora de balanceamento.
+**Moeda única:** pedras espirituais. Não existe segunda moeda, XP nem ouro. As fontes previstas são o **drop direto de inimigos** — cada criatura entrega as pedras e o material de ruptura declarados no próprio catálogo (`rewardStones`, `rewardMaterialId`, `rewardMaterialQuantity`), do Rank 1 ao chefe — e, no futuro, a **troca dos itens dropados pelos inimigos por pedras** num NPC/loja. Inimigos criados sem catálogo (testes) usam o valor de `combatConfig`. A curva é suave em risco normalizado (0,14–0,29 pedras por PV): nenhuma criatura domina o farm por segundo, e os chefes pagam 2–4 materiais de Rank superior. Ainda não há **taxas de drop, itens aceitos nem valores de troca definidos**; nenhuma loja está ligada ao jogo, e os preços de referência dos Gu (`price` em `guCatalog.ts`) servem apenas de âncora de balanceamento.
 
 Os Gu também são economia: receitas de refino consomem Gu possuídos de forma determinística (sem sorteio). Os materiais de refino usam a mesma moeda de essência do motor de combate (`essenceCost`), separada das pedras espirituais gastas na ficha de cultivo.
 
@@ -205,8 +205,12 @@ das lâminas do jogador, com a cor do Gu.
   recursos e `CombatEngine.claimWildGu` só mexe no inventário de Gu.
 - `claimWildGu` é idempotente (`claimedWildGu` + remoção do drop pendente): processar a mesma
   morte duas vezes, recarregar a área ou reiniciar a sessão não duplica a unidade.
-- Se o save falhar, o drop permanece pendente e a UI tenta de novo; pedras/materiais só são
-  entregues depois que o Gu é gravado ou quando o motivo é inventário cheio.
+- Se o save falhar, o drop permanece pendente e a UI tenta de novo com **backoff exponencial**
+  (2 s → 4 s → … → 30 s); após 5 falhas o jogador é avisado de que o progresso pode não ser salvo,
+  em vez de receber a mesma mensagem para sempre; pedras/materiais só são entregues depois que o
+  Gu é gravado ou quando o motivo é inventário cheio.
+- Recompensas com zero pedras (ou zero material) são válidas desde que não sejam vazias; antes
+  disso, a primeira criatura sem pedras travaria a fila inteira em retry infinito.
 - Mobs não respawnam na mesma sessão, então não existe farm curto da criatura mais fácil.
 
 ### Limitação conhecida
