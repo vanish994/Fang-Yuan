@@ -4,7 +4,7 @@ import { GU_RECIPES, recipeById } from './guRecipes';
 import { GuStateStore, MAX_GU_STACK, defaultGuSnapshot, emptyInventory,
   type GuSnapshot } from './guState';
 import { GU_SLOTS, type ActionResult, type CombatEvent, type Direction, type Enemy,
-  type GuId, type GuSlot, type GuUsage, type Point } from './types';
+  type EnemyProjectile, type GuId, type GuSlot, type GuUsage, type Point } from './types';
 import { AgentBrain } from '../agents/agentBrain';
 import type { MobDefinition } from './mobCatalog';
 import type { CultivationState } from '../entities/cultivation';
@@ -12,14 +12,10 @@ import { CharacterCultivation } from '../entities/characterCultivation';
 import { cultivationCombatStats, primordialEssenceQualityMultiplier,
   type CultivationCombatStats } from '../entities/cultivationCombat';
 import { mitigatedDamage } from './damageFormula';
-import { isWildGuCandidate, rollWildGu, wildBehavior, wildBuffDuration, wildDamageBonus,
-  wildHealAmount, wildProjectileDamage, wildProjectileRange, wildProjectileSpeed,
-  type WildSpawnOptions } from './wildGu';
-
-const vectors: Record<Direction, Point> = {
-  up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 },
-};
-const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+import { isWildGuCandidate, rollWildGu, type WildSpawnOptions } from './wildGu';
+import { stepEnemyProjectiles, useWildGu, wildMeleeMultiplier } from './enemyAbilities';
+import { distance, vectors } from './geometry';
+import { WildGuDropLog } from './wildGuDrops';
 const deny = (reason: string): ActionResult => ({ ok: false, reason, events: [] });
 const positive = (value: number) => Number.isFinite(value) && value > 0;
 
@@ -27,15 +23,6 @@ interface Projectile {
   guId: GuId; x: number; y: number; direction: Direction; traveled: number; hit: Set<string>;
   damage: number; range: number; width: number; speed: number; pierce: boolean;
   splashRadius: number; splashDone: boolean;
-}
-
-/** Projétil disparado por uma criatura selvagem; atinge apenas o herói. */
-/** Gu selvagem disparado em linha reta: direção vetorial, mira congelada no disparo. */
-interface EnemyProjectile {
-  enemyId: string; guId: GuId; x: number; y: number;
-  /** Vetor unitário da mira no instante do disparo (não persegue o herói). */
-  dx: number; dy: number;
-  traveled: number; range: number; speed: number; damage: number; hitId: string;
 }
 
 export interface WildGuClaim {
@@ -89,8 +76,7 @@ export class CombatEngine {
   private readonly projectiles: Projectile[] = [];
   private readonly enemyProjectiles: EnemyProjectile[] = [];
   /** Gu registrado na criatura no nascimento, aguardando coleta. */
-  private readonly wildGuDrops = new Map<string, GuId>();
-  private readonly claimedWildGu = new Set<string>();
+  private readonly wildDrops = new WildGuDropLog();
   private readonly processedHits = new Set<string>();
   private readonly recentHits: string[] = [];
   private readonly processedRewards = new Set<string>();
@@ -382,17 +368,17 @@ export class CombatEngine {
   }
 
   /** Gu exato que a criatura deixou ao morrer, ainda não coletado. */
-  pendingWildGu(enemyId: string): GuId | null { return this.wildGuDrops.get(enemyId) ?? null; }
+  pendingWildGu(enemyId: string): GuId | null { return this.wildDrops.pending(enemyId); }
 
   /**
    * Entrega o Gu registrado na criatura. Idempotente: processar a mesma morte
    * duas vezes não adiciona duas unidades. Falha de save não remove o drop.
    */
   claimWildGu(enemyId: string): WildGuClaim {
-    if (this.claimedWildGu.has(enemyId) && !this.wildGuDrops.has(enemyId)) {
+    if (this.wildDrops.wasDelivered(enemyId) && this.wildDrops.pending(enemyId) === null) {
       return { ok: true, alreadyClaimed: true };
     }
-    const guId = this.wildGuDrops.get(enemyId);
+    const guId = this.wildDrops.pending(enemyId);
     if (!guId) return { ok: false, reason: 'Esta criatura não deixou Gu.' };
     if (this.owned(guId) >= MAX_GU_STACK) {
       return { ok: false, reason: 'Inventário de Gu cheio; a recompensa continua registrada.' };
@@ -401,8 +387,7 @@ export class CombatEngine {
     if (!this.commit({ ...this.snapshot(), inventory: nextInventory })) {
       return { ok: false, retryable: true, reason: 'Não foi possível salvar o Gu.' };
     }
-    this.wildGuDrops.delete(enemyId);
-    this.claimedWildGu.add(enemyId);
+    this.wildDrops.markDelivered(enemyId);
     return { ok: true, guId };
   }
 
@@ -698,12 +683,6 @@ export class CombatEngine {
     return Math.max(0, enemy.defense + (lowActive ? low : 0));
   }
 
-  /** Buff de Gu selvagem ativo (Little Light, All-Out Effort, Amplify Effect). */
-  private wildMeleeMultiplier(enemy: Enemy, now: number): number {
-    const wild = enemy.wild;
-    return 1 + (wild?.buffUntil && now < wild.buffUntil ? wild.damageBonus ?? 0 : 0);
-  }
-
   private damageEnemy(enemy: Enemy, amount: number, now: number): CombatEvent[] {
     if (!enemy.alive) return [];
     const damage = Math.min(enemy.health, mitigatedDamage(amount, this.enemyDefense(enemy)));
@@ -717,7 +696,7 @@ export class CombatEngine {
         enemy.rewarded = true; this.processedRewards.add(enemy.id);
         const guReward = enemy.wild?.gu;
         // O Gu é registrado na morte a partir da instância — nunca sorteado aqui.
-        if (guReward) this.wildGuDrops.set(enemy.id, guReward);
+        if (guReward) this.wildDrops.register(enemy.id, guReward);
         // Pedras e material vêm da criatura derrotada (Rank/risco), não de um valor fixo.
         const loot = this.enemyStats.get(enemy.id) ?? this.config.enemy;
         events.push({ type: 'reward', targetId: enemy.id, stoneReward: loot.lootStones,
@@ -866,7 +845,7 @@ export class CombatEngine {
     for (const enemy of this.enemies.values()) {
       if (!enemy.alive) continue;
       if (enemy.blindedUntil !== undefined && now < enemy.blindedUntil) continue;
-      events.push(...this.useWildGu(enemy, now, isFree));
+      events.push(...useWildGu(enemy, now, this.wildContext(isFree)));
       const stats = this.enemyStats.get(enemy.id)!; const brain = this.agentBrains.get(enemy.id)!;
       const decision = brain.decide(now, { self: enemy, home: this.enemyHomes.get(enemy.id)!, healthRatio: enemy.health / enemy.maxHealth,
         player: this.hero, packAlert: brain.traits.pack ? packAlert : null, alliesFallen: brain.traits.pack ? packLosses : 0 }, this.random);
@@ -874,7 +853,7 @@ export class CombatEngine {
       if (decision.action === 'attack') {
         if (now - enemy.lastAttackAt < stats.attackCooldownMs) continue;
         enemy.lastAttackAt = now;
-        const strike = this.hitHero(stats.damage * this.wildMeleeMultiplier(enemy, now), now,
+        const strike = this.hitHero(stats.damage * wildMeleeMultiplier(enemy, now), now,
           `${enemy.id}:${now}`);
         events.push(...strike);
         if (strike.some(event => event.type === 'resurrect' || event.type === 'hero-death')) break; continue;
@@ -898,125 +877,16 @@ export class CombatEngine {
   }
 
   // ── Gu selvagem ───────────────────────────────────────────────────────────
-  private dominantDirection(from: Point, to: Point): Direction {
-    const dx = to.x - from.x, dy = to.y - from.y;
-    return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'down' : 'up');
-  }
-
-  private travelFrom(origin: Point, direction: Direction, wanted: number,
-    isFree: (x: number, y: number) => boolean): number {
-    const v = vectors[direction];
-    let traveled = 0;
-    for (let d = 4; d <= wanted; d += 4) {
-      if (!isFree(origin.x + v.x * d, origin.y + v.y * d)) break;
-      traveled = d;
-    }
-    return traveled;
-  }
-
-  /**
-   * Usa o Gu registrado na criatura. O comportamento vem do catálogo, tem
-   * recarga própria e nunca se repete a cada quadro. Criaturas cegas não agem
-   * (bloqueio já tratado no laço principal).
-   */
-  private useWildGu(enemy: Enemy, now: number, isFree: (x: number, y: number) => boolean): CombatEvent[] {
-    const wild = enemy.wild;
-    if (!wild) return [];
-    const guId = wild.gu;
-    const gu = GU_CATALOG[guId];
-    const behavior = wildBehavior(gu);
-    if (behavior.kind === 'passive') return [];
-    // Uma pequena janela após o nascimento evita abrir a luta com o golpe especial.
-    if (wild.nextAt === undefined) { wild.nextAt = now + 900; return []; }
-    if (now < wild.nextAt) return [];
-    if (!this.hero.alive) return [];
-    const active = gu.active;
-    if (!active) return [];
-    const gap = distance(enemy, this.hero);
-    const events: CombatEvent[] = [];
-    const casts = wild.casts + 1;
-
-    if (behavior.kind === 'projectile' && active.kind === 'projectile') {
-      const range = wildProjectileRange(gu);
-      if (gap > range || gap < 24) return [];
-      // Mira no herói no instante do disparo. O projétil não corrige a rota
-      // depois, então continua possível esquivar — mas deixa de ser inacertável
-      // quando o alvo está fora do eixo cardeal.
-      const originY = enemy.y - 10;
-      const aimX = this.hero.x - enemy.x;
-      const aimY = (this.hero.y - 12) - originY;
-      const aimLength = Math.hypot(aimX, aimY) || 1;
-      this.enemyProjectiles.push({
-        enemyId: enemy.id, guId, x: enemy.x, y: originY,
-        dx: aimX / aimLength, dy: aimY / aimLength,
-        traveled: 0, range, speed: wildProjectileSpeed(gu),
-        damage: wildProjectileDamage(this.hero.maxHealth, active.damage),
-        hitId: `wild:${enemy.id}:${casts}`,
-      });
-      events.push({ type: 'enemy-ability', targetId: enemy.id, guId, x: enemy.x, y: enemy.y,
-        amount: wildProjectileDamage(this.hero.maxHealth, active.damage) });
-    } else if (behavior.kind === 'dash' && active.kind === 'dash') {
-      if (gap < 36 || gap > 240) return [];
-      const direction = this.dominantDirection(enemy, this.hero);
-      const wanted = Math.min(active.distance, Math.max(0, gap - 30));
-      const travel = this.travelFrom(enemy, direction, wanted, isFree);
-      if (travel <= 0) return [];
-      const v = vectors[direction];
-      enemy.x += v.x * travel; enemy.y += v.y * travel;
-      events.push({ type: 'enemy-ability', targetId: enemy.id, guId, x: enemy.x, y: enemy.y,
-        amount: travel });
-    } else if (behavior.kind === 'heal' && active.kind === 'heal') {
-      if (enemy.health >= enemy.maxHealth * 0.6) return [];
-      const healed = Math.min(wildHealAmount(enemy.maxHealth), enemy.maxHealth - enemy.health);
-      if (healed <= 0) return [];
-      enemy.health += healed;
-      events.push({ type: 'enemy-ability', targetId: enemy.id, guId, x: enemy.x, y: enemy.y,
-        amount: healed });
-      events.push({ type: 'heal', targetId: enemy.id, amount: healed, guId,
-        x: enemy.x, y: enemy.y });
-    } else if (behavior.kind === 'buff' && (active.kind === 'buff' || active.kind === 'empower')) {
-      if (gap > 200) return [];
-      wild.damageBonus = wildDamageBonus(active);
-      wild.buffUntil = now + wildBuffDuration(active);
-      events.push({ type: 'enemy-ability', targetId: enemy.id, guId, x: enemy.x, y: enemy.y,
-        amount: Math.round((wild.damageBonus ?? 0) * 100) });
-    } else {
-      return [];
-    }
-
-    wild.casts = casts;
-    wild.nextAt = now + behavior.cooldownMs;
-    this.engage(now);
-    return events;
+  // O comportamento vive em `enemyAbilities.ts`; o motor só fornece o contexto.
+  private wildContext(isFree: (x: number, y: number) => boolean) {
+    return { hero: this.hero, shots: this.enemyProjectiles, isFree,
+      engage: (now: number) => this.engage(now) };
   }
 
   private stepEnemyProjectiles(now: number, dt: number,
     isFree: (x: number, y: number) => boolean): CombatEvent[] {
-    const events: CombatEvent[] = [];
-    for (const shot of [...this.enemyProjectiles]) {
-      const wanted = Math.min(shot.speed * dt, shot.range - shot.traveled);
-      let step = wanted;
-      for (let d = 4; d <= wanted; d += 4) {
-        if (!isFree(shot.x + shot.dx * d, shot.y + shot.dy * d)) { step = Math.max(0, d - 4); break; }
-      }
-      const toHeroX = this.hero.x - shot.x;
-      const toHeroY = (this.hero.y - 12) - shot.y;
-      const along = toHeroX * shot.dx + toHeroY * shot.dy;
-      const cross = Math.abs(toHeroX * shot.dy - toHeroY * shot.dx);
-      // Corredor de 12 px de raio: com mira vetorial isso acerta o alvo em
-      // qualquer ângulo e continua exigindo posicionamento para esquivar.
-      const hit = cross <= 12 && along >= 0 && along <= step;
-      shot.x += shot.dx * step; shot.y += shot.dy * step; shot.traveled += step;
-      if (hit) {
-        events.push(...this.hitHero(shot.damage, now, shot.hitId));
-        this.enemyProjectiles.splice(this.enemyProjectiles.indexOf(shot), 1);
-        continue;
-      }
-      if (step < wanted || shot.traveled >= shot.range) {
-        this.enemyProjectiles.splice(this.enemyProjectiles.indexOf(shot), 1);
-      }
-    }
-    return events;
+    return stepEnemyProjectiles(this.enemyProjectiles, now, dt,
+      { hero: this.hero, isFree, hitHero: (damage, at, hitId) => this.hitHero(damage, at, hitId) });
   }
 
   get activeEnemyProjectiles(): readonly Readonly<EnemyProjectile>[] { return this.enemyProjectiles; }

@@ -48,6 +48,14 @@ export interface Enemy extends Combatant {
   /** Presente apenas em criaturas que nasceram com um Gu. */
   wild?: WildGuState;
 }
+/** Projétil disparado por uma criatura selvagem; atinge apenas o herói. */
+export interface EnemyProjectile {
+  enemyId: string; guId: GuId; x: number; y: number;
+  /** Vetor unitário da mira no instante do disparo (não persegue o herói). */
+  dx: number; dy: number;
+  traveled: number; range: number; speed: number; damage: number; hitId: string;
+}
+
 export interface CombatEvent {
   type: 'damage' | 'defeat' | 'reward' | 'resurrect' | 'hero-death'
     | 'moonlight' | 'dash' | 'activate' | 'heal' | 'barrier' | 'blind'
