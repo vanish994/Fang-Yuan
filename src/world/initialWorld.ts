@@ -2,6 +2,7 @@ import type { NpcDefinition } from '../entities/npc';
 import type { MobDefinition } from '../combat/mobCatalog';
 import { TEST_NPCS } from '../entities/npc';
 import { TEST_MOBS } from '../combat/mobCatalog';
+import { placeExtraSpawns } from './mobPlacement';
 
 export const AREA_TILES = 48;
 export const AREA_CHUNKS = 3;
@@ -15,7 +16,7 @@ export type AreaId = 'vila_gu_yue' | 'floresta_exterior' | 'floresta_perigosa' |
 export interface TilePosition { x: number; y: number }
 export interface Spawn extends TilePosition {
   id: string; speciesId?: string; // instâncias de espécie existente, sem novos atributos
-  density?: 'isolated' | 'small-group' | 'sparse'; respawn?: 'none';
+  density?: 'isolated' | 'small-group' | 'sparse';
 }
 export interface PointOfInterest extends TilePosition { id: string; kind: 'meeting' | 'gathering' | 'hidden' | 'arena' | 'market' | 'training' | 'residential' }
 export interface AreaDefinition {
@@ -23,6 +24,11 @@ export interface AreaDefinition {
   chunks: Readonly<{ width: number; height: number }>;
   exits: Readonly<Partial<Record<Side, AreaId>>>;
   npcSpawns: readonly Spawn[]; mobSpawns: readonly Spawn[];
+  /**
+   * Criaturas extras distribuídas em tiles livres (além das posições autorais).
+   * Ver `mobSpawnsForArea`: chefes nunca são duplicados e a vila não recebe mobs.
+   */
+  extraMobs?: number;
   pointsOfInterest: readonly PointOfInterest[];
   resources: readonly ('mushrooms' | 'rocks' | 'logs')[]; // cenários: coleta ainda não implementada
 }
@@ -34,7 +40,7 @@ const poi = (id: string, kind: PointOfInterest['kind'], x: number, y: number): P
 const VILLAGE_NPC_POSITIONS: Readonly<Record<string, readonly [number, number]>> = {
   'npc-gu-yue-mei': [13, 21],
   'npc-lin-shan': [34, 22],
-  'npc-zhao-he': [17, 29],
+  'npc-jiang-ya': [17, 29],
   'npc-old-chen': [40, 24],
   'npc-gu-yue-lan': [19, 19],
   'npc-gu-yue-fang': [34, 27],
@@ -70,9 +76,9 @@ const positions: Readonly<Record<string, readonly [AreaId, number, number]>> = {
 };
 const spawnFor = (area: AreaId): Spawn[] => TEST_MOBS.filter(m => positions[m.id]?.[0] === area)
   .map(m => ({ id: m.id, x: positions[m.id]![1], y: positions[m.id]![2],
-    density: m.pack ? 'small-group' : 'isolated', respawn: 'none' }));
+    density: m.pack ? 'small-group' : 'isolated' }));
 const group = (id: string, speciesId: string, x: number, y: number): Spawn =>
-  ({ id, speciesId, x, y, density: 'small-group', respawn: 'none' });
+  ({ id, speciesId, x, y, density: 'small-group' });
 
 /** Dados de layout de teste. Não inferir Rank de boss, respawn, loot, facção ou coleta. */
 export const INITIAL_WORLD: Readonly<Record<AreaId, AreaDefinition>> = {
@@ -85,38 +91,51 @@ export const INITIAL_WORLD: Readonly<Record<AreaId, AreaDefinition>> = {
     mobSpawns: [...spawnFor('floresta_exterior'),
       group('mob-moon-rabbit-companion', 'mob-moon-rabbit', 33, 26),
       group('mob-grey-wolf-packmate', 'mob-grey-wolf', 27, 18)],
-    resources: ['mushrooms', 'logs'],
+    extraMobs: 5, resources: ['mushrooms', 'logs'],
     pointsOfInterest: [poi('clareira', 'meeting', 24, 24), poi('coleta', 'gathering', 17, 33),
       poi('recanto', 'hidden', 34, 35)] },
   floresta_perigosa: { id: 'floresta_perigosa', name: 'Floresta Perigosa', biome: 'dangerous-forest',
     risk: 'medium', seed: 103, chunks, exits: { west: 'floresta_exterior', north: 'regiao_rochosa',
       south: 'cavernas', east: 'covil_lobo' }, npcSpawns: [], mobSpawns: spawnFor('floresta_perigosa'),
-    resources: ['mushrooms', 'rocks'], pointsOfInterest: [poi('encruzilhada', 'meeting', 24, 24),
+    extraMobs: 4, resources: ['mushrooms', 'rocks'], pointsOfInterest: [poi('encruzilhada', 'meeting', 24, 24),
       poi('emboscada', 'hidden', 13, 33)] },
   regiao_rochosa: { id: 'regiao_rochosa', name: 'Região Rochosa', biome: 'rocky', risk: 'high',
     seed: 104, chunks, exits: { south: 'floresta_perigosa', east: 'covil_javali' }, npcSpawns: [],
-    mobSpawns: spawnFor('regiao_rochosa'), resources: ['rocks'],
+    mobSpawns: [...spawnFor('regiao_rochosa'),
+      group('mob-stone-lizard-burrow', 'mob-stone-lizard', 26, 30)],
+    extraMobs: 4, resources: ['rocks'],
     pointsOfInterest: [poi('pedras', 'gathering', 20, 35), poi('ruinas', 'hidden', 32, 18)] },
   cavernas: { id: 'cavernas', name: 'Cavernas', biome: 'cave', risk: 'high',
     seed: 105, chunks, exits: { north: 'floresta_perigosa', east: 'ninho_serpente' }, npcSpawns: [],
-    mobSpawns: spawnFor('cavernas'), resources: ['rocks', 'mushrooms'],
+    mobSpawns: spawnFor('cavernas'),
+    extraMobs: 4, resources: ['rocks', 'mushrooms'],
     pointsOfInterest: [poi('corredor', 'meeting', 24, 24), poi('camara', 'hidden', 36, 13)] },
   covil_lobo: { id: 'covil_lobo', name: 'Covil do Rei Lobo', biome: 'lair', risk: 'boss',
     seed: 106, chunks, exits: { west: 'floresta_perigosa' }, npcSpawns: [],
     mobSpawns: [...spawnFor('covil_lobo'),
       group('mob-grey-wolf-guard-1', 'mob-grey-wolf', 20, 26),
       group('mob-grey-wolf-guard-2', 'mob-grey-wolf', 28, 26)],
+    extraMobs: 1,
     resources: [], pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
   covil_javali: { id: 'covil_javali', name: 'Covil do Rei Javali', biome: 'lair', risk: 'boss',
     seed: 107, chunks, exits: { west: 'regiao_rochosa' }, npcSpawns: [],
-    mobSpawns: spawnFor('covil_javali'), resources: ['rocks'], pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
+    mobSpawns: [...spawnFor('covil_javali'),
+      group('mob-demonic-boar-guard-1', 'mob-demonic-boar', 21, 26),
+      group('mob-demonic-boar-guard-2', 'mob-demonic-boar', 27, 26)],
+    extraMobs: 1, resources: ['rocks'], pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
   ninho_serpente: { id: 'ninho_serpente', name: 'Ninho do Rei Serpente', biome: 'lair', risk: 'boss',
     seed: 108, chunks, exits: { west: 'cavernas', east: 'santuario_besta' }, npcSpawns: [],
-    mobSpawns: spawnFor('ninho_serpente'), resources: ['mushrooms'],
+    mobSpawns: [...spawnFor('ninho_serpente'),
+      group('mob-jade-serpent-guard-1', 'mob-jade-serpent', 21, 26),
+      group('mob-jade-serpent-guard-2', 'mob-jade-serpent', 27, 26)],
+    extraMobs: 1, resources: ['mushrooms'],
     pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
   santuario_besta: { id: 'santuario_besta', name: 'Santuário da Besta Antiga', biome: 'lair', risk: 'extreme',
     seed: 109, chunks, exits: { west: 'ninho_serpente' }, npcSpawns: [],
-    mobSpawns: spawnFor('santuario_besta'), resources: [],
+    mobSpawns: [...spawnFor('santuario_besta'),
+      group('mob-demon-tiger-guard-1', 'mob-demon-tiger', 21, 26),
+      group('mob-demon-tiger-guard-2', 'mob-demon-tiger', 27, 26)],
+    extraMobs: 1, resources: [],
     pointsOfInterest: [poi('arena', 'arena', 24, 24)] },
 };
 
@@ -124,7 +143,7 @@ export const INITIAL_WORLD: Readonly<Record<AreaId, AreaDefinition>> = {
 const ROUTINES: Readonly<Record<string, readonly (readonly [number, number])[]>> = {
   'npc-gu-yue-mei': [[13, 21], [14, 21]],
   'npc-lin-shan': [[34, 22], [35, 22]],
-  'npc-zhao-he': [[17, 29], [17, 30]],
+  'npc-jiang-ya': [[17, 29], [17, 30]],
   'npc-old-chen': [[40, 24], [41, 24]],
   'npc-gu-yue-lan': [[19, 19], [20, 19]],
   'npc-gu-yue-fang': [[34, 27], [34, 28]],
@@ -141,13 +160,45 @@ export function areaNpcDefinitions(area: AreaDefinition): Readonly<NpcDefinition
       faction: 'A definir', routine: ROUTINES[spawn.id]?.map(([x, y]) => ({ x: x * 32, y: y * 32 })) };
   });
 }
+/** Definição da espécie do spawn no mundo (posição já em px). */
+export function mobDefinitionFor(spawn: Spawn, instanceId = spawn.id): MobDefinition {
+  const definition = TEST_MOBS.find(m => m.id === (spawn.speciesId ?? spawn.id));
+  if (!definition) throw new Error(`Mob não definido: ${spawn.speciesId ?? spawn.id}`);
+  return { ...definition, id: instanceId, spriteId: definition.id,
+    x: spawn.x * 32, y: spawn.y * 32 };
+}
+
+/** Chefe = encontro único; o respawn dele é muito mais longo que o da fauna. */
+export function isBossSpawn(spawn: Spawn): boolean {
+  return TEST_MOBS.find(m => m.id === (spawn.speciesId ?? spawn.id))?.tier === 'boss';
+}
+
 export function areaMobDefinitions(area: AreaDefinition): Readonly<MobDefinition>[] {
-  return area.mobSpawns.map(spawn => {
-    const definition = TEST_MOBS.find(m => m.id === (spawn.speciesId ?? spawn.id));
-    if (!definition) throw new Error(`Mob não definido: ${spawn.speciesId ?? spawn.id}`);
-    return { ...definition, id: spawn.id, spriteId: definition.id,
-      x: spawn.x * 32, y: spawn.y * 32 };
-  });
+  return area.mobSpawns.map(spawn => mobDefinitionFor(spawn));
+}
+
+/**
+ * Spawns efetivos da área: os autorais mais as criaturas extras distribuídas
+ * em tiles livres (`extraMobs`). Chefes nunca são duplicados — eles só existem
+ * nas posições autorais — e a distribuição é determinística pela seed.
+ */
+export function mobSpawnsForArea(area: AreaDefinition,
+  isFree: (x: number, y: number) => boolean, tileSize = 32): readonly Spawn[] {
+  const extra = area.extraMobs ?? 0;
+  if (extra <= 0) return area.mobSpawns;
+  const boss = (spawn: Spawn) => TEST_MOBS.find(m => m.id === (spawn.speciesId ?? spawn.id))?.tier === 'boss';
+  const species = [...new Set(area.mobSpawns.filter(spawn => !boss(spawn))
+    .map(spawn => spawn.speciesId ?? spawn.id))];
+  const toPixels = (spawn: Spawn) => ({ x: spawn.x * tileSize, y: spawn.y * tileSize });
+  const avoid = [
+    ...area.mobSpawns.map(toPixels),
+    ...area.npcSpawns.map(toPixels),
+    ...area.pointsOfInterest.map(toPixels),
+    // Entrada da área: o jogador aparece no centro ao atravessar o portão.
+    { x: (AREA_TILES / 2) * tileSize, y: (AREA_TILES / 2) * tileSize },
+  ];
+  return [...area.mobSpawns, ...placeExtraSpawns({ tiles: AREA_TILES, tileSize, seed: area.seed,
+    extra, species, isFree, avoid })];
 }
 export const OPPOSITE: Readonly<Record<Side, Side>> = {
   north: 'south', east: 'west', south: 'north', west: 'east',

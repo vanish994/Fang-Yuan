@@ -62,7 +62,7 @@ Os custos atuais continuam:
 
 As chances e materiais de ruptura permanecem como estão no motor até um playtest específico de economia. A próxima etapa do balanceamento é substituir os IDs técnicos `ruptura-rank-N` por materiais obtidos de criaturas/áreas e medir renda por hora, custo por avanço e risco de morte.
 
-**Moeda única:** pedras espirituais. Não existe segunda moeda, XP nem ouro. As fontes previstas são o **drop direto de inimigos** (8 pedras + 1 material por criatura comum no estado atual) e, no futuro, a **troca dos itens dropados pelos inimigos por pedras** num NPC/loja. Ainda não há **taxas de drop, itens aceitos nem valores de troca definidos**; nenhuma loja está ligada ao jogo, e os preços de referência dos Gu (`price` em `guCatalog.ts`) servem apenas de âncora de balanceamento.
+**Moeda única:** pedras espirituais. Não existe segunda moeda, XP nem ouro. As fontes previstas são o **drop direto de inimigos** — cada criatura entrega as pedras e o material de ruptura declarados no próprio catálogo (`rewardStones`, `rewardMaterialId`, `rewardMaterialQuantity`), do Rank 1 ao chefe — e, no futuro, a **troca dos itens dropados pelos inimigos por pedras** num NPC/loja. Inimigos criados sem catálogo (testes) usam o valor de `combatConfig`. A curva é suave em risco normalizado (0,14–0,29 pedras por PV): nenhuma criatura domina o farm por segundo, e os chefes pagam 2–4 materiais de Rank superior. Ainda não há **taxas de drop, itens aceitos nem valores de troca definidos**; nenhuma loja está ligada ao jogo, e os preços de referência dos Gu (`price` em `guCatalog.ts`) servem apenas de âncora de balanceamento.
 
 Os Gu também são economia: receitas de refino consomem Gu possuídos de forma determinística (sem sorteio). Os materiais de refino usam a mesma moeda de essência do motor de combate (`essenceCost`), separada das pedras espirituais gastas na ficha de cultivo.
 
@@ -205,9 +205,17 @@ das lâminas do jogador, com a cor do Gu.
   recursos e `CombatEngine.claimWildGu` só mexe no inventário de Gu.
 - `claimWildGu` é idempotente (`claimedWildGu` + remoção do drop pendente): processar a mesma
   morte duas vezes, recarregar a área ou reiniciar a sessão não duplica a unidade.
-- Se o save falhar, o drop permanece pendente e a UI tenta de novo; pedras/materiais só são
-  entregues depois que o Gu é gravado ou quando o motivo é inventário cheio.
-- Mobs não respawnam na mesma sessão, então não existe farm curto da criatura mais fácil.
+- Se o save falhar, o drop permanece pendente e a fila tenta de novo com **backoff exponencial**
+  (2 s → 4 s → 8 s → 16 s → 30 s); o HUD avisa na primeira e na penúltima tentativa, sem repetir a
+  mesma mensagem. A lógica vive em `src/combat/rewardFlow.ts` (`RewardQueue`), testada fora do Phaser.
+- Depois de **5 falhas seguidas** a persistência é desligada nos dois lados (Gu e cultivo) e a sessão
+  continua **em memória**: a recompensa entra, o jogador recebe um aviso único de que o progresso
+  não será salvo e o jogo para de tentar gravar. Sem isso, um `localStorage` bloqueado repetia a
+  mesma tentativa para sempre. Pedras/materiais só são entregues depois que o Gu é gravado, quando o
+  motivo é inventário cheio (aí os outros drops seguem normalmente) ou quando a fila degradou.
+- Recompensas com zero pedras (ou zero material) são válidas desde que não sejam vazias; antes
+  disso, a primeira criatura sem pedras travaria a fila inteira em retry infinito.
+- Mobs voltam em 60–90 s (chefes, 5–6 min), sempre na área onde morreram e longe do jogador. O farm da criatura mais fácil é limitado pelo tempo de retorno, não pela ausência de respawn.
 
 ### Limitação conhecida
 
@@ -215,6 +223,62 @@ O kit inicial da v0.2 concede **todos** os 24 Gu Rank 1. Um drop de Gu Rank 1 é
 uma segunda unidade de algo já possuído; o prêmio realmente novo são Moonglow/White Jade
 (Rank 2) de criaturas Rank 2+ e chefes. Recomenda-se, num passe futuro, trocar o kit inicial
 por aquisição gradual ou dar uso a duplicatas.
+
+## Banca do Jiang Ya — v0.4
+
+Comércio inicial do protótipo: **um** vendedor na vila. Nenhum valor é cânone.
+
+| Item | Pedras | Observação |
+| --- | --- | --- |
+| Material de ruptura Rank 1 | 8 | um javali/lobo/cobra comum rende 1 |
+| Material de ruptura Rank 2 | 24 | fauna perigosa |
+| Material de ruptura Rank 3 | 70 | elites |
+| Material de ruptura Rank 4 | 200 | chefes (4 materiais por morte) |
+| Seta Estelar (Flecha Estelar Gu) | 650 | preço do catálogo |
+| Lança de Osso | 700 | preço do catálogo |
+| Pele de Besta | 500 | preço do catálogo |
+| Pele de Rocha | 650 | preço do catálogo |
+| Roda de Vento | 650 | preço do catálogo |
+| Pequena Luz | 700 | preço do catálogo |
+
+Regras e raciocínio:
+
+- A venda de material é **sink de drop**: dobra aproximadamente o retorno em pedras
+  de uma caçada (fauna Rank 1 dá 7–10 pedras + 1 material = 15–18 no total), sem
+  competir com o custo de estágio do Rank 1 (20/35/55).
+- Materiais Rank 4 valem 4× mais que Rank 3 porque só chefes os soltam e em maior
+  quantidade; um chefe antigo paga 600 pedras + 4 materiais = 1.400 no total.
+- Gu usam o preço de referência já existente; não há markup nem desconto. Nenhuma
+  Gu da banca é assimilável ou consumível, então a compra nunca cria benefício
+  permanente duplicado.
+- A banca **não compra Gu**: vender Gu exigiria preço de compra por Rank e abriria
+  um ciclo de farmar Gu selvagem → pedras infinitas; fica fora até revisão.
+- O inventário de teste ainda concede uma cópia de cada Gu Rank 1; o efeito
+  econômico real da banca aparece quando esse inventário for retirado.
+
+## Personagens jogáveis — Bai Ning Bing (v0.5)
+
+Dois personagens, **as mesmas regras**: Gu, cultivo, refino, banca e salvamento são
+únicos; o que muda é arte, sobrevivência, passo e formato do ataque básico. Os números
+abaixo são parâmetros de gameplay (não canon) e a referência do Fang Yuan **não** foi
+alterada na v0.5.
+
+| Personagem | Vida | Defesa | Passo | Básico | Alcance | Recarga | DPS do básico |
+|---|---:|---:|---:|---|---:|---:|---:|
+| Fang Yuan (corpo a corpo) | 100% | 2 | 100% | 14 de dano, imediato | 62 px | 600 ms | ~23,3 |
+| Bai Ning Bing (à distância) | 85% | 1 | 105% | 9 de dano, projétil 420 px/s | 190 px | 650 ms | ~13,8 |
+
+Justificativa, eixo a eixo: ela **perde** em dano (−41% por segundo), em eficiência
+(650 ms contra 600 ms) e em sobrevivência (−15% de vida, 1 de defesa a menos); **ganha**
+em alcance (3× o do corpo a corpo) e num passo 5% maior, que é o que permite manter a
+distância. Nenhum dos dois é simultaneamente superior em dano, alcance, velocidade e
+eficiência.
+
+O básico à distância não faz checagem de linha de visão no disparo, porque quem viaja é
+o projétil: ele para na parede como qualquer outro, e é por isso que atirar num alvo
+atrás de árvore desperdiça o tiro em vez de atravessar o obstáculo. O dano continua
+proporcional ao ataque de cultivo (0,64 × ataque), então os dois personagens escalam
+junto nos nove Ranks; o Gu da Lua e os demais Gu de ataque seguem iguais para os dois.
 
 ## Regra de trabalho
 

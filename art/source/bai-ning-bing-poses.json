@@ -1,0 +1,75 @@
+{
+  "schema": "fang-yuan.animation.poses.v1",
+  "note": "Segundo personagem jogável (classe à distância). Grade 4×4 de 480px por pose, quatro quadros por linha, mesma ordem de linhas dos masters do Fang Yuan: down/RIGHT/up/LEFT na origem, publicada como down/left/up/right. Compartilha com o Fang Yuan o fator de escala (o maior quadro das oito poses) e a hitbox: 64px de textura, 32px no mundo, corpo Arcade 14×10.",
+  "master_direction_order": [
+    "down",
+    "right",
+    "up",
+    "left"
+  ],
+  "direction_order": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "cell": 480,
+  "poses": {
+    "walk": {
+      "master": "bai-ning-bing-walk-4dir-4frames-master.png",
+      "atlas": "bai-ning-bing-walk-64.png",
+      "frame_rate": 8,
+      "loop": true,
+      "use": "locomoção"
+    },
+    "cast": {
+      "master": "bai-ning-bing-cast-4dir-4frames-master.png",
+      "atlas": "bai-ning-bing-cast-64.png",
+      "frame_rate": 10,
+      "loop": false,
+      "duration_ms": 380,
+      "use": "ativação de Gu (e ataque básico à distância)"
+    },
+    "dash": {
+      "master": "bai-ning-bing-dash-4dir-4frames-master.png",
+      "atlas": "bai-ning-bing-dash-64.png",
+      "frame_rate": 12,
+      "loop": false,
+      "duration_ms": 420,
+      "use": "Gu de movimento / arremetida"
+    },
+    "down": {
+      "master": "bai-ning-bing-down-4dir-4frames-master.png",
+      "atlas": "bai-ning-bing-down-64.png",
+      "frame_rate": 8,
+      "loop": false,
+      "duration_ms": null,
+      "use": "morte do personagem, travada até o respawn"
+    }
+  },
+  "portrait": {
+    "master": "bai-ning-bing-walk-4dir-4frames-master.png",
+    "atlas": "bai-ning-bing-walk-32.png",
+    "frame_rate": 8,
+    "cell": 32,
+    "use": "retrato da ficha e cartão de seleção"
+  },
+  "effects": {
+    "master": "ice-effects-4x4-master.png",
+    "atlas": "ice-effects-4x4-48.png",
+    "cell": 48,
+    "mask": "luminância -> 110..255, alfa preservado",
+    "direction_order_of_art": "as linhas não são direções; são formas",
+    "rows": {
+      "frost": 0,
+      "shard": 1,
+      "burst": 2,
+      "wave": 3
+    },
+    "note": "A cor nunca vem da arte: o jogo publica uma máscara clara e aplica o tint do Gu (ou a cor de destaque do personagem no ataque básico). Ataque usa shard, movimento wave, maldições frost e apoio frost."
+  }
+}

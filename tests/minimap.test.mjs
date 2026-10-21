@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
+import { readStyles } from './support/markup.mjs';
 
 function moduleURL(path, imports = {}) {
   let js = ts.transpileModule(readFileSync(new URL(`../src/${path}.ts`, import.meta.url), 'utf8'), {
@@ -15,6 +16,7 @@ const npcURL = moduleURL('entities/npc', { '../agents/agentBrain': agentURL });
 const mobURL = moduleURL('combat/mobCatalog');
 const worldURL = moduleURL('world/initialWorld', {
   '../entities/npc': npcURL, '../combat/mobCatalog': mobURL,
+  './mobPlacement': moduleURL('world/mobPlacement'),
 });
 const configURL = moduleURL('combat/combatConfig');
 const generatorURL = moduleURL('world/areaGenerator', {
@@ -50,11 +52,11 @@ test('marcador acompanha o pixel do jogador em cada área e nunca sai do quadro'
 });
 
 test('painel mobile não intercepta toques, fica abaixo de Menu e troca de área com a cena', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const css = readStyles();
   const scene = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   const view = readFileSync(new URL('../src/ui/minimap.ts', import.meta.url), 'utf8');
-  assert.match(html, /\.combat-minimap\s*\{[^}]*top:[^}]*right:[^}]*pointer-events: none/s);
-  assert.match(html, /\.combat-minimap canvas\s*\{[^}]*image-rendering: pixelated/s);
+  assert.match(css, /\.combat-minimap\s*\{[^}]*top:[^}]*right:[^}]*pointer-events: none/s);
+  assert.match(css, /\.combat-minimap canvas\s*\{[^}]*image-rendering: pixelated/s);
   assert.match(scene, /this\.minimap = new MinimapView\(this\.combatHUD\.root\)/);
   assert.match(scene, /this\.minimap\?\.setArea\(this\.currentArea\)/);
   assert.match(scene, /this\.minimap\?\.update\(this\.player\.x, this\.player\.y\)/);

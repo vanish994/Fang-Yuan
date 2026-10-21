@@ -5,6 +5,11 @@ import { cardinalFromTouch } from './cardinalStick';
 
 const formatTime = (ms: number) => ms ? `${(ms / 1000).toFixed(1)}s` : 'pronto';
 
+/**
+ * Rótulo compacto dos botões do HUD. É um conjunto próprio (mais curto que o
+ * `short` do catálogo, usado no mundo): o botão tem 72 px e mostra
+ * `rótulo ·custo`. O catálogo continua sendo a fonte dos nomes completos.
+ */
 const SHORT_NAMES: Readonly<Record<GuId, string>> = {
   moonlight: 'Lua', 'bone-spear': 'Osso', 'star-arrow': 'Flecha', 'star-dart': 'Dardos',
   'ghost-fire': 'Fogo', 'exploding-egg': 'Ovo',

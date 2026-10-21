@@ -1,7 +1,6 @@
 // Sprite fornecido pelo usuário: 1408 × 128 px, 11 quadros horizontais de 128 × 128.
 // O quadro 0 mostra o mar vazio; o quadro 10 mostra o mar cheio.
 export const PRIMORDIAL_SEA_FRAME_COUNT = 11;
-export const PRIMORDIAL_SEA_FRAME_SIZE = 128;
 export const SHEET_SEA_SIZE = 112;
 
 /** Seleciona um quadro de nível; o valor preciso continua indicado em números e barra. */

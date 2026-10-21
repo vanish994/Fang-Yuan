@@ -30,7 +30,7 @@ test('todos os 15 mobs com sprites surgem; Rei Javali não substitui o boss', as
   const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
   assert.match(catalog, /mob\('demonic-boar-king', 'Rei Javali Demoníaco'/);
   assert.match(main, /this\.load\.spritesheet\('mob-static-4dir'/);
-  assert.match(main, /frame\(mob\.id, 'down'\)/);
+  assert.match(main, /frame\(instanceId, 'down'\)/);
   assert.match(main, /art\.sprite\.setFrame\(art\.frame\(id, art\.facing\)\)/);
   assert.match(main, /this\.combat\.select\(enemy\.id\)/);
   assert.match(main, /this\.staticEnemyViews\.delete\(event\.targetId\)/);

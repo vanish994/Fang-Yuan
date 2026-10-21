@@ -1,24 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { moduleURL } from './support/tsModule.mjs';
 
-// Transpila o modelo puro; imports de tipos desaparecem, os três imports reais
-// apontam para seus módulos TS também transpilados sem criar arquivos temporários.
-function moduleURL(name, imports = {}) {
-  const source = readFileSync(new URL(`../src/entities/${name}.ts`, import.meta.url), 'utf8');
-  let javascript = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  for (const [from, url] of Object.entries(imports)) {
-    javascript = javascript.replace(`from '${from}'`, `from '${url}'`);
-  }
-  return `data:text/javascript;base64,${Buffer.from(javascript).toString('base64')}`;
-}
-const profileURL = moduleURL('characterProfile');
-const balanceURL = moduleURL('cultivationBalance');
-const cultivationURL = moduleURL('cultivation');
-const sessionURL = moduleURL('characterCultivation', {
+const profileURL = moduleURL('entities/characterProfile');
+const balanceURL = moduleURL('entities/cultivationBalance');
+const cultivationURL = moduleURL('entities/cultivation');
+const sessionURL = moduleURL('entities/characterCultivation', {
   './characterProfile': profileURL,
   './cultivationBalance': balanceURL,
   './cultivation': cultivationURL,

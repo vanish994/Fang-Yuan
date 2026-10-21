@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
 import { TILE_SIZE, WORLD_SIZE } from './world/qingMaoGround';
-import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaMobDefinitions, areaNpcDefinitions,
-  type AreaId, type Side } from './world/initialWorld';
+import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaNpcDefinitions, isBossSpawn,
+  mobDefinitionFor, mobSpawnsForArea, type AreaId, type Side, type Spawn } from './world/initialWorld';
 import { generateArea, type GeneratedArea } from './world/areaGenerator';
 import { renderArea } from './world/areaRenderer';
 import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigation';
-import { FangYuan, registerWalkAnimations, WALK_SPEED } from './entities/FangYuan';
+import { PlayerCharacter, registerPlayerAnimations, WALK_SPEED } from './entities/PlayerCharacter';
+import { playerCharacter, type PlayerCharacterId } from './combat/characterCatalog';
+import { loadCharacterChoice, saveCharacterChoice } from './entities/characterChoice';
+import { CharacterSelect } from './ui/characterSelect';
 import { shouldTurnForSegment, type CardinalDirection } from './entities/directions';
 import { CharacterSheet } from './ui/characterSheet';
+import { VendorPanel } from './ui/vendorPanel';
 import { CharacterCultivation } from './entities/characterCultivation';
 import { CombatEngine } from './combat/combatEngine';
 import { GuStateStore } from './combat/guState';
@@ -15,19 +19,36 @@ import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { wildGuShortLabel } from './combat/wildGu';
+import { bladeShape, guColor, orbShape, placementOf, shardShape, syncPool } from './ui/projectileView';
+import { RewardQueue, type RewardMessage } from './combat/rewardFlow';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
 import { setupDisplayMode } from './ui/displayMode';
 import { createTestNpcViews, preloadNpcSprites, registerNpcAnimations,
   updateTestNpcViews, type NpcViewRecord } from './entities/npcView';
-import type { MobDefinition } from './combat/mobCatalog';
 import { bossFrame } from './combat/bossSprites';
+import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world/mobRespawn';
 import { mobFrame } from './combat/mobSprites';
+import { effectForStyle } from './ui/guEffects';
+import { GuEffectView } from './ui/guEffectView';
+import { ART_VERSION } from './assets/artVersion';
+
+/**
+ * Versão da arte dos personagens e das partículas, gerada por
+ * `scripts/build-sprite-atlases.py` a partir do hash dos atlas publicados.
+ * Os PNGs de personagem mantêm o mesmo nome entre versões, e navegador/proxy pode
+ * continuar entregando o arquivo antigo — foi assim que a caminhada invertida
+ * "voltou" depois de corrigida. A query `?v=` derruba a URL antiga do cache.
+ */
+const artURL = (path: string) => `${path}?v=${ART_VERSION}`;
 
 class QingMaoScene extends Phaser.Scene {
-  private player!: FangYuan;
+  private player!: PlayerCharacter;
+  private character: PlayerCharacterId = 'fang-yuan';
+  private characterSelect?: CharacterSelect;
   private cultivation!: CharacterCultivation;
   private characterSheet?: CharacterSheet;
+  private vendorPanel?: VendorPanel;
   private combat!: CombatEngine;
   private combatHUD?: CombatHUD;
   private minimap?: MinimapView;
@@ -36,15 +57,25 @@ class QingMaoScene extends Phaser.Scene {
     x: number; y: number; boss: boolean; frame: (id: string, direction: Direction) => number }>();
   private npcViews: NpcViewRecord[] = [];
   private projectileViews: Phaser.GameObjects.Graphics[] = [];
+  /** Partículas recoloríveis: forma pela função do Gu, cor pelo catálogo. */
+  private guEffects?: GuEffectView;
   private enemyProjectileViews: Phaser.GameObjects.Graphics[] = [];
-  private pendingRewards: CombatEvent[] = [];
-  private nextRewardRetryAt = 0;
+  /** Fila de recompensas: entrega Gu/pedras/material com retry e degradação. */
+  private readonly rewards = new RewardQueue();
   private worldObjects!: Phaser.GameObjects.Layer;
   private currentArea!: GeneratedArea;
   private disposeArea?: () => void;
+  /** Spawns mortos que ainda não voltaram (chave: `area:spawn`). */
   private readonly defeatedInArea = new Set<string>();
   /** Gu sorteado por criatura na sessão; `null` = nasceu sem Gu. */
   private readonly wildGuBySpawn = new Map<string, GuId | null>();
+  /** Criaturas aguardando o respawn por tempo (60–90 s). */
+  private readonly respawns = new RespawnQueue();
+  /** Vida atual de cada spawn: cada renascimento gera um id de instância novo. */
+  private readonly spawnRecords = new Map<string,
+    { areaId: AreaId; spawn: Spawn; lives: number; boss: boolean }>();
+  /** Instância viva -> spawn de origem (para agendar o respawn na morte). */
+  private readonly instanceSpawns = new Map<string, string>();
   private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
   private navigationPrevious?: WorldPoint;
@@ -73,8 +104,22 @@ class QingMaoScene extends Phaser.Scene {
     this.load.image('logs', 'assets/qing-mao/Tree%20Stumps%20and%20Logs%201.2.PNG');
     this.load.image('mushrooms', 'assets/qing-mao/Mushrooms.png');
     // Quadros 2× a resolução lógica: 64px na textura, 32px no mapa.
-    this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-64.png', {
-      frameWidth: 64, frameHeight: 64,
+    // Cada personagem jogável tem quatro poses: caminhada, conjuração, arremetida e queda.
+    for (const art of ['fang-yuan', 'bai-ning-bing']) {
+      for (const pose of ['walk', 'cast', 'dash', 'down']) {
+        this.load.spritesheet(`${art}-${pose}`,
+          artURL(`assets/characters/${art}-${pose}-64.png`), {
+          frameWidth: 64, frameHeight: 64,
+        });
+      }
+    }
+    // Partículas de Gu: 4 formas × 4 quadros em tons neutros, pintadas em tempo real.
+    this.load.spritesheet('gu-effects', artURL('assets/characters/gu-effects-4x4-32.png'), {
+      frameWidth: 32, frameHeight: 32,
+    });
+    // Partículas de gelo do Bai Ning Bing: mesma ideia, desenho e célula (48px) próprios.
+    this.load.spritesheet('ice-effects', artURL('assets/characters/ice-effects-4x4-48.png'), {
+      frameWidth: 48, frameHeight: 48,
     });
     preloadNpcSprites(this);
     // Atlas: 15 mobs × 4 direções; todos os 15 têm spawn definido no mundo.
@@ -91,15 +136,23 @@ class QingMaoScene extends Phaser.Scene {
     // Uma Area é carregada por vez; seus nove chunks compartilham dados e seed.
     this.worldObjects = this.add.layer().setName('ENTITIES_Y_SORT').setDepth(6);
     this.physics.world.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
-    registerWalkAnimations(this);
+    for (const art of ['fang-yuan', 'bai-ning-bing']) registerPlayerAnimations(this, art);
     registerNpcAnimations(this);
-    this.player = new FangYuan(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
+    this.guEffects = new GuEffectView(this);
+    // Personagem escolhido fica salvo à parte do cultivo e do Gu.
+    this.character = loadCharacterChoice();
+    this.player = new PlayerCharacter(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE,
+      playerCharacter(this.character).art);
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
     this.cultivation.grantTestStonesOnce();
+    // RNG explícito: o mundo pode ser reproduzido em testes/depuração.
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y, undefined,
-      new GuStateStore());
+      new GuStateStore(), Math.random, this.character);
+    this.characterSelect = new CharacterSelect(this.character, id => this.switchCharacter(id));
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
+    this.characterSheet.setCharacter(this.character);
+    this.vendorPanel = new VendorPanel(this.cultivation, this.combat);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
     this.minimap = new MinimapView(this.combatHUD.root);
     this.loadArea('vila_gu_yue', this.player.x, this.player.y);
@@ -128,60 +181,123 @@ class QingMaoScene extends Phaser.Scene {
       this.disposeArea?.();
       this.characterSheet?.destroy();
       this.characterSheet = undefined;
+      this.vendorPanel?.destroy();
+      this.vendorPanel = undefined;
+      this.rewards.clear();
       this.minimap?.destroy();
       this.minimap = undefined;
+      this.guEffects?.destroy();
+      this.guEffects = undefined;
+      this.characterSelect?.destroy();
+      this.characterSelect = undefined;
       this.combatHUD?.destroy();
       this.combatHUD = undefined;
       this.combat.destroy(); // cancela a assinatura do cultivo
     });
   }
 
+  private spawnKey(spawn: Spawn): string {
+    return `${this.currentArea.definition.id}:${spawn.id}`;
+  }
+
+  /** Vida do spawn; sobrevive à troca de área e aos renascimentos. */
+  private spawnRecord(spawn: Spawn): { areaId: AreaId; spawn: Spawn; lives: number; boss: boolean } {
+    const key = this.spawnKey(spawn);
+    let record = this.spawnRecords.get(key);
+    if (!record) {
+      record = { areaId: this.currentArea.definition.id, spawn, lives: 0,
+        boss: isBossSpawn(spawn) };
+      this.spawnRecords.set(key, record);
+    }
+    return record;
+  }
+
+  /** Cria a criatura e a view dela. `false` quando o tile está ocupado. */
+  private spawnMob(spawn: Spawn): boolean {
+    const x = spawn.x * TILE_SIZE, y = spawn.y * TILE_SIZE;
+    if (!this.isFree(x, y)) return false;
+    const key = this.spawnKey(spawn);
+    const record = this.spawnRecord(spawn);
+    record.lives += 1;
+    // Cada vida é uma instância nova: o motor não trata a segunda morte como
+    // "recompensa já processada". A primeira mantém o id histórico do mundo.
+    const instanceId = record.lives === 1 ? spawn.id : `${spawn.id}~${record.lives}`;
+    const mob = mobDefinitionFor(spawn, instanceId);
+    // O Gu da criatura é sorteado no nascimento e guardado na sessão: sair e
+    // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
+    const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
+    // O sorteio usa o RNG do motor; `forcedWildGu` só repete o resultado já
+    // registrado para esta criatura nesta sessão.
+    const enemy = this.combat.addEnemy(instanceId, mob.x, mob.y, mob.health, mob, { forcedWildGu });
+    if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wild?.gu ?? null);
+    this.instanceSpawns.set(instanceId, key);
+    const boss = mob.tier === 'boss';
+    const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
+    const frame = boss ? bossFrame : (id: string, direction: Direction) =>
+      mobFrame(mob.spriteId ?? id, direction);
+    const graphic = this.add.sprite(0, 0, atlas, frame(instanceId, 'down'))
+      .setOrigin(0.5, 1).setScale(boss ? 0.45 : 0.425)
+      .setInteractive({ useHandCursor: true });
+    const label = this.add.text(0, boss ? -47 : -32, mob.name, {
+      fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
+    }).setOrigin(0.5).setVisible(boss);
+    // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
+    const wild = enemy.wild ? GU_CATALOG[enemy.wild.gu] : null;
+    const wildLabel = this.add.text(0, boss ? -58 : -44,
+      wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
+      fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',
+      stroke: '#1a1206', strokeThickness: 2,
+    }).setOrigin(0.5).setVisible(wild !== null);
+    graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
+      event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
+    });
+    const barY = boss ? 10 : 6;
+    const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
+    const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
+      .setOrigin(0, 0.5).setName('hp').setVisible(false);
+    const view = this.add.container(mob.x, mob.y, [graphic, label, wildLabel, back, hp])
+      .setDepth(mob.y);
+    this.worldObjects.add(view);
+    this.enemyViews.set(enemy.id, view);
+    this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
+      x: mob.x, y: mob.y, boss, frame });
+    return true;
+  }
+
   /** Apenas encontros definidos no mundo: nenhum alvo de teste em forma de círculo. */
   private createEnemies(): void {
-    const spawn = (mob: Readonly<MobDefinition>) => {
-      if (!this.isFree(mob.x, mob.y)) return;
-      // O Gu da criatura é sorteado no nascimento e guardado na sessão: sair e
-      // voltar da área não re-sorteia o Gu de um inimigo que continua vivo.
-      const key = `${this.currentArea.definition.id}:${mob.id}`;
-      const forcedWildGu = this.wildGuBySpawn.has(key) ? this.wildGuBySpawn.get(key) : undefined;
-      const enemy = this.combat.addEnemy(mob.id, mob.x, mob.y, mob.health, mob,
-        { random: Math.random, forcedWildGu });
-      if (!this.wildGuBySpawn.has(key)) this.wildGuBySpawn.set(key, enemy.wildGu ?? null);
-      const boss = mob.tier === 'boss';
-      const atlas = boss ? 'boss-static-4dir' : 'mob-static-4dir';
-      const frame = boss ? bossFrame : (instanceId: string, direction: Direction) =>
-        mobFrame(mob.spriteId ?? instanceId, direction);
-      const graphic = this.add.sprite(0, 0, atlas, frame(mob.id, 'down'))
-        .setOrigin(0.5, 1).setScale(boss ? 0.45 : 0.425)
-        .setInteractive({ useHandCursor: true });
-      const label = this.add.text(0, boss ? -47 : -32, mob.name, {
-        fontSize: '8px', color: '#fff0d0', backgroundColor: '#192318bb',
-      }).setOrigin(0.5).setVisible(boss);
-      // Gu selvagem é raro: o jogador vê a criatura portadora desde o nascimento.
-      const wild = enemy.wildGu ? GU_CATALOG[enemy.wildGu] : null;
-      const wildLabel = this.add.text(0, boss ? -58 : -44,
-        wild ? `◆ ${wildGuShortLabel(wild)}` : '', {
-        fontSize: '7px', color: '#ffe6a8', backgroundColor: '#3a2c0fcc',
-        stroke: '#1a1206', strokeThickness: 2,
-      }).setOrigin(0.5).setVisible(wild !== null);
-      graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
-        event: Phaser.Types.Input.EventData) => {
-        event.stopPropagation();
-        if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
-      });
-      const barY = boss ? 10 : 6;
-      const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
-      const hp = this.add.rectangle(-14, barY, 28, 4, 0xe7876e)
-        .setOrigin(0, 0.5).setName('hp').setVisible(false);
-      const view = this.add.container(mob.x, mob.y, [graphic, label, wildLabel, back, hp])
-        .setDepth(mob.y);
-      this.worldObjects.add(view);
-      this.enemyViews.set(enemy.id, view);
-      this.staticEnemyViews.set(enemy.id, { sprite: graphic, facing: 'down',
-        x: mob.x, y: mob.y, boss, frame });
-    };
-    for (const mob of areaMobDefinitions(this.currentArea.definition)) {
-      if (!this.defeatedInArea.has(`${this.currentArea.definition.id}:${mob.id}`)) spawn(mob);
+    for (const spawn of mobSpawnsForArea(this.currentArea.definition, this.isFree)) {
+      this.spawnRecord(spawn);
+      if (this.defeatedInArea.has(this.spawnKey(spawn))) continue; // volta pelo respawn
+      this.spawnMob(spawn);
+    }
+  }
+
+  /**
+   * Respawn por tempo (60–90 s por criatura). Só nasce na área atual, longe do
+   * jogador e em tile livre; caso contrário, tenta de novo em 5 s — nunca um mob
+   * dentro da parede ou em cima do jogador.
+   */
+  private processRespawns(now: number): void {
+    if (!this.combat.hero.alive) return;
+    for (const key of this.respawns.due(now)) {
+      const record = this.spawnRecords.get(key);
+      if (!record) { this.respawns.settle(key); continue; }
+      if (record.areaId !== this.currentArea.definition.id) { this.respawns.postpone(key, now); continue; }
+      const px = record.spawn.x * TILE_SIZE, py = record.spawn.y * TILE_SIZE;
+      if (!this.isFree(px, py)
+        || Math.hypot(this.player.x - px, this.player.y - py) < RESPAWN_MIN_PLAYER_DISTANCE) {
+        this.respawns.postpone(key, now); continue;
+      }
+      // Criatura nova: o Gu é sorteado de novo no nascimento.
+      this.wildGuBySpawn.delete(key);
+      const name = mobDefinitionFor(record.spawn).name;
+      if (!this.spawnMob(record.spawn)) { this.respawns.postpone(key, now); continue; }
+      this.defeatedInArea.delete(key);
+      this.respawns.settle(key);
+      this.combatHUD?.say(`${name} voltou a ${this.currentArea.definition.name}.`);
     }
   }
 
@@ -206,6 +322,7 @@ class QingMaoScene extends Phaser.Scene {
         this.player.move(null);
         (this.player.body as Phaser.Physics.Arcade.Body).reset(this.combat.hero.x, this.combat.hero.y);
         this.player.setAlpha(1);
+        this.player.resetPose();
         this.combatHUD?.say('Retorno ao início. Penalidade de pedras ainda não definida.');
       }
       return;
@@ -219,15 +336,21 @@ class QingMaoScene extends Phaser.Scene {
     const movementDirection = this.combatHUD?.direction ?? this.player.movingDirection ?? this.player.facingDirection;
     let result: ActionResult;
     let message = '';
+    // Gu que originou a ação: define a animação e a cor das partículas.
+    let usedGu: GuId | null = this.combat.equipment.attack ?? 'moonlight';
+    let usedDash = false;
     if (action === 'basic') {
       result = this.combat.basicAttack(now, this.isFree);
-      message = 'Ataque básico!';
+      message = this.combat.character.kind === 'projectile' ? 'Estilhaço de gelo!' : 'Ataque básico!';
+      // O básico à distância não tem Gu: a apresentação usa a cor do personagem.
+      usedGu = this.combat.character.kind === 'projectile' ? null : this.combat.equipment.attack;
     } else if (action === 'moonlight') {
       result = this.combat.castMoonlight(now, aiming);
       message = 'Corte lunar lançado!';
     } else if (action === 'dash') {
       result = this.combat.dash(now, movementDirection, this.isFree);
       message = 'Arrancada! Velocidade temporária aumentada.';
+      usedDash = true;
     } else if (action === 'attack' || action === 'movement' || action === 'support') {
       const slot = action === 'attack' ? 'attack' : action === 'movement' ? 'movement' : 'support';
       const equipped = this.combat.equipment[slot];
@@ -238,18 +361,60 @@ class QingMaoScene extends Phaser.Scene {
       const direction = slot === 'movement' ? movementDirection : aiming;
       result = this.combat.activate(equipped, now, direction, this.isFree);
       message = this.activationMessage(equipped);
+      usedGu = equipped;
+      usedDash = GU_CATALOG[equipped].slot === 'movement';
       if (result.ok && slot === 'movement') this.settleAfterDash();
     } else if (action.startsWith('item:')) {
-      result = this.combat.useItem(action.slice(5) as GuId, now);
+      usedGu = action.slice(5) as GuId;
+      result = this.combat.useItem(usedGu, now);
       message = result.ok ? 'Clarão ofuscante!' : '';
     } else return;
     if (result.ok && (action === 'dash' || action === 'movement')) this.settleAfterDash();
     if (!result.ok) this.combatHUD?.say(result.reason ?? 'Ação indisponível.');
     else {
       if (message) this.combatHUD?.say(message);
+      this.playActionPresentation(usedGu, usedDash, now);
       // Recompensa/morte têm prioridade sobre a mensagem genérica da ação.
       this.handleCombatEvents(result.events);
     }
+  }
+
+  /**
+   * Pose + partículas da ação. É puramente visual: quem resolve dano/efeito é o
+   * motor de combate, e a pose volta sozinha para a caminhada. A folha e a forma
+   * do efeito vêm do personagem; a cor continua vindo do Gu (ou do personagem).
+   */
+  private playActionPresentation(guId: GuId | null, dash: boolean, now: number): void {
+    this.player.playPose(dash ? 'dash' : 'cast', now);
+    const effect = effectForStyle(this.combat.character.effects, guId,
+      dash ? 'dash' : 'cast', this.combat.character.accent);
+    this.guEffects?.burst(dash ? 'dash' : 'cast', this.player.x, this.player.y - 14,
+      effect.shape, effect.tint, effect.texture);
+  }
+
+  /** Fumaça/geada neutra para mortes: não pertence a nenhum Gu. */
+  private playDefeatPresentation(x: number, y: number): void {
+    const { effects, accent } = this.combat.character;
+    this.guEffects?.burst('defeat', x, y - 12, effects === 'ice' ? 'frost' : 'smoke',
+      effects === 'ice' ? accent : 0x2b2b33, effects === 'ice' ? 'ice-effects' : 'gu-effects');
+  }
+
+  /**
+   * Troca o personagem em campo sem reiniciar o mundo: mesmo motor, mesmo
+   * cultivo, mesmo inventário. Só arte, números de combate e básico mudam.
+   */
+  private switchCharacter(id: PlayerCharacterId): void {
+    if (!this.combat.setCharacter(id)) { this.characterSelect?.refresh(); return; }
+    this.character = id;
+    this.player.setArt(this.combat.character.art);
+    this.player.resetPose();
+    this.waypoints = [];
+    this.destination?.destroy(); this.destination = undefined;
+    this.player.move(null);
+    this.characterSheet?.setCharacter(id);
+    this.characterSelect?.refresh();
+    saveCharacterChoice(id);
+    this.combatHUD?.say(`${this.combat.character.name} entra em campo. Cultivo, Gu e pedras preservados.`);
   }
 
   private activationMessage(id: GuId): string {
@@ -270,7 +435,7 @@ class QingMaoScene extends Phaser.Scene {
 
   private handleCombatEvents(events: CombatEvent[]): void {
     for (const event of events) {
-      if (event.type === 'reward') { this.pendingRewards.push(event); continue; }
+      if (event.type === 'reward') { this.rewards.enqueue(event); continue; }
       if (event.type === 'damage' && event.x !== undefined && event.y !== undefined) {
         const text = this.add.text(event.x, event.y - 36, `-${event.amount}`, {
           fontSize: '13px', color: '#fff1cb', stroke: '#3b1715', strokeThickness: 3,
@@ -315,6 +480,13 @@ class QingMaoScene extends Phaser.Scene {
       if (event.type === 'hero-death') {
         this.waypoints = []; this.destination?.destroy(); this.destination = undefined;
         this.player.move(null); this.player.setAlpha(0.5);
+        // Pose de queda travada no último quadro até o respawn.
+        this.player.playPose('down', this.time.now, null);
+        const fallen = this.combat.character;
+        this.guEffects?.burst('death', this.player.x, this.player.y - 12,
+          fallen.effects === 'ice' ? 'frost' : 'smoke',
+          fallen.effects === 'ice' ? fallen.accent : 0x3a1f24,
+          fallen.effects === 'ice' ? 'ice-effects' : 'gu-effects');
         this.combatHUD?.say('Derrotado. A penalidade por morte ainda não foi definida.');
       }
       if (event.type === 'dash' && event.x !== undefined && event.y !== undefined) {
@@ -323,45 +495,91 @@ class QingMaoScene extends Phaser.Scene {
         this.tweens.add({ targets: trail, alpha: 0, duration: 280, onComplete: () => trail.destroy() });
       }
       if (event.type === 'defeat' && event.targetId) {
-        this.defeatedInArea.add(`${this.currentArea.definition.id}:${event.targetId}`);
+        this.playDefeatPresentation(event.x ?? this.player.x, event.y ?? this.player.y);
+        const key = this.instanceSpawns.get(event.targetId)
+          ?? `${this.currentArea.definition.id}:${event.targetId}`;
+        this.defeatedInArea.add(key);
+        this.instanceSpawns.delete(event.targetId);
+        // Só volta se a criatura veio de um spawn do mundo (nunca alvo de teste).
+        const record = this.spawnRecords.get(key);
+        if (record) this.respawns.schedule(key, this.time.now, respawnDelay(key, record.boss));
         this.enemyViews.get(event.targetId)?.destroy();
         this.enemyViews.delete(event.targetId);
         this.staticEnemyViews.delete(event.targetId);
       }
     }
-    if (this.pendingRewards.length && this.time.now >= this.nextRewardRetryAt) this.flushRewards();
+    if (this.rewards.size > 0 && this.time.now >= this.rewards.nextRetryAt) this.flushRewards();
+  }
+
+  /**
+   * Desenha os dois tipos de projétil com o mesmo ciclo de pooling e a mesma
+   * regra de rotação; só a forma muda (lâmina do jogador, orbe da criatura).
+   */
+  private renderProjectiles(): void {
+    const shots = this.combat.activeProjectiles;
+    syncPool(this.projectileViews, shots.length, () => this.add.graphics().setDepth(900),
+      view => view.destroy());
+    shots.forEach((shot, index) => {
+      const color = shot.tint;
+      const blade = this.projectileViews[index]!;
+      // A forma só é redesenhada quando o Gu (ou o personagem) muda.
+      const signature = `${shot.style}:${shot.guId ?? 'basic'}:${shot.width}`;
+      if (blade.getData('signature') !== signature) {
+        blade.setData('signature', signature);
+        blade.clear();
+        if (shot.style === 'ice') {
+          // Estilhaço: losango comprido apontando para a direção do disparo.
+          const shard = shardShape(shot.width);
+          blade.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
+          blade.beginPath();
+          blade.moveTo(shard.length, 0);
+          blade.lineTo(shard.length / 2, -shard.half);
+          blade.lineTo(0, 0);
+          blade.lineTo(shard.length / 2, shard.half);
+          blade.closePath(); blade.fillPath(); blade.strokePath();
+        } else {
+          const shape = bladeShape(shot.width);
+          blade.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
+          blade.beginPath();
+          blade.arc(0, 0, shape.radius, -Math.PI / 2, Math.PI / 2);
+          blade.arc(5, 0, shape.inner, Math.PI / 2, -Math.PI / 2, true);
+          blade.closePath(); blade.fillPath(); blade.strokePath();
+        }
+      }
+      const placement = placementOf(shot);
+      blade.setPosition(placement.x, placement.y).setRotation(placement.rotation);
+    });
+
+    const enemyShots = this.combat.activeEnemyProjectiles;
+    syncPool(this.enemyProjectileViews, enemyShots.length, () => this.add.graphics().setDepth(901),
+      view => view.destroy());
+    const orb = orbShape();
+    enemyShots.forEach((shot, index) => {
+      const color = guColor(GU_CATALOG[shot.guId].visual.color);
+      const view = this.enemyProjectileViews[index]!;
+      if (view.getData('signature') !== shot.guId) {
+        view.setData('signature', shot.guId);
+        view.clear()
+          .fillStyle(0x120d06, 0.85).fillCircle(0, 0, orb.halo)
+          .fillStyle(color, 0.95).fillCircle(0, 0, orb.core)
+          .lineStyle(1, 0xffe6a8, 0.9).strokeCircle(0, 0, orb.ring);
+      }
+      view.setPosition(shot.x, shot.y);
+    });
   }
 
   private flushRewards(): void {
-    while (this.pendingRewards.length) {
-      const reward = this.pendingRewards[0];
-      let guMessage = '';
-      try {
-        // O Gu é o mesmo registrado na criatura no nascimento; `claimWildGu`
-        // deduplica e só altera o inventário depois de salvar. Se o save falhar,
-        // a recompensa inteira continua pendente para nova tentativa.
-        if (reward.guReward && reward.targetId) {
-          const claim = this.combat.claimWildGu(reward.targetId);
-          if (!claim.ok) {
-            if (/salvar/.test(claim.reason ?? '')) {
-              this.nextRewardRetryAt = this.time.now + 2000;
-              this.combatHUD?.say('Não foi possível salvar o Gu. Recompensa pendente.');
-              break;
-            }
-            this.combatHUD?.say(`Gu não coletado: ${claim.reason} Os outros drops foram entregues.`);
-          }
-          if (claim.ok && claim.guId) guMessage = ` · +1 ${GU_CATALOG[claim.guId].label}`;
-        }
-        this.cultivation.receiveLoot(reward.stoneReward!, reward.materialId!, reward.materialQuantity!);
-        this.pendingRewards.shift();
-        this.combatHUD?.say(`+${reward.stoneReward} pedras espirituais · +${reward.materialQuantity} material de ruptura${guMessage}`);
-        this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
-      } catch {
-        this.nextRewardRetryAt = this.time.now + 2000;
-        this.combatHUD?.say('Não foi possível salvar o drop. Recompensa pendente; verifique o armazenamento.');
-        break;
-      }
+    const messages = this.rewards.drain(this.combat, this.cultivation, this.time.now);
+    for (const message of messages) this.announceReward(message);
+    if (messages.some(message => message.kind === 'loot')) {
+      this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
     }
+  }
+
+  private announceReward(message: RewardMessage): void {
+    // Tentativas intermediárias de retry ficam em silêncio para não inundar o HUD.
+    if (message.kind === 'retry' && !message.notify) return;
+    this.combatHUD?.say(message.text);
   }
 
   /** Troca a unidade de gameplay; não reinicia o cultivo nem o motor de Gu. */
@@ -370,7 +588,7 @@ class QingMaoScene extends Phaser.Scene {
     this.destination?.destroy(); this.destination = undefined;
     this.player.move(null);
     for (const view of this.enemyViews.values()) view.destroy();
-    this.enemyViews.clear(); this.staticEnemyViews.clear();
+    this.enemyViews.clear(); this.staticEnemyViews.clear(); this.instanceSpawns.clear();
     for (const npc of this.npcViews) npc.view.destroy();
     this.npcViews = [];
     this.projectileViews.forEach(view => view.destroy()); this.projectileViews = [];
@@ -385,7 +603,19 @@ class QingMaoScene extends Phaser.Scene {
     this.disposeArea = renderArea(this, this.currentArea, this.worldObjects, this.player);
     this.createEnemies();
     this.npcViews = createTestNpcViews(this, this.worldObjects, this.isFree,
-      message => this.combatHUD?.say(message), areaNpcDefinitions(this.currentArea.definition));
+      message => this.combatHUD?.say(message), areaNpcDefinitions(this.currentArea.definition),
+      () => {
+        // Progresso lido no toque; nenhum NPC guarda ou altera o estado do jogador.
+        const state = this.cultivation.state;
+        return { rank: state.rank, stage: state.stage, spiritStones: state.spiritStones,
+          equippedGu: Object.values(this.combat.equipment).filter(Boolean).length };
+      },
+      // O vendedor abre a banca em vez de só repetir a fala.
+      definition => {
+        if (definition.id !== 'npc-jiang-ya') return false;
+        this.vendorPanel?.open();
+        return true;
+      });
     this.combatHUD?.say(`Área: ${this.currentArea.definition.name} · risco ${RISK_LABELS[this.currentArea.definition.risk]}`);
   }
 
@@ -460,6 +690,7 @@ class QingMaoScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.checkAreaTransition(time)) return;
+    this.processRespawns(time);
     this.minimap?.update(this.player.x, this.player.y);
     this.combat.hero.x = this.player.x;
     this.combat.hero.y = this.player.y;
@@ -497,39 +728,8 @@ class QingMaoScene extends Phaser.Scene {
       const width = 28 * enemy.health / enemy.maxHealth;
       if (hp.width !== width) hp.width = width;
     }
-    const shots = this.combat.activeProjectiles;
-    while (this.projectileViews.length > shots.length) this.projectileViews.pop()?.destroy();
-    while (this.projectileViews.length < shots.length) {
-      const shot = shots[this.projectileViews.length];
-      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
-      const slash = this.add.graphics().setDepth(900);
-      slash.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
-      slash.beginPath();
-      slash.arc(0, 0, shot.width / 2, -Math.PI / 2, Math.PI / 2);
-      slash.arc(5, 0, Math.max(5, shot.width / 2 - 4), Math.PI / 2, -Math.PI / 2, true);
-      slash.closePath(); slash.fillPath(); slash.strokePath();
-      this.projectileViews.push(slash);
-    }
-    shots.forEach((shot, i) => this.projectileViews[i].setPosition(shot.x, shot.y)
-      .setRotation(shot.direction === 'right' ? 0 : shot.direction === 'left' ? Math.PI
-        : shot.direction === 'up' ? -Math.PI / 2 : Math.PI / 2));
-    // Projéteis de Gu selvagem: orbes coloridos, visualmente distintos das lâminas do jogador.
-    const enemyShots = this.combat.activeEnemyProjectiles;
-    while (this.enemyProjectileViews.length > enemyShots.length) {
-      this.enemyProjectileViews.pop()?.destroy();
-    }
-    while (this.enemyProjectileViews.length < enemyShots.length) {
-      const orb = this.add.graphics().setDepth(901);
-      this.enemyProjectileViews.push(orb);
-    }
-    enemyShots.forEach((shot, i) => {
-      const color = Number.parseInt(GU_CATALOG[shot.guId].visual.color.replace('#', ''), 16);
-      const orb = this.enemyProjectileViews[i];
-      orb.clear().setPosition(shot.x, shot.y);
-      orb.fillStyle(0x120d06, 0.85).fillCircle(0, 0, 7);
-      orb.fillStyle(color, 0.95).fillCircle(0, 0, 4.5);
-      orb.lineStyle(1, 0xffe6a8, 0.9).strokeCircle(0, 0, 6.5);
-    });
+    this.renderProjectiles();
+
     this.combatHUD?.update(time);
     this.characterSheet?.update(this.player.facingDirection, this.player.movingDirection !== null);
     if (!this.combat.hero.alive) { this.player.move(null); return; }

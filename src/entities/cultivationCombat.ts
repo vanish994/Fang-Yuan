@@ -51,8 +51,3 @@ export function primordialEssenceQualityMultiplier(state: CultivationState): num
   const rankQuality = 1 + (state.rank - 1) * 0.08;
   return rankQuality * STAGE_ESSENCE_QUALITY[state.stage];
 }
-
-/** Ordem canônica: R1 Inicial → R1 Pico → R2 Inicial → ... → R9 Pico. */
-export const CULTIVATION_COMBAT_STATES = Array.from({ length: 9 }, (_, index) =>
-  (['Inicial', 'Médio', 'Superior', 'Pico'] as const).map(stage => ({ rank: index + 1, stage }))
-).flat() as readonly { rank: number; stage: keyof typeof STAGE_POWER }[];

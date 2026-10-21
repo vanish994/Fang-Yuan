@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readHtml, readStyles } from './support/markup.mjs';
 
 const asset = new URL('../public/assets/ui/mar-primordial-11x128.png', import.meta.url);
 
@@ -9,8 +10,8 @@ test('sprite fornecido do Mar Primordial tem 11 quadros reais de 128 px', () => 
   assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   assert.equal(png.readUInt32BE(16), 11 * 128);
   assert.equal(png.readUInt32BE(20), 128);
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /mar-primordial-11x128\.png/);
+  const html = readHtml();
+  assert.match(`${html}\n${readStyles()}`, /mar-primordial-11x128\.png/);
   const advancement = html.match(/<section class="sheet-section" aria-label="Próximo avanço">([\s\S]*?)<\/section>/)?.[1];
   assert.ok(advancement, 'menu de avanço deve existir');
   assert.match(advancement, /id="character-sea"[^>]*role="img"/);

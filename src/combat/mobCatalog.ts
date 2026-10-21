@@ -1,4 +1,3 @@
-import type { AgentTraits } from '../agents/agentBrain';
 import type { GuId } from './types';
 
 export interface MobDefinition {
@@ -81,8 +80,3 @@ export const TEST_MOBS: readonly Readonly<MobDefinition>[] = [
   mob('ancient-demonic-beast', 'Besta Demoníaca Antiga', 'boss', 37, 24, 3500, 80, 180, 32, 220, 600, 'ruptura-rank-4', 4,
     { plannedAbility: 'encontro de endgame', rank: 4, wildGuAffinity: ['white-jade'] }),
 ];
-
-export function enemyTraits(mob: Pick<MobDefinition, 'aggroRange' | 'attackRange' | 'memoryMs' | 'fear' | 'pack'>): AgentTraits {
-  return { kind: 'enemy', vision: mob.aggroRange, attackRange: mob.attackRange,
-    memoryMs: mob.memoryMs, fear: mob.fear, pack: mob.pack };
-}

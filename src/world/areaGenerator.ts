@@ -29,24 +29,41 @@ const gate = (side: Side): readonly [number, number] => side === 'north' ? [24, 
   : side === 'south' ? [24, AREA_TILES - 1]
     : side === 'west' ? [0, 24] : [AREA_TILES - 1, 24];
 
-/** Usa os quadros reais do Ground Mixel; o atlas é opaco, logo a transição substitui a célula. */
+/**
+ * Usa os quadros reais do Ground Mixel; o atlas é opaco, logo a transição substitui a célula.
+ *
+ * A gramática foi medida quadro a quadro: cada quadro toca a borda da célula exatamente nos
+ * lados onde a terra continua (a grama aparece só do lado do vizinho de grama). Por isso o
+ * quadro correto é o que casa com a máscara de vizinhos — nada de cantos inventados.
+ * Corredores de 1 célula (vizinhas opostas de terra) têm peças próprias com faixa fina de grama.
+ */
 export function dirtFrame(mask: readonly (readonly boolean[])[], x: number, y: number): number {
   const at = (dx: number, dy: number) => inside(x + dx, y + dy) && !!mask[y + dy]?.[x + dx];
   const n = at(0, -1), s = at(0, 1), w = at(-1, 0), e = at(1, 0);
-  if (!n && !w) return 43; // canto sudeste de uma mancha
-  if (!n && !e) return 42;
-  if (!s && !w) return 31;
-  if (!s && !e) return 30;
-  if (!n) return 25;
-  if (!s) return 37;
-  if (!w) return 24;
-  if (!e) return 27;
-  // Diagonais são avaliadas depois das bordas cardinais: cantos internos.
-  if (!at(-1, -1)) return 28;
-  if (!at(1, -1)) return 29;
-  if (!at(-1, 1)) return 40;
-  if (!at(1, 1)) return 41;
-  return 10;
+  const sides = (n ? 1 : 0) + (e ? 1 : 0) + (s ? 1 : 0) + (w ? 1 : 0);
+  if (sides === 4) return 10; // miolo: terra lisa, sem cunhas de grama
+  if (sides === 3) {
+    // Encosta larga: faixa fina de grama só do lado sem terra (76/77/72/84).
+    if (!w) return 76;
+    if (!e) return 77;
+    if (!n) return 72;
+    return 84;
+  }
+  if (sides === 2) {
+    // Opostas: corredor de 1 célula (48/50). Adjacentes: quina arredondada 42/43/30/31.
+    if (n && s) return 50; // terra em cima e embaixo: corredor em pé, grama dos lados
+    if (e && w) return 48; // terra nos lados: corredor deitado, grama em cima e embaixo
+    if (e && s) return 43;
+    if (s && w) return 42;
+    if (n && e) return 31;
+    return 30;
+  }
+  if (sides === 0) return 44; // mancha isolada cercada de grama
+  // Ponta de trilha: meia célula de grama do lado oposto.
+  if (n) return 37;
+  if (s) return 25;
+  if (e) return 24;
+  return 27;
 }
 
 /** Todos os cálculos são em coordenadas globais da área, independentes do chunk de desenho. */
@@ -73,8 +90,9 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
   for (const place of definition.pointsOfInterest)
     protect(place.x, place.y, place.kind === 'arena' ? 6 : 2);
   protect(24, 24, 4);
-  const pathTo = (x: number, y: number, width = 1) => {
+  const pathTo = (x: number, y: number, width = 0) => {
     const steps = Math.max(Math.abs(x - 24), Math.abs(y - 24)) * 3;
+    let last: readonly [number, number] | undefined;
     for (let i = 0; i <= steps; i++) {
       const t = steps ? i / steps : 0;
       const bend = Math.min(1.8, Math.max(Math.abs(x - 24), Math.abs(y - 24)) / 9);
@@ -88,20 +106,31 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
           collision[py + dy]![px + dx] = false;
         }
       }
+      // Trilha de 1 célula: preenche o cotovelo para o traçado não ficar só com quinas.
+      if (width === 0 && last && last[0] !== px && last[1] !== py) {
+        const elbow = Math.abs(px - last[0]) > Math.abs(py - last[1]) ? [last[0], py] : [px, last[1]];
+        if (inside(elbow[0]!, elbow[1]!)) {
+          dirt[elbow[1]!]![elbow[0]!] = true;
+          protectedCell[elbow[1]!]![elbow[0]!] = true;
+          collision[elbow[1]!]![elbow[0]!] = false;
+        }
+      }
+      last = [px, py];
     }
   };
   for (const side of Object.keys(definition.exits) as Side[]) {
     const [x, y] = gate(side);
-    pathTo(x, y, 1);
-    // Apertura legível até o limite da área e chegada protegida na vizinha.
-    for (let i = -3; i <= 3; i++) for (let j = 0; j <= 4; j++) {
+    pathTo(x, y);
+    // Abertura de 3 células até o limite da área; antes a boca de 7×5 virava um
+    // grande retângulo de terra solto na borda do mapa.
+    for (let i = -1; i <= 1; i++) for (let j = 0; j <= 2; j++) {
       const xx = side === 'west' ? j : side === 'east' ? AREA_TILES - 1 - j : x + i;
       const yy = side === 'north' ? j : side === 'south' ? AREA_TILES - 1 - j : y + i;
       if (inside(xx, yy)) { dirt[yy]![xx] = true; protectedCell[yy]![xx] = true; collision[yy]![xx] = false; }
     }
   }
   for (const place of [...definition.pointsOfInterest, ...definition.mobSpawns])
-    pathTo(Math.round(place.x), Math.round(place.y), 1);
+    pathTo(Math.round(place.x), Math.round(place.y));
 
   if (definition.biome === 'village') {
     // A praça é pequena; as trilhas estreitas deixam gramado e casas visíveis ao redor.
@@ -125,13 +154,38 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
       }
     }
   }
-  // Os quadros 0–3 e 12–15 do WaterTileset compõem um pequeno lago real de 4×2.
+  // Lagoa fechada: mosaico 6×4 com orla de grama, montado com o autotile de água do pacote
+  // (52/53 quinas de cima, 50/51 margem norte, 48/49 margens, 62/63 margem sul, 66/67 quinas
+  // de baixo, 71 água limpa). A versão anterior usava só 0–3 e 12–15 e deixava a água
+  // vazando sem borda nas laterais.
   if (definition.id === 'floresta_exterior' || definition.id === 'ninho_serpente') {
-    const left = 35, top = 36;
-    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 4; dx++) {
+    const lake: readonly (readonly number[])[] = [
+      [52, 50, 51, 51, 50, 53],
+      [48, 71, 71, 71, 71, 49],
+      [48, 71, 71, 71, 71, 49],
+      [66, 62, 63, 63, 62, 67],
+    ];
+    const left = 33, top = 35;
+    for (let dy = 0; dy < lake.length; dy++) for (let dx = 0; dx < lake[dy]!.length; dx++) {
       const x = left + dx, y = top + dy;
-      layers.TERRAIN[y]![x] = dy * 12 + dx;
+      if (!inside(x, y)) continue;
+      layers.TERRAIN[y]![x] = lake[dy]![dx]!;
       collision[y]![x] = true; protectedCell[y]![x] = true; dirt[y]![x] = false;
+    }
+    // Uma célula de folga em volta evita árvore/pedra encostada na orla.
+    for (let dy = -1; dy <= lake.length; dy++) for (let dx = -1; dx <= lake[0]!.length; dx++)
+      if (inside(left + dx, top + dy)) protectedCell[top + dy]![left + dx] = true;
+  }
+
+  // Fecha buracos de grama de 1 célula cercados de terra nos quatro lados: a camada de
+  // grama não tem transição e a célula aparecia como um quadrado liso no meio da trilha.
+  for (let y = 1; y < AREA_TILES - 1; y++) for (let x = 1; x < AREA_TILES - 1; x++) {
+    if (dirt[y]![x] || layers.STRUCTURES[y]![x] !== -1 || layers.TERRAIN[y]![x] !== -1) continue;
+    const dirtSides = Number(dirt[y - 1]![x]) + Number(dirt[y + 1]![x])
+      + Number(dirt[y]![x - 1]) + Number(dirt[y]![x + 1]);
+    if (dirtSides === 4) {
+      dirt[y]![x] = true;
+      protectedCell[y]![x] = true;
     }
   }
 
@@ -164,9 +218,13 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
       fx: hash(definition.seed, x, y, 31) % 3 * 96 } :
       { w: 2, h: 2, atlas: 'rocks' as const, fw: 64, fh: 64, fx: hash(definition.seed, x, y, 31) % 2 * 64 };
     let blocked = false;
-    for (let dy = 0; dy < tiles.h; dy++) for (let dx = 0; dx < tiles.w; dx++)
-      if (protectedCell[y + dy]?.[x + dx] || layers.STRUCTURES[y + dy]?.[x + dx] !== -1)
-        blocked = true;
+    for (let dy = 0; dy < tiles.h; dy++) for (let dx = 0; dx < tiles.w; dx++) {
+      // Copas cortadas na borda e árvores em cima da trilha eram a deformidade mais visível.
+      if (!inside(x + dx, y + dy) || x + dx < 2 || y + dy < 2
+        || x + dx > AREA_TILES - 3 || y + dy > AREA_TILES - 3) blocked = true;
+      else if (protectedCell[y + dy]?.[x + dx] || layers.STRUCTURES[y + dy]?.[x + dx] !== -1
+        || dirt[y + dy]?.[x + dx] || layers.TERRAIN[y + dy]?.[x + dx] !== -1) blocked = true;
+    }
     if (blocked) continue;
     scenery.push({ atlas: tiles.atlas, x: x * 32, y: y * 32, width: tiles.fw,
       height: tiles.fh, frameX: tiles.fx, frameY: 0, depthY: (y + tiles.h) * 32 });
@@ -176,7 +234,8 @@ export function generateArea(definition: AreaDefinition): GeneratedArea {
     }
   }
   for (let y = 4; y < AREA_TILES - 4; y += 3) for (let x = 4; x < AREA_TILES - 4; x += 3) {
-    if (protectedCell[y]![x] || collision[y]![x]) continue;
+    // Detalhe solto no meio da trilha quebrava a leitura do caminho.
+    if (protectedCell[y]![x] || collision[y]![x] || dirt[y]![x]) continue;
     const v = hash(definition.seed, x, y, 1849) % 100;
     if (v >= (definition.biome === 'village' ? 3 : 14)) continue;
     const atlas = rocky ? 'rocks' : v < 2 && definition.resources.includes('logs') ? 'logs'

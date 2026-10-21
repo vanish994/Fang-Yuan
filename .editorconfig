@@ -1,0 +1,18 @@
+# Convenções mínimas, sem adicionar dependências ao projeto.
+# O código já segue este padrão; o arquivo evita drift entre editores.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Quebras de linha no fim de linha são intencionais em markdown.
+trim_trailing_whitespace = false
+
+[*.{png,jpg,jpeg,gif,webp,zip}]
+insert_final_newline = false

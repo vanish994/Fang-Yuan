@@ -12,7 +12,7 @@ const COLORS: Readonly<Record<MinimapCell, string>> = {
   [MINIMAP_CELL.exit]: '#f2d38d',
 };
 
-/** Painel fixo independente da câmera: uma área de cada vez, sem clique que desvie Fang Yuan. */
+/** Painel fixo independente da câmera: uma área de cada vez, sem clique que desvie o personagem. */
 export class MinimapView {
   readonly root: HTMLElement;
   readonly canvas: HTMLCanvasElement;
@@ -33,7 +33,7 @@ export class MinimapView {
     this.canvas.width = PIXELS;
     this.canvas.height = PIXELS;
     this.canvas.setAttribute('role', 'img');
-    this.canvas.setAttribute('aria-label', 'Posição de Fang Yuan, trilhas, obstáculos e saídas');
+    this.canvas.setAttribute('aria-label', 'Posição do personagem em campo, trilhas, obstáculos e saídas');
     this.root.append(this.canvas);
     this.base = document.createElement('canvas');
     this.base.width = PIXELS;

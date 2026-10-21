@@ -1,5 +1,6 @@
 import { INITIAL_CULTIVATION } from './characterProfile';
 import { CULTIVATION_RULES } from './cultivationBalance';
+import { backupUnreadable } from './storageBackup';
 import {
   advanceRequirement, attemptAdvance, isValidCultivationState,
   type AdvanceRequirement, type AdvanceResult, type CultivationState,
@@ -27,17 +28,29 @@ interface StoredCultivation {
 
 function load(storage: CultivationStorage | null): StoredCultivation | null {
   if (!storage) return null;
+  let raw: string | null = null;
   try {
-    const raw = storage.getItem(CULTIVATION_STORAGE_KEY);
+    raw = storage.getItem(CULTIVATION_STORAGE_KEY);
     if (!raw) return null;
     const saved: unknown = JSON.parse(raw);
-    if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) return null;
+    if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) {
+      backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+      return null;
+    }
     const record = saved as Record<string, unknown>;
-    if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) return null;
+    if (record.version !== SAVE_VERSION || !isValidCultivationState(record.state)) {
+      // Versão futura ou estado inválido: preserva o original antes de o jogo
+      // gravar o estado padrão por cima.
+      backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+      return null;
+    }
     const state = record.state;
     return { state: { ...state, materials: { ...state.materials } },
       testStonesGranted: record.testStonesGranted === true };
-  } catch { return null; }
+  } catch {
+    backupUnreadable(storage, CULTIVATION_STORAGE_KEY, raw);
+    return null;
+  }
 }
 
 export type SessionAdvanceResult = AdvanceResult | { status: 'stale'; state: CultivationState };
@@ -76,6 +89,9 @@ export class CharacterCultivation {
 
   get revision(): number { return this.version; }
   get persistent(): boolean { return this.storage !== null; }
+
+  /** Mantém o estado em memória e para de tentar gravar (armazenamento falhou). */
+  disablePersistence(): void { this.storage = null; }
   get hasTestStones(): boolean { return this.testStonesGranted; }
 
   get requirement(): AdvanceRequirement {
@@ -115,17 +131,63 @@ export class CharacterCultivation {
     this.commit({ ...this.current, spiritStones: this.current.spiritStones + amount });
   }
 
+  /**
+   * Drops podem trazer só pedras ou só material: zero é válido desde que a
+   * recompensa total não seja vazia. Rejeitar zero travava a fila de
+   * recompensas em retry infinito na primeira criatura sem pedras.
+   */
   receiveLoot(stones: number, materialId: string, quantity: number): void {
-    if (!Number.isSafeInteger(stones) || stones <= 0
-      || !Number.isSafeInteger(this.current.spiritStones + stones)
-      || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(materialId)
-      || !Number.isSafeInteger(quantity) || quantity <= 0
-      || !Number.isSafeInteger((this.current.materials[materialId] ?? 0) + quantity)) {
+    const validStones = Number.isSafeInteger(stones) && stones >= 0
+      && Number.isSafeInteger(this.current.spiritStones + stones);
+    const validMaterial = Number.isSafeInteger(quantity) && quantity >= 0
+      && (quantity === 0 || /^[a-z0-9][a-z0-9._-]{0,63}$/.test(materialId))
+      && Number.isSafeInteger((this.current.materials[materialId] ?? 0) + quantity);
+    if (!validStones || !validMaterial || (stones === 0 && quantity === 0)) {
       throw new RangeError('Recompensa inválida');
     }
-    this.commit({ ...this.current, spiritStones: this.current.spiritStones + stones,
-      materials: { ...this.current.materials,
-        [materialId]: (this.current.materials[materialId] ?? 0) + quantity } });
+    const materials = { ...this.current.materials };
+    if (quantity > 0) materials[materialId] = (materials[materialId] ?? 0) + quantity;
+    this.commit({ ...this.current, spiritStones: this.current.spiritStones + stones, materials });
+  }
+
+  /**
+   * Gasta pedras numa única gravação. `false` sem tocar no estado quando falta
+   * saldo, o valor é inválido ou a gravação falha (o jogador não pode ganhar Gu
+   * sem pagar por causa de um save quebrado).
+   */
+  spendStones(amount: number): boolean {
+    if (!Number.isSafeInteger(amount) || amount <= 0 || amount > this.current.spiritStones) {
+      return false;
+    }
+    try {
+      this.commit({ ...this.current, spiritStones: this.current.spiritStones - amount });
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Venda na banca: consome material e soma pedras no mesmo commit, para que um
+   * save interrompido não apague o material sem pagar. A entrada zerada sai do
+   * registro, mantendo o formato do save enxuto.
+   */
+  tradeMaterial(id: string, quantity: number, stoneGain: number): boolean {
+    if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(id)) return false;
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) return false;
+    if (!Number.isSafeInteger(stoneGain) || stoneGain <= 0) return false;
+    const owned = this.current.materials[id] ?? 0;
+    if (owned < quantity) return false;
+    if (!Number.isSafeInteger(this.current.spiritStones + stoneGain)) return false;
+    const materials = { ...this.current.materials };
+    const left = owned - quantity;
+    if (left > 0) materials[id] = left; else delete materials[id];
+    try {
+      this.commit({ ...this.current, spiritStones: this.current.spiritStones + stoneGain, materials });
+    } catch {
+      return false;
+    }
+    return true;
   }
 
   receiveMaterial(id: string, amount: number): void {

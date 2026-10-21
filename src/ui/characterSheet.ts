@@ -1,13 +1,17 @@
 import { characterSheetState, FANG_YUAN_PROFILE } from '../entities/characterProfile';
+import { playerCharacter, type PlayerCharacterId } from '../combat/characterCatalog';
 import { breakthroughMaterialName } from '../entities/cultivationBalance';
-import { CharacterCultivation, TEST_STONE_GRANT } from '../entities/characterCultivation';
+import { recipeAvailability, recipeBlockReason, recipeRenderKey, type RecipeContext }
+  from './recipeView';
+import { TEST_STONE_GRANT } from '../entities/characterCultivation';
+import type { CharacterCultivation } from '../entities/characterCultivation';
 import type { CardinalDirection } from '../entities/directions';
 import { AdvanceIntent } from './advanceIntent';
 import type { CombatEngine } from '../combat/combatEngine';
 import { GU_SLOTS } from '../combat/combatConfig';
 import { CATEGORY_LABELS, FIDELITY_LABELS, GU_CATALOG, GU_IDS, PENDING_GU_SLOTS,
   isAssimilable, isEquippable } from '../combat/guCatalog';
-import type { GuDefinition, GuId, GuSlot } from '../combat/types';
+import type { GuDefinition, GuId, GuRecipe, GuSlot } from '../combat/types';
 import { primordialSeaOffset, SHEET_SEA_SIZE } from './primordialSea';
 
 type SheetTab = 'advance' | 'inventory';
@@ -187,6 +191,9 @@ export class CharacterSheet {
   private moving = false;
   private lastCultivation = '';
   private lastInventoryKey = '';
+  /** Chave dos cards de refino: sem ela, o DOM era reconstruído a cada quadro. */
+  private lastRecipeKey = '';
+  private readonly recipeEntries: { recipe: GuRecipe; button: HTMLButtonElement }[] = [];
   private lastPaintAt = -Infinity;
 
   private readonly onToggle = () => {
@@ -273,6 +280,27 @@ export class CharacterSheet {
     document.addEventListener('keydown', this.onKeyDown);
   }
 
+  /**
+   * Identidade mostrada na ficha. O motor é a fonte do personagem em campo; aqui só
+   * se troca nome, área e retrato, sem tocar em cultivo, Gu ou receitas.
+   */
+  setCharacter(id: PlayerCharacterId): void {
+    const profile = playerCharacter(id);
+    requiredElement<HTMLElement>('character-name').textContent = profile.name;
+    requiredElement<HTMLElement>('character-area').textContent = profile.id === 'fang-yuan'
+      ? FANG_YUAN_PROFILE.area : `${FANG_YUAN_PROFILE.area} · a distância`;
+    requiredElement<HTMLElement>('sheet-title').textContent = profile.name;
+    const eyebrow = document.querySelector<HTMLElement>('.sheet-header .eyebrow');
+    if (eyebrow) {
+      eyebrow.textContent = profile.id === 'fang-yuan' ? 'Personagem / 01' : 'Personagem / 02';
+    }
+    const portrait = document.querySelector<HTMLElement>('.sheet-portrait');
+    if (portrait) {
+      portrait.dataset.character = profile.id;
+      portrait.setAttribute('aria-label', `Retrato de ${profile.name}`);
+    }
+  }
+
   update(facing: CardinalDirection, moving: boolean): void {
     if (this.facing !== facing || this.moving !== moving) {
       this.facing = facing;
@@ -284,8 +312,8 @@ export class CharacterSheet {
       else {
         this.renderEquipment();
         this.renderStats();
-        // Essência regenera a cada quadro: os botões de refino precisam refletir
-        // o custo atual mesmo quando inventário e equipamento não mudaram.
+        // A essência muda a cada quadro: só a disponibilidade dos botões é
+        // recalculada; os cards em si seguem intactos.
         this.renderRecipes();
       }
       const state = this.cultivation.state;
@@ -488,38 +516,68 @@ export class CharacterSheet {
     }
   }
 
-  private renderRecipes(): void {
+  private recipeContext(): RecipeContext {
+    const combat = this.combat!;
+    return {
+      rank: combat.cultivationRank,
+      essence: combat.essence,
+      stock: id => combat.inventoryCount(id),
+      alive: combat.hero.alive,
+      inCombat: combat.inCombat(this.getNow()),
+    };
+  }
+
+  /**
+   * Reconstrói os cards apenas quando algo estrutural muda. A essência regenera
+   * a cada quadro, então a disponibilidade é recalculada em `refreshRecipeButtons`
+   * sem tocar na árvore — é isso que preserva o foco de teclado.
+   */
+  private renderRecipes(force = false): void {
     const combat = this.combat;
-    this.recipeList.replaceChildren();
     if (!combat) {
-      this.recipeList.appendChild(create('p', 'sheet-note', 'Refino indisponível.'));
+      if (force || this.lastRecipeKey !== 'sem-motor') {
+        this.lastRecipeKey = 'sem-motor';
+        this.recipeEntries.length = 0;
+        this.recipeList.replaceChildren();
+        this.recipeList.appendChild(create('p', 'sheet-note', 'Refino indisponível.'));
+      }
       return;
     }
-    const now = this.getNow();
-    for (const recipe of combat.recipes) {
-      const card = create('article', 'recipe-card');
-      card.appendChild(create('strong', '', recipe.name));
-      const ingredients = recipe.ingredients.map(ingredient =>
-        `${combat.inventoryCount(ingredient.id)}/${ingredient.quantity}× ${GU_CATALOG[ingredient.id].label}`).join(' · ');
-      card.appendChild(create('small', '', `Ingredientes: ${ingredients} · Essência: ${recipe.essenceCost}`
-        + ` · Rank mínimo: ${recipe.requiresRank} · Resultado: ${GU_CATALOG[recipe.result].label}`));
-      card.appendChild(create('small', 'recipe-source', `${FIDELITY_LABELS[recipe.fidelity]} · ${recipe.source.reference}`));
-      const canRank = combat.cultivationRank >= recipe.requiresRank;
-      const canIngredients = recipe.ingredients.every(ingredient =>
-        combat.inventoryCount(ingredient.id) >= ingredient.quantity);
-      const canEssence = combat.essence >= recipe.essenceCost;
-      const usable = canRank && canIngredients && canEssence && combat.hero.alive && !combat.inCombat(now);
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'gu-card-action';
-      button.textContent = 'Refinar';
-      button.disabled = !usable;
-      button.setAttribute('aria-label', `Refinar ${recipe.name}`);
-      button.title = !canRank ? `Exige Rank ${recipe.requiresRank}`
-        : !canIngredients ? 'Ingredientes insuficientes'
-          : !canEssence ? 'Essência insuficiente' : 'Executar receita determinística';
-      button.addEventListener('click', () => this.onRefine(recipe.id));
-      card.appendChild(button);
-      this.recipeList.appendChild(card);
+    const context = this.recipeContext();
+    const key = recipeRenderKey(combat.recipes, context);
+    if (force || key !== this.lastRecipeKey) {
+      this.lastRecipeKey = key;
+      this.recipeEntries.length = 0;
+      this.recipeList.replaceChildren();
+      for (const recipe of combat.recipes) {
+        const card = create('article', 'recipe-card');
+        card.appendChild(create('strong', '', recipe.name));
+        const ingredients = recipe.ingredients.map(ingredient =>
+          `${combat.inventoryCount(ingredient.id)}/${ingredient.quantity}× ${GU_CATALOG[ingredient.id].label}`).join(' · ');
+        card.appendChild(create('small', '', `Ingredientes: ${ingredients} · Essência: ${recipe.essenceCost}`
+          + ` · Rank mínimo: ${recipe.requiresRank} · Resultado: ${GU_CATALOG[recipe.result].label}`));
+        card.appendChild(create('small', 'recipe-source', `${FIDELITY_LABELS[recipe.fidelity]} · ${recipe.source.reference}`));
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'gu-card-action';
+        button.textContent = 'Refinar';
+        button.setAttribute('aria-label', `Refinar ${recipe.name}`);
+        button.addEventListener('click', () => this.onRefine(recipe.id));
+        card.appendChild(button);
+        this.recipeList.appendChild(card);
+        this.recipeEntries.push({ recipe, button });
+      }
+    }
+    this.refreshRecipeButtons(context);
+  }
+
+  /** Só o estado dos botões muda por quadro (essência, combate, morte). */
+  private refreshRecipeButtons(context: RecipeContext): void {
+    for (const { recipe, button } of this.recipeEntries) {
+      const availability = recipeAvailability(recipe, context);
+      const shouldDisable = !availability.usable;
+      if (button.disabled !== shouldDisable) button.disabled = shouldDisable;
+      const title = recipeBlockReason(recipe, availability);
+      if (button.title !== title) button.title = title;
     }
   }
 

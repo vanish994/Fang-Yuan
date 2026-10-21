@@ -25,3 +25,8 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 *.swp
+
+# Cache do Python (scripts/ e venv local)
+__pycache__/
+*.pyc
+.venv/

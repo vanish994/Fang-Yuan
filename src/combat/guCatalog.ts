@@ -1,5 +1,5 @@
-import { GU_SLOTS, type ActiveEffect, type GuCategory, type GuDefinition, type GuId,
-  type GuSlot, type GuSource, type PassiveEffect } from './types';
+import { GU_SLOTS, type GuCategory, type GuDefinition, type GuId,
+  type GuSlot, type GuSource } from './types';
 
 /**
  * Catálogo central. Nenhum Gu entra aqui por conveniência: cada entrada declara
@@ -21,7 +21,7 @@ const define = (id: GuId, input: DefinitionInput): GuDefinition => ({ id, ...inp
 export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
   // ── Ataque ────────────────────────────────────────────────────────────────
   moonlight: define('moonlight', {
-    name: 'Moonlight Gu', label: 'Moonlight Gu · Gu da Lua', rank: 1, slot: 'attack',
+    name: 'Moonlight Gu', label: 'Moonlight Gu · Gu da Lua', short: 'Lua', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable', 'refinement-material'],
     fidelity: 'canonical',
     source: source(`${WIKI}/wiki/Moonlight_Gu`, 'Gu Rank 1 da luz que lança uma lâmina lunar (moonblade).'),
@@ -32,7 +32,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#6ea8c8', 'LUA', true), price: 800,
   }),
   'bone-spear': define('bone-spear', {
-    name: 'Bone Spear Gu', label: 'Bone Spear Gu · Gu Lança de Osso', rank: 1, slot: 'attack',
+    name: 'Bone Spear Gu', label: 'Bone Spear Gu · Gu Lança de Osso', short: 'Lança de Osso', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical',
     source: source(`${WIKI}/wiki/Bone_Spear_Gu`, 'Gu Rank 1 de ataque; projétil branco em forma de lança com poder de penetração.'),
@@ -43,7 +43,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#d9d2bd', 'OSSO'), price: 700,
   }),
   'star-arrow': define('star-arrow', {
-    name: 'Star Arrow Gu', label: 'Star Arrow Gu · Gu Flecha Estelar', rank: 1, slot: 'attack',
+    name: 'Star Arrow Gu', label: 'Star Arrow Gu · Gu Flecha Estelar', short: 'Flecha Estelar', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical',
     source: source(`${WIKI}/wiki/Star_Arrow_Gu`, 'Gu Rank 1 que permite lançar uma flecha de luz estelar.'),
@@ -54,7 +54,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#e8d27a', 'FLE'), price: 650,
   }),
   'star-dart': define('star-dart', {
-    name: 'Star Dart Gu', label: 'Star Dart Gu · Gu Dardo Estelar', rank: 1, slot: 'attack',
+    name: 'Star Dart Gu', label: 'Star Dart Gu · Gu Dardo Estelar', short: 'Dardo Estelar', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Star_Dart_Gu`, 'Gu Rank 1 natural do caminho estelar; o efeito de combate não está detalhado na fonte.',
@@ -66,7 +66,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#8fb7e8', 'DAR'), price: 650,
   }),
   'ghost-fire': define('ghost-fire', {
-    name: 'Ghost Fire Gu', label: 'Ghost Fire Gu · Gu Fogo Fantasma', rank: 1, slot: 'attack',
+    name: 'Ghost Fire Gu', label: 'Ghost Fire Gu · Gu Fogo Fantasma', short: 'Fogo Fantasma', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Ghost_Fire_Gu`, 'Gu Rank 1 ofensivo dos caminhos de fogo e alma.',
@@ -78,7 +78,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#8f7bd4', 'FAN'), price: 750,
   }),
   'exploding-egg': define('exploding-egg', {
-    name: 'Exploding Egg Gu', label: 'Exploding Egg Gu · Gu Ovo Explosivo', rank: 1, slot: 'attack',
+    name: 'Exploding Egg Gu', label: 'Exploding Egg Gu · Gu Ovo Explosivo', short: 'Ovo Explosivo', rank: 1, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Category:Rank_1_Gu`, 'Nome listado entre os Gu Rank 1; a página não detalha a mecânica de combate.',
@@ -92,7 +92,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
 
   // ── Passivo defensivo ─────────────────────────────────────────────────────
   'stone-skin': define('stone-skin', {
-    name: 'Stone Skin Gu', label: 'Stone Skin Gu · Pele de Pedra', rank: 1, slot: 'passive',
+    name: 'Stone Skin Gu', label: 'Stone Skin Gu · Pele de Pedra', short: 'Pele de Pedra', rank: 1, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Stone_Skin_Gu`, 'Gu Rank 1 defensivo; a pele fica dura como pedra.',
@@ -103,7 +103,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#9d9484', 'PED'), price: 600,
   }),
   'jade-skin': define('jade-skin', {
-    name: 'Jade Skin Gu', label: 'Jade Skin Gu · Pele de Jade', rank: 1, slot: 'passive',
+    name: 'Jade Skin Gu', label: 'Jade Skin Gu · Pele de Jade', short: 'Pele de Jade', rank: 1, slot: 'passive',
     categories: ['equippable', 'refinement-material'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Jade_Skin_Gu`, 'Gu Rank 1 defensivo raro; cria uma barreira que cobre o corpo.',
@@ -114,7 +114,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#6fb79a', 'JAD'), price: 1000,
   }),
   'bronze-skin': define('bronze-skin', {
-    name: 'Bronze Skin Gu', label: 'Bronze Skin Gu · Pele de Bronze', rank: 1, slot: 'passive',
+    name: 'Bronze Skin Gu', label: 'Bronze Skin Gu · Pele de Bronze', short: 'Pele de Bronze', rank: 1, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Bronze_Skin_Gu`, 'Gu Rank 1–3 defensivo do caminho metálico; aumenta a defesa por tempo limitado.',
@@ -125,7 +125,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#b58b5a', 'BRZ'), price: 700,
   }),
   'iron-skin': define('iron-skin', {
-    name: 'Iron Skin Gu', label: 'Iron Skin Gu · Pele de Ferro', rank: 1, slot: 'passive',
+    name: 'Iron Skin Gu', label: 'Iron Skin Gu · Pele de Ferro', short: 'Pele de Ferro', rank: 1, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Iron_Skin_Gu`, 'Gu Rank 1 defensivo do caminho metálico.',
@@ -136,7 +136,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#77808c', 'FER'), price: 800,
   }),
   'rock-skin': define('rock-skin', {
-    name: 'Rock Skin Gu', label: 'Rock Skin Gu · Pele de Rocha', rank: 1, slot: 'passive',
+    name: 'Rock Skin Gu', label: 'Rock Skin Gu · Pele de Rocha', short: 'Pele de Rocha', rank: 1, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Rock_Skin_Gu`, 'Gu Rank 1 que transforma partes do corpo em pedra; caminhos de terra e transformação.',
@@ -147,7 +147,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#8c7d68', 'ROC'), price: 650,
   }),
   'beast-skin': define('beast-skin', {
-    name: 'Beast Skin Gu', label: 'Beast Skin Gu · Pele de Besta', rank: 1, slot: 'passive',
+    name: 'Beast Skin Gu', label: 'Beast Skin Gu · Pele de Besta', short: 'Pele de Besta', rank: 1, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Beast_Skin_Gu`, 'Gu Rank 1 defensivo comum da mesma série das peles.',
@@ -160,7 +160,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
 
   // ── Apoio ─────────────────────────────────────────────────────────────────
   'liquor-worm': define('liquor-worm', {
-    name: 'Liquor Worm', label: 'Liquor Gu · Verme do Licor', rank: 1, slot: 'support',
+    name: 'Liquor Worm', label: 'Liquor Gu · Verme do Licor', short: 'Verme do Licor', rank: 1, slot: 'support',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Liquor_Worm`, 'Gu Rank 1 de apoio que refina e condensa essência primordial verde-cobre.',
@@ -171,7 +171,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#d9c7a3', 'LIC', true), price: 1000,
   }),
   'little-light': define('little-light', {
-    name: 'Little Light Gu', label: 'Little Light Gu · Pequena Luz', rank: 1, slot: 'support',
+    name: 'Little Light Gu', label: 'Little Light Gu · Pequena Luz', short: 'Pequena Luz', rank: 1, slot: 'support',
     categories: ['equippable', 'activatable', 'refinement-material'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Little_Light_Gu`, 'Gu Rank 1 de assistência que dobra o poder da Moonlight Gu; múltiplos não somam.',
@@ -182,7 +182,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#f1e6a8', 'LUZ'), price: 700,
   }),
   'amplify-effect': define('amplify-effect', {
-    name: 'Amplify Effect Gu', label: 'Amplify Effect Gu · Amplificar Efeito', rank: 1, slot: 'support',
+    name: 'Amplify Effect Gu', label: 'Amplify Effect Gu · Amplificar Efeito', short: 'Amplificar', rank: 1, slot: 'support',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Amplify_Effect_Gu`, 'Gu Rank 1 do caminho das regras; amplifica o efeito de outro Gu, com maior gasto de essência.',
@@ -193,7 +193,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#c6a9e0', 'AMP'), price: 900,
   }),
   'cleansing-water': define('cleansing-water', {
-    name: 'Cleansing Water Gu', label: 'Cleansing Water Gu · Água Purificadora', rank: 1, slot: 'support',
+    name: 'Cleansing Water Gu', label: 'Cleansing Water Gu · Água Purificadora', short: 'Água Pura', rank: 1, slot: 'support',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Cleansing_Water_Gu`, 'Gu Rank 1 de apoio/cura que limpa a abertura e expulsa energias externas.',
@@ -204,7 +204,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#74b6c9', 'AGU'), price: 700,
   }),
   'flash-blink': define('flash-blink', {
-    name: 'Flash Blink Gu', label: 'Flash Blink Gu · Clarão', rank: 1, slot: 'support',
+    name: 'Flash Blink Gu', label: 'Flash Blink Gu · Clarão', short: 'Clarão', rank: 1, slot: 'support',
     categories: ['consumable'],
     fidelity: 'canonical',
     source: source(`${WIKI}/wiki/Flash_Blink_Gu`, 'Gu Rank 1 consumível da luz; explode em luz branca ofuscante, dispersando escuridão.'),
@@ -214,7 +214,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#f4edc8', 'CLR'), price: 550,
   }),
   'all-out-effort': define('all-out-effort', {
-    name: 'All-Out Effort Gu', label: 'All-Out Effort Gu · Esforço Total', rank: 1, slot: 'support',
+    name: 'All-Out Effort Gu', label: 'All-Out Effort Gu · Esforço Total', short: 'Esforço Total', rank: 1, slot: 'support',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/All-Out_Effort_Gu`, 'Gu de apoio do caminho da força listado como Rank 1; a página detalha principalmente os Ranks 3–4.',
@@ -227,7 +227,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
 
   // ── Movimento ─────────────────────────────────────────────────────────────
   whirlwind: define('whirlwind', {
-    name: 'Whirlwind Gu', label: 'Whirlwind Gu · Redemoinho', rank: 1, slot: 'movement',
+    name: 'Whirlwind Gu', label: 'Whirlwind Gu · Redemoinho', short: 'Redemoinho', rank: 1, slot: 'movement',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Whirlwind_Gu`, 'Gu Rank 1 de movimento do caminho do vento; aumenta a velocidade.',
@@ -238,7 +238,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#a7c8b4', 'RED', true), price: 700,
   }),
   'clear-wind-wheel': define('clear-wind-wheel', {
-    name: 'Clear Wind Wheel Gu', label: 'Clear Wind Wheel Gu · Roda de Vento', rank: 1, slot: 'movement',
+    name: 'Clear Wind Wheel Gu', label: 'Clear Wind Wheel Gu · Roda de Vento', short: 'Roda de Vento', rank: 1, slot: 'movement',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Clear_Wind_Wheel_Gu`, 'Gu Rank 1 de movimento; forma um ciclone verde-claro sob os pés e aumenta a velocidade.'),
@@ -248,7 +248,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#8fc7a0', 'RDA'), price: 650,
   }),
   'dragonpill-cricket': define('dragonpill-cricket', {
-    name: 'Dragonpill Cricket Gu', label: 'Dragonpill Cricket Gu · Grilo Dragão', rank: 1, slot: 'movement',
+    name: 'Dragonpill Cricket Gu', label: 'Dragonpill Cricket Gu · Grilo Dragão', short: 'Grilo Dragão', rank: 1, slot: 'movement',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Dragonpill_Cricket_Gu`, 'Gu Rank 1 de movimento; imita o salto do grilo, indo mais longe e mais alto.'),
@@ -260,7 +260,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
 
   // ── Assimilação permanente ────────────────────────────────────────────────
   'bear-strength': define('bear-strength', {
-    name: 'Bear Strength Gu', label: 'Bear Strength Gu · Força do Urso', rank: 1, slot: 'support',
+    name: 'Bear Strength Gu', label: 'Bear Strength Gu · Força do Urso', short: 'Força do Urso', rank: 1, slot: 'support',
     categories: ['assimilable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Bear_Strength_Gu`, 'Gu Rank 1 do caminho da força; concede permanentemente a força de um urso e melhora o físico.',
@@ -271,7 +271,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#8b6b4f', 'URS'), price: 900,
   }),
   'white-boar': define('white-boar', {
-    name: 'White Boar Gu', label: 'White Boar Gu · Javali Branco', rank: 1, slot: 'support',
+    name: 'White Boar Gu', label: 'White Boar Gu · Javali Branco', short: 'Javali Branco', rank: 1, slot: 'support',
     categories: ['assimilable', 'refinement-material'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/White_Boar_Gu`, 'Gu Rank 1 do caminho da força; concede permanentemente a força de um javali branco.',
@@ -282,7 +282,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#e3dccb', 'JAV'), price: 600,
   }),
   'black-boar': define('black-boar', {
-    name: 'Black Boar Gu', label: 'Black Boar Gu · Javali Negro', rank: 1, slot: 'support',
+    name: 'Black Boar Gu', label: 'Black Boar Gu · Javali Negro', short: 'Javali Negro', rank: 1, slot: 'support',
     categories: ['assimilable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Black_Boar_Gu`, 'Gu Rank 1 do caminho da força; concede permanentemente a força de um javali negro.',
@@ -295,7 +295,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
 
   // ── Rank 2 (resultados de refino) ────────────────────────────────────────
   moonglow: define('moonglow', {
-    name: 'Moonglow Gu', label: 'Moonglow Gu · Brilho Lunar', rank: 2, slot: 'attack',
+    name: 'Moonglow Gu', label: 'Moonglow Gu · Brilho Lunar', short: 'Brilho Lunar', rank: 2, slot: 'attack',
     categories: ['equippable', 'activatable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/Moonglow_Gu`, 'Rank 2 obtido de 1 Moonlight Gu + 2 Little Light Gu; lâmina lunar mais poderosa.',
@@ -307,7 +307,7 @@ export const GU_CATALOG: Readonly<Record<GuId, GuDefinition>> = {
     visual: visual('#9bc7e8', 'MG'), price: 2200,
   }),
   'white-jade': define('white-jade', {
-    name: 'White Jade Gu', label: 'White Jade Gu · Jade Branco', rank: 2, slot: 'passive',
+    name: 'White Jade Gu', label: 'White Jade Gu · Jade Branco', short: 'Jade Branco', rank: 2, slot: 'passive',
     categories: ['equippable'],
     fidelity: 'canonical-adapted',
     source: source(`${WIKI}/wiki/White_Jade_Gu`, 'Rank 2 defensivo obtido de Jade Skin Gu + White Boar Gu; proteção de jade aprimorada.',
@@ -372,6 +372,3 @@ export const STARTING_INVENTORY: Readonly<Partial<Record<GuId, number>>> = Objec
     .map(id => [id, id === 'little-light' ? 2 : 1])),
 );
 
-/** Custo de essência/efeito de um Gu; tipagem estreita para evitar `any`. */
-export function passiveOf(gu: GuDefinition): PassiveEffect | undefined { return gu.passive; }
-export function activeOf(gu: GuDefinition): ActiveEffect | undefined { return gu.active; }
