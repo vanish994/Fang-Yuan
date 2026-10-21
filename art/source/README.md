@@ -4,6 +4,12 @@ Este diretório guarda **sem alteração** os PNGs-mestre 1920×1920 e os JSONs
 fornecidos pelo usuário. Os caminhos absolutos dentro dos JSONs são do ambiente
 de criação original; o jogo carrega os atlas publicados em `public/`.
 
+`ui/ui-kit-source.png` é o atlas de **interface** (1536×1024) enviado pelo
+usuário. Ele não passa pelo script de personagens: o recorte das peças de UI é
+feito por `scripts/slice-ui-kit.py`, que publica `public/assets/ui/*.png` e
+descreve cada caixa em `ui/ui-kit.json`. O mapa Gu → célula de ícone também
+mora nesse JSON. Ver [`docs/UI-ARTE.md`](../docs/UI-ARTE.md).
+
 Para reconstruir os atlas 64/96px a partir destas matrizes:
 
 ```sh

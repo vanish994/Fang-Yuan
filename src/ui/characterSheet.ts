@@ -481,6 +481,7 @@ export class CharacterSheet {
       if (isEquippable(gu)) {
         const equip = document.createElement('button');
         equip.type = 'button'; equip.className = 'gu-card-action';
+        equip.setAttribute('data-action', 'equip');
         equip.disabled = locked;
         equip.textContent = equipped ? 'Remover' : count > 0 ? 'Equipar' : 'Indisponível';
         equip.setAttribute('aria-label', equipped ? `Remover ${gu.label}` : `Equipar ${gu.label}`);
@@ -490,6 +491,7 @@ export class CharacterSheet {
       if (isAssimilable(gu)) {
         const assimilate = document.createElement('button');
         assimilate.type = 'button'; assimilate.className = 'gu-card-action';
+        assimilate.setAttribute('data-action', 'assimilate');
         assimilate.disabled = locked || count <= 0 || assimilated;
         assimilate.textContent = assimilated ? 'Assimilado' : count > 0 ? 'Assimilar' : 'Indisponível';
         assimilate.setAttribute('aria-label', `Assimilar ${gu.label}`);
@@ -499,6 +501,7 @@ export class CharacterSheet {
       if (gu.categories.includes('consumable')) {
         const use = document.createElement('button');
         use.type = 'button'; use.className = 'gu-card-action';
+        use.setAttribute('data-action', 'use');
         use.disabled = !combat.hero.alive || count <= 0;
         use.textContent = count > 0 ? 'Usar' : 'Indisponível';
         use.setAttribute('aria-label', `Usar ${gu.label}`);
@@ -559,6 +562,7 @@ export class CharacterSheet {
         card.appendChild(create('small', 'recipe-source', `${FIDELITY_LABELS[recipe.fidelity]} · ${recipe.source.reference}`));
         const button = document.createElement('button');
         button.type = 'button'; button.className = 'gu-card-action';
+        button.setAttribute('data-action', 'refine');
         button.textContent = 'Refinar';
         button.setAttribute('aria-label', `Refinar ${recipe.name}`);
         button.addEventListener('click', () => this.onRefine(recipe.id));

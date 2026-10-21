@@ -1,0 +1,379 @@
+{
+  "source": "art/source/ui/ui-kit-source.png",
+  "atlas_size": [
+    1536,
+    1024
+  ],
+  "display_scale": 0.5,
+  "regions": {
+    "panel-9slice": {
+      "source_box": [
+        10,
+        10,
+        420,
+        285
+      ],
+      "size": [
+        384,
+        264
+      ]
+    },
+    "header-3slice": {
+      "source_box": [
+        420,
+        20,
+        900,
+        130
+      ],
+      "size": [
+        455,
+        87
+      ]
+    },
+    "bar-track": {
+      "source_box": [
+        425,
+        125,
+        890,
+        193
+      ],
+      "size": [
+        442,
+        52
+      ]
+    },
+    "bar-fill": {
+      "source_box": [
+        425,
+        193,
+        890,
+        258
+      ],
+      "size": [
+        443,
+        51
+      ]
+    },
+    "frame-portrait": {
+      "source_box": [
+        920,
+        18,
+        1170,
+        266
+      ],
+      "size": [
+        224,
+        222
+      ]
+    },
+    "card-gu-9slice": {
+      "source_box": [
+        14,
+        270,
+        346,
+        530
+      ],
+      "size": [
+        321,
+        249
+      ]
+    },
+    "divider-3slice": {
+      "source_box": [
+        14,
+        528,
+        326,
+        596
+      ],
+      "size": [
+        291,
+        47
+      ]
+    },
+    "btn-list-9slice": {
+      "source_box": [
+        24,
+        606,
+        320,
+        672
+      ],
+      "size": [
+        286,
+        53
+      ]
+    },
+    "chip-9slice": {
+      "source_box": [
+        515,
+        604,
+        670,
+        660
+      ],
+      "size": [
+        140,
+        41
+      ]
+    },
+    "card-recipe-9slice": {
+      "source_box": [
+        696,
+        664,
+        1000,
+        730
+      ],
+      "size": [
+        278,
+        66
+      ]
+    },
+    "card-character-9slice": {
+      "source_box": [
+        696,
+        600,
+        1000,
+        666
+      ],
+      "size": [
+        290,
+        56
+      ]
+    },
+    "pill-green-3slice": {
+      "source_box": [
+        1072,
+        750,
+        1292,
+        812
+      ],
+      "size": [
+        199,
+        40
+      ]
+    },
+    "pill-gold-3slice": {
+      "source_box": [
+        1288,
+        750,
+        1510,
+        812
+      ],
+      "size": [
+        203,
+        40
+      ]
+    },
+    "slot-gu-9slice": {
+      "source_box": [
+        1078,
+        884,
+        1448,
+        958
+      ],
+      "size": [
+        358,
+        66
+      ]
+    },
+    "joystick-base": {
+      "source_box": [
+        1070,
+        482,
+        1262,
+        674
+      ],
+      "size": [
+        182,
+        185
+      ]
+    },
+    "knob": {
+      "source_box": [
+        1264,
+        518,
+        1372,
+        626
+      ],
+      "size": [
+        94,
+        93
+      ]
+    },
+    "badge-cicada": {
+      "source_box": [
+        1400,
+        386,
+        1495,
+        487
+      ],
+      "size": [
+        77,
+        85
+      ]
+    },
+    "cursor-target": {
+      "source_box": [
+        1398,
+        910,
+        1496,
+        996
+      ],
+      "size": [
+        70,
+        62
+      ]
+    },
+    "btn-basic": {
+      "source_box": [
+        1075,
+        268,
+        1186,
+        378
+      ],
+      "size": [
+        103,
+        95
+      ]
+    },
+    "icon-diamond": {
+      "source_box": [
+        1026,
+        950,
+        1094,
+        1018
+      ],
+      "size": [
+        48,
+        49
+      ]
+    },
+    "icon-medal-red": {
+      "source_box": [
+        1094,
+        948,
+        1164,
+        1018
+      ],
+      "size": [
+        67,
+        62
+      ]
+    },
+    "icon-drop-blue": {
+      "source_box": [
+        1164,
+        950,
+        1232,
+        1018
+      ],
+      "size": [
+        51,
+        51
+      ]
+    },
+    "icon-arrow-green": {
+      "source_box": [
+        1232,
+        948,
+        1302,
+        1018
+      ],
+      "size": [
+        70,
+        62
+      ]
+    },
+    "btn-small-green": {
+      "source_box": [
+        342,
+        598,
+        500,
+        656
+      ],
+      "size": [
+        141,
+        50
+      ]
+    },
+    "btn-small-brown": {
+      "source_box": [
+        342,
+        652,
+        500,
+        704
+      ],
+      "size": [
+        140,
+        40
+      ]
+    },
+    "btn-small-slate": {
+      "source_box": [
+        342,
+        700,
+        500,
+        754
+      ],
+      "size": [
+        140,
+        41
+      ]
+    },
+    "btn-small-red": {
+      "source_box": [
+        342,
+        752,
+        500,
+        806
+      ],
+      "size": [
+        141,
+        42
+      ]
+    }
+  },
+  "gu_cells": {
+    "moonlight": 7,
+    "bone-spear": 20,
+    "star-arrow": 0,
+    "star-dart": 9,
+    "ghost-fire": 27,
+    "exploding-egg": 2,
+    "stone-skin": 26,
+    "jade-skin": 23,
+    "bronze-skin": 13,
+    "iron-skin": 17,
+    "rock-skin": 30,
+    "beast-skin": 12,
+    "liquor-worm": 19,
+    "little-light": 3,
+    "amplify-effect": 31,
+    "cleansing-water": 5,
+    "flash-blink": 32,
+    "all-out-effort": 16,
+    "whirlwind": 1,
+    "clear-wind-wheel": 14,
+    "dragonpill-cricket": 35,
+    "bear-strength": 25,
+    "white-boar": 36,
+    "black-boar": 29,
+    "moonglow": 21,
+    "white-jade": 28
+  },
+  "close_states": [
+    "normal",
+    "hover",
+    "pressed",
+    "disabled"
+  ],
+  "round_states": [
+    "normal",
+    "hover",
+    "pressed",
+    "disabled"
+  ],
+  "knob_states": [
+    "idle",
+    "active",
+    "pressed"
+  ]
+}
