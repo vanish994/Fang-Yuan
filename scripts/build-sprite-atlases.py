@@ -69,22 +69,73 @@ def feet_center_x(frame: Image.Image, band: float = 0.2) -> float:
     return sum(columns) / len(columns) if columns else width / 2
 
 
+def facing_side(atlas_path: Path, cell: int, row: int) -> str | None:
+    """Lado para onde o personagem olha num quadro de uma linha lateral do atlas.
+
+    O rosto é a área clara (pele) no terço superior do quadro. Comparar a média
+    horizontal dela com o centro do corpo revela o lado: serve para conferir que a
+    linha `left` não acabou com o desenho virado para a direita — foi exatamente o
+    defeito que o usuário viu ao andar, quando as linhas 2 e 4 dos masters novos
+    vieram invertidas.
+
+    Devolve `None` quando não há pele visível (linhas de frente e de costas).
+    """
+    atlas = Image.open(atlas_path).convert('RGBA')
+    frame = atlas.crop((0, row * cell, cell, row * cell + cell))
+    pixels = [(x, y, red + green + blue)
+              for y in range(cell) for x in range(cell)
+              for red, green, blue, alpha in [frame.getpixel((x, y))] if alpha > 60]
+    if not pixels:
+        return None
+    rows = [pixel[1] for pixel in pixels]
+    head_limit = min(rows) + 0.30 * (max(rows) - min(rows))
+    skin = [pixel for pixel in pixels if pixel[1] < head_limit and pixel[2] > 3 * 105]
+    if not skin:
+        return None
+    face = sum(pixel[0] for pixel in skin) / len(skin)
+    body = sum(pixel[0] for pixel in pixels) / len(pixels)
+    if face > body + 2:
+        return 'right'
+    if face < body - 2:
+        return 'left'
+    return None
+
+
+def check_side_rows(atlas_path: Path, cell: int, label: str) -> None:
+    """Falha a geração se as linhas laterais do atlas não olharem para o lado certo."""
+    expected = {1: 'left', 3: 'right'}
+    for row, side in expected.items():
+        found = facing_side(atlas_path, cell, row)
+        if found != side:
+            raise ValueError(f'{label}: linha {row} deveria olhar para {side}, veio {found}')
+    print(f'{label}: linhas laterais olham para o lado certo (esquerda na 2ª, direita na 4ª)')
+
+
 def build_grid(name: str, source_file: str, dest_file: str, cols: int, rows: int,
                size: int, body_height: int, body_width: int, scale: float | None = None,
                crop_to_subject: bool = True, stride: int = MASTER_CELL,
-               x_start: int = 0, feet_anchor: bool = False) -> float:
+               x_start: int = 0, feet_anchor: bool = False,
+               row_map: list[int] | None = None) -> float:
     """Monta um atlas de grade. `scale` compartilhado mantém o corpo do mesmo tamanho
-    entre poses; quando omitido, o fator é calculado só com este atlas."""
+    entre poses; quando omitido, o fator é calculado só com este atlas.
+
+    `row_map` reordena as linhas do master na saída (ex.: o desenho vem em
+    down/right/up/left e o atlas do jogo é down/left/up/right). Sem ele a ordem é a mesma.
+    """
     source = Image.open(SOURCE / source_file).convert('RGBA')
     row_ranges = rows_from_alpha(source, x_start, cols * stride, rows)
     frames = [[subject(source, row_ranges[row], col, stride, x_start) for col in range(cols)]
               for row in range(rows)]
+    order = row_map if row_map is not None else list(range(rows))
+    if sorted(order) != list(range(rows)):
+        raise ValueError(f'{name}: row_map inválido para {rows} linhas: {order}')
     if scale is None:
         widest = max(frame.width for line in frames for frame in line)
         tallest = max(frame.height for line in frames for frame in line)
         scale = min(body_height / tallest, body_width / widest)
     atlas = Image.new('RGBA', (cols * size, rows * size))
-    for row, line in enumerate(frames):
+    for row, master_row in enumerate(order):
+        line = frames[master_row]
         for col, frame in enumerate(line):
             if crop_to_subject:
                 width = max(1, round(frame.width * scale))
@@ -152,6 +203,12 @@ FANG_YUAN_MASTERS = {
     'down': 'fang-yuan-down-4dir-4frames-master.png',
 }
 
+# Os masters novos desenham as linhas como baixo, DIREITA, cima, esquerda — o inverso
+# do atlas do jogo (baixo, esquerda, cima, direita). Sem esta troca o personagem anda
+# para a esquerda com o sprite virado para a direita (e vice-versa) nas quatro poses.
+# Conferido olhando o lado do rosto em cada linha: 1ª linha = direita, 4ª = esquerda.
+FANG_YUAN_MASTER_ROWS = [0, 3, 2, 1]
+
 
 if __name__ == '__main__':
     scale = fang_yuan_scale()
@@ -159,11 +216,12 @@ if __name__ == '__main__':
     for pose, source_file in FANG_YUAN_MASTERS.items():
         build_grid(f'Fang Yuan ({pose})', source_file,
                    f'characters/fang-yuan-{pose}-64.png', 4, 4, 64, 56, 60, scale,
-                   feet_anchor=True)
+                   feet_anchor=True, row_map=FANG_YUAN_MASTER_ROWS)
+        check_side_rows(DEST / f'characters/fang-yuan-{pose}-64.png', 64, f'Fang Yuan ({pose})')
     # Retrato do painel: mesma pose, quadro 32px, 4×4 (o CSS usa 256px de fundo).
     build_grid('Fang Yuan (retrato)', FANG_YUAN_MASTERS['walk'],
                'characters/fang-yuan-walk-32.png', 4, 4, 32, 28, 30, scale,
-               feet_anchor=True)
+               feet_anchor=True, row_map=FANG_YUAN_MASTER_ROWS)
     build_grid('NPCs', 'npc-static-4dir-master.png',
                'npcs/npc-static-4dir-64.png', 4, 10, 64, 58, 60, stride=192, x_start=576)
     build_grid('mobs', 'mob-static-4dir-master.png',

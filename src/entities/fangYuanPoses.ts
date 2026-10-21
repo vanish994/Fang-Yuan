@@ -10,7 +10,9 @@ import type { CardinalDirection } from './directions';
  */
 export type FangYuanPose = 'walk' | 'cast' | 'dash' | 'down';
 
-// Ordem do animation.json enviado: não é a mesma ordem das direções de entrada.
+// Ordem das linhas dos ATLAS publicados (igual a NPCs, mobs e bosses).
+// Os masters enviados vêm com as laterais trocadas (down, right, up, left): quem
+// faz a troca é `scripts/build-sprite-atlases.py` (FANG_YUAN_MASTER_ROWS).
 export const FANG_YUAN_FRAME_DIRECTIONS: readonly CardinalDirection[] = ['down', 'left', 'up', 'right'];
 export const FANG_YUAN_FRAMES_PER_DIRECTION = 4;
 

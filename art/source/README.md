@@ -26,9 +26,17 @@ As três últimas linhas dos mobs continuam **somente arte**, sem atributos.
 | `fang-yuan-dash-4dir-4frames-master.png` | arremetida | Gu de movimento |
 | `fang-yuan-down-4dir-4frames-master.png` | queda | morte do herói, travada até o respawn |
 
-Todas são grades 4×4 de 480px (linhas `down`, `left`, `up`, `right`) e são
-escaladas por **um único fator** (o maior quadro entre as quatro), então o corpo
-não muda de tamanho ao trocar de animação. Detalhes em `fang-yuan-poses.json`.
+Todas são grades 4×4 de 480px e são escaladas por **um único fator** (o maior
+quadro entre as quatro), então o corpo não muda de tamanho ao trocar de animação.
+Detalhes em `fang-yuan-poses.json`.
+
+**Atenção à ordem das linhas:** os quatro masters vêm desenhados como
+`down`, **`right`**, `up`, **`left`**, e o atlas publicado usa
+`down`, `left`, `up`, `right` — a mesma ordem dos NPCs, mobs e bosses. O script
+troca as linhas 2 e 4 (`FANG_YUAN_MASTER_ROWS = [0, 3, 2, 1]`) e, depois de
+montar cada atlas, confere pelo lado do rosto se a linha lateral realmente olha
+para o lado que diz olhar (`check_side_rows`). Sem a troca, andar para a esquerda
+mostrava o sprite virado para a direita.
 
 ## Partículas de Gu
 

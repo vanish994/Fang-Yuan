@@ -1,8 +1,22 @@
 {
   "schema": "fang-yuan.animation.poses.v1",
-  "note": "As quatro poses enviadas pelo usuário. Cada master é uma grade 4×4 (480px por célula): linhas na ordem down/left/up/right, quatro quadros por linha. A escala é única para todas as poses (ver scripts/build-sprite-atlases.py).",
-  "direction_order": ["down", "left", "up", "right"],
-  "grid": [4, 4],
+  "note": "As quatro poses enviadas pelo usuário. Cada master é uma grade 4×4 (480px por célula), quatro quadros por linha. ATENÇÃO: os masters vêm na ordem de linhas down/RIGHT/up/LEFT; o atlas publicado usa down/left/up/right (igual a NPCs, mobs e bosses), então o script troca as linhas 2 e 4 (FANG_YUAN_MASTER_ROWS = [0, 3, 2, 1]) e valida pelo lado do rosto em check_side_rows. A escala é única para todas as poses (ver scripts/build-sprite-atlases.py).",
+  "master_direction_order": [
+    "down",
+    "right",
+    "up",
+    "left"
+  ],
+  "direction_order": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "grid": [
+    4,
+    4
+  ],
   "cell": 480,
   "poses": {
     "walk": {
@@ -40,9 +54,20 @@
   "effects": {
     "master": "gu-effects-4x4-32.png",
     "atlas": "../public/assets/characters/gu-effects-4x4-32.png",
-    "frame_size": [32, 32],
-    "grid": [4, 4],
-    "rows": { "swirl": 0, "slash": 1, "smoke": 2, "streak": 3 },
+    "frame_size": [
+      32,
+      32
+    ],
+    "grid": [
+      4,
+      4
+    ],
+    "rows": {
+      "swirl": 0,
+      "slash": 1,
+      "smoke": 2,
+      "streak": 3
+    },
     "note": "A folha publicada é uma máscara clara: a cor vem do visual.color do Gu em tempo real (setParticleTint), então não é preciso arte por cor."
   }
 }

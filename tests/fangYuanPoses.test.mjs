@@ -79,3 +79,17 @@ test('main.ts liga as poses e as partículas sem tocar nas regras de combate', (
   assert.ok(main.includes('this.combat.activate(equipped, now, direction, this.isFree)'));
   assert.ok(main.includes('this.combat.dash(now, movementDirection, this.isFree)'));
 });
+
+test('masters têm as linhas laterais trocadas e o build corrige isso', () => {
+  const build = readFileSync(new URL('../scripts/build-sprite-atlases.py', import.meta.url), 'utf8');
+  // 1ª linha do master = direita e 4ª = esquerda; o atlas do jogo é baixo/esquerda/cima/direita.
+  assert.match(build, /FANG_YUAN_MASTER_ROWS = \[0, 3, 2, 1\]/,
+    'sem a troca, andar para a esquerda desenha o sprite virado para a direita');
+  assert.match(build, /feet_anchor=True, row_map=FANG_YUAN_MASTER_ROWS/);
+  // A checagem roda na geração: se a ordem voltar a ficar invertida, o build falha.
+  assert.match(build, /def check_side_rows\(/);
+  assert.match(build, /expected = \{1: 'left', 3: 'right'\}/);
+  assert.match(build, /check_side_rows\(DEST \/ f'characters\/fang-yuan-\{pose\}-64\.png'/);
+  // A ordem publicada continua a mesma que o resto do elenco usa.
+  assert.deepEqual(poses2.FANG_YUAN_FRAME_DIRECTIONS, ['down', 'left', 'up', 'right']);
+});
