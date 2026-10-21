@@ -1,29 +1,31 @@
 import type Phaser from 'phaser';
-import { effectFrames, effectScale, GU_EFFECT_COUNT, GU_EFFECT_SHAPES,
-  type GuEffectBurst, type GuEffectShape } from './guEffects';
+import { GU_EFFECT_COUNT, styleEffectFrames, effectScale,
+  type GuEffectBurst } from './guEffects';
 
 /**
  * Partículas de Gu no mundo.
  *
- * A folha `gu-effects-4x4-32.png` guarda quatro formas (redemoinho, corte, fumaça e
- * rastro) em tons neutros. Cada estouro escolhe a forma pela função do Gu e pinta as
- * partículas com a cor do catálogo (`setParticleTint`), então o mesmo desenho serve
- * para qualquer Gu novo sem precisar de arte nova.
+ * Cada estilo de personagem tem uma folha-máscara própria (`gu-effects` para o
+ * Fang Yuan, `ice-effects` para o Bai Ning Bing): quatro formas em tons neutros,
+ * quatro quadros cada. O desenho vem da folha e a cor vem do catálogo, então o
+ * mesmo desenho serve para qualquer Gu novo sem precisar de arte nova.
  */
 export class GuEffectView {
   private readonly scene: Phaser.Scene;
-  private readonly emitters = new Map<GuEffectShape, Phaser.GameObjects.Particles.ParticleEmitter>();
-  private readonly bursts = new Set<Phaser.GameObjects.Particles.ParticleEmitter>();
+  /** Chave `folha:forma` -> emissor, para as duas folhas conviverem. */
+  private readonly emitters = new Map<string, Phaser.GameObjects.Particles.ParticleEmitter>();
+  private readonly live = new Set<Phaser.GameObjects.Particles.ParticleEmitter>();
 
   constructor(scene: Phaser.Scene) { this.scene = scene; }
 
-  private emitter(shape: GuEffectShape): Phaser.GameObjects.Particles.ParticleEmitter {
-    const existing = this.emitters.get(shape);
+  private emitter(texture: string, shape: string): Phaser.GameObjects.Particles.ParticleEmitter {
+    const key = `${texture}:${shape}`;
+    const existing = this.emitters.get(key);
     if (existing) return existing;
-    const emitter = this.scene.add.particles(0, 0, 'gu-effects', {
+    const emitter = this.scene.add.particles(0, 0, texture, {
       // Quadros da forma em sequência: a partícula percorre o desenho em vez de
       // sortear um quadro solto.
-      frame: { frames: effectFrames(shape), cycle: true },
+      frame: { frames: styleEffectFrames(texture === 'ice-effects' ? 'ice' : 'gu', shape), cycle: true },
       lifespan: 420,
       speed: { min: 18, max: 70 },
       angle: { min: 0, max: 360 },
@@ -33,28 +35,31 @@ export class GuEffectView {
       emitting: false,
     }).setDepth(905);
     emitter.setParticleTint(0xffffff);
-    this.emitters.set(shape, emitter);
-    this.bursts.add(emitter);
+    this.emitters.set(key, emitter);
+    this.live.add(emitter);
     return emitter;
   }
 
-  /** Estouro curto no ponto indicado; a cor vem do Gu quando informada. */
-  burst(kind: GuEffectBurst, x: number, y: number,
-    shape: GuEffectShape, tint: number): void {
-    const emitter = this.emitter(shape);
+  /**
+   * Estouro curto no ponto indicado. `tint` é a cor do Gu (ou a do personagem
+   * quando a ação não tem Gu); nenhuma cor fica gravada na arte.
+   */
+  burst(kind: GuEffectBurst, x: number, y: number, shape: string, tint: number,
+    texture = 'gu-effects'): void {
+    const emitter = this.emitter(texture, shape);
     emitter.setDepth(y + 1);
     emitter.setParticleTint(tint);
     emitter.explode(GU_EFFECT_COUNT[kind], x, y);
   }
 
   /** Quantas formas já foram instanciadas (usado para diagnóstico e testes). */
-  get activeShapes(): GuEffectShape[] {
-    return GU_EFFECT_SHAPES.filter(shape => this.emitters.has(shape));
+  get activeShapes(): string[] {
+    return [...this.emitters.keys()];
   }
 
   destroy(): void {
-    for (const emitter of this.bursts) emitter.destroy();
-    this.bursts.clear();
+    for (const emitter of this.live) emitter.destroy();
+    this.live.clear();
     this.emitters.clear();
   }
 }

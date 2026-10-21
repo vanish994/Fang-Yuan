@@ -5,7 +5,10 @@ import { AREA_TILES, INITIAL_WORLD, OPPOSITE, RISK_LABELS, areaNpcDefinitions, i
 import { generateArea, type GeneratedArea } from './world/areaGenerator';
 import { renderArea } from './world/areaRenderer';
 import { shortestWorldWaypoints, type WorldPoint } from './world/cardinalNavigation';
-import { FangYuan, registerWalkAnimations, WALK_SPEED } from './entities/FangYuan';
+import { PlayerCharacter, registerPlayerAnimations, WALK_SPEED } from './entities/PlayerCharacter';
+import { playerCharacter, type PlayerCharacterId } from './combat/characterCatalog';
+import { loadCharacterChoice, saveCharacterChoice } from './entities/characterChoice';
+import { CharacterSelect } from './ui/characterSelect';
 import { shouldTurnForSegment, type CardinalDirection } from './entities/directions';
 import { CharacterSheet } from './ui/characterSheet';
 import { VendorPanel } from './ui/vendorPanel';
@@ -16,7 +19,7 @@ import { GU_CATALOG } from './combat/guCatalog';
 import { canStandAt, canWalkSegment, releaseWallSnag } from './world/footprint';
 import type { ActionResult, CombatEvent, Direction, GuId } from './combat/types';
 import { wildGuShortLabel } from './combat/wildGu';
-import { bladeShape, guColor, orbShape, placementOf, syncPool } from './ui/projectileView';
+import { bladeShape, guColor, orbShape, placementOf, shardShape, syncPool } from './ui/projectileView';
 import { RewardQueue, type RewardMessage } from './combat/rewardFlow';
 import { CombatHUD } from './ui/combatHUD';
 import { MinimapView } from './ui/minimap';
@@ -26,11 +29,13 @@ import { createTestNpcViews, preloadNpcSprites, registerNpcAnimations,
 import { bossFrame } from './combat/bossSprites';
 import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world/mobRespawn';
 import { mobFrame } from './combat/mobSprites';
-import { effectForGu } from './ui/guEffects';
+import { effectForStyle } from './ui/guEffects';
 import { GuEffectView } from './ui/guEffectView';
 
 class QingMaoScene extends Phaser.Scene {
-  private player!: FangYuan;
+  private player!: PlayerCharacter;
+  private character: PlayerCharacterId = 'fang-yuan';
+  private characterSelect?: CharacterSelect;
   private cultivation!: CharacterCultivation;
   private characterSheet?: CharacterSheet;
   private vendorPanel?: VendorPanel;
@@ -89,22 +94,21 @@ class QingMaoScene extends Phaser.Scene {
     this.load.image('logs', 'assets/qing-mao/Tree%20Stumps%20and%20Logs%201.2.PNG');
     this.load.image('mushrooms', 'assets/qing-mao/Mushrooms.png');
     // Quadros 2× a resolução lógica: 64px na textura, 32px no mapa.
-    // Quatro poses da mesma arte: caminhada, conjuração, arremetida e queda.
-    this.load.spritesheet('fang-yuan-walk', 'assets/characters/fang-yuan-walk-64.png', {
-      frameWidth: 64, frameHeight: 64,
-    });
-    this.load.spritesheet('fang-yuan-cast', 'assets/characters/fang-yuan-cast-64.png', {
-      frameWidth: 64, frameHeight: 64,
-    });
-    this.load.spritesheet('fang-yuan-dash', 'assets/characters/fang-yuan-dash-64.png', {
-      frameWidth: 64, frameHeight: 64,
-    });
-    this.load.spritesheet('fang-yuan-down', 'assets/characters/fang-yuan-down-64.png', {
-      frameWidth: 64, frameHeight: 64,
-    });
+    // Cada personagem jogável tem quatro poses: caminhada, conjuração, arremetida e queda.
+    for (const art of ['fang-yuan', 'bai-ning-bing']) {
+      for (const pose of ['walk', 'cast', 'dash', 'down']) {
+        this.load.spritesheet(`${art}-${pose}`, `assets/characters/${art}-${pose}-64.png`, {
+          frameWidth: 64, frameHeight: 64,
+        });
+      }
+    }
     // Partículas de Gu: 4 formas × 4 quadros em tons neutros, pintadas em tempo real.
     this.load.spritesheet('gu-effects', 'assets/characters/gu-effects-4x4-32.png', {
       frameWidth: 32, frameHeight: 32,
+    });
+    // Partículas de gelo do Bai Ning Bing: mesma ideia, desenho e célula (48px) próprios.
+    this.load.spritesheet('ice-effects', 'assets/characters/ice-effects-4x4-48.png', {
+      frameWidth: 48, frameHeight: 48,
     });
     preloadNpcSprites(this);
     // Atlas: 15 mobs × 4 direções; todos os 15 têm spawn definido no mundo.
@@ -121,17 +125,22 @@ class QingMaoScene extends Phaser.Scene {
     // Uma Area é carregada por vez; seus nove chunks compartilham dados e seed.
     this.worldObjects = this.add.layer().setName('ENTITIES_Y_SORT').setDepth(6);
     this.physics.world.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
-    registerWalkAnimations(this);
+    for (const art of ['fang-yuan', 'bai-ning-bing']) registerPlayerAnimations(this, art);
     registerNpcAnimations(this);
     this.guEffects = new GuEffectView(this);
-    this.player = new FangYuan(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
+    // Personagem escolhido fica salvo à parte do cultivo e do Gu.
+    this.character = loadCharacterChoice();
+    this.player = new PlayerCharacter(this, 24.5 * TILE_SIZE, 24.5 * TILE_SIZE,
+      playerCharacter(this.character).art);
     this.worldObjects.add(this.player);
     this.cultivation = new CharacterCultivation();
     this.cultivation.grantTestStonesOnce();
     // RNG explícito: o mundo pode ser reproduzido em testes/depuração.
     this.combat = new CombatEngine(undefined, this.player.x, this.player.y, undefined,
-      new GuStateStore(), Math.random);
+      new GuStateStore(), Math.random, this.character);
+    this.characterSelect = new CharacterSelect(this.character, id => this.switchCharacter(id));
     this.characterSheet = new CharacterSheet(this.cultivation, this.combat, () => this.time.now);
+    this.characterSheet.setCharacter(this.character);
     this.vendorPanel = new VendorPanel(this.cultivation, this.combat);
     this.combatHUD = new CombatHUD(this.combat, action => this.onCombatAction(action));
     this.minimap = new MinimapView(this.combatHUD.root);
@@ -168,6 +177,8 @@ class QingMaoScene extends Phaser.Scene {
       this.minimap = undefined;
       this.guEffects?.destroy();
       this.guEffects = undefined;
+      this.characterSelect?.destroy();
+      this.characterSelect = undefined;
       this.combatHUD?.destroy();
       this.combatHUD = undefined;
       this.combat.destroy(); // cancela a assinatura do cultivo
@@ -315,11 +326,13 @@ class QingMaoScene extends Phaser.Scene {
     let result: ActionResult;
     let message = '';
     // Gu que originou a ação: define a animação e a cor das partículas.
-    let usedGu: GuId = 'moonlight';
+    let usedGu: GuId | null = this.combat.equipment.attack ?? 'moonlight';
     let usedDash = false;
     if (action === 'basic') {
       result = this.combat.basicAttack(now, this.isFree);
-      message = 'Ataque básico!';
+      message = this.combat.character.kind === 'projectile' ? 'Estilhaço de gelo!' : 'Ataque básico!';
+      // O básico à distância não tem Gu: a apresentação usa a cor do personagem.
+      usedGu = this.combat.character.kind === 'projectile' ? null : this.combat.equipment.attack;
     } else if (action === 'moonlight') {
       result = this.combat.castMoonlight(now, aiming);
       message = 'Corte lunar lançado!';
@@ -357,18 +370,40 @@ class QingMaoScene extends Phaser.Scene {
 
   /**
    * Pose + partículas da ação. É puramente visual: quem resolve dano/efeito é o
-   * motor de combate, e a pose volta sozinha para a caminhada.
+   * motor de combate, e a pose volta sozinha para a caminhada. A folha e a forma
+   * do efeito vêm do personagem; a cor continua vindo do Gu (ou do personagem).
    */
-  private playActionPresentation(guId: GuId, dash: boolean, now: number): void {
+  private playActionPresentation(guId: GuId | null, dash: boolean, now: number): void {
     this.player.playPose(dash ? 'dash' : 'cast', now);
-    const effect = effectForGu(guId);
+    const effect = effectForStyle(this.combat.character.effects, guId,
+      dash ? 'dash' : 'cast', this.combat.character.accent);
     this.guEffects?.burst(dash ? 'dash' : 'cast', this.player.x, this.player.y - 14,
-      effect.shape, effect.tint);
+      effect.shape, effect.tint, effect.texture);
   }
 
-  /** Fumaça neutra para mortes: não pertence a nenhum Gu. */
+  /** Fumaça/geada neutra para mortes: não pertence a nenhum Gu. */
   private playDefeatPresentation(x: number, y: number): void {
-    this.guEffects?.burst('defeat', x, y - 12, 'smoke', 0x2b2b33);
+    const { effects, accent } = this.combat.character;
+    this.guEffects?.burst('defeat', x, y - 12, effects === 'ice' ? 'frost' : 'smoke',
+      effects === 'ice' ? accent : 0x2b2b33, effects === 'ice' ? 'ice-effects' : 'gu-effects');
+  }
+
+  /**
+   * Troca o personagem em campo sem reiniciar o mundo: mesmo motor, mesmo
+   * cultivo, mesmo inventário. Só arte, números de combate e básico mudam.
+   */
+  private switchCharacter(id: PlayerCharacterId): void {
+    if (!this.combat.setCharacter(id)) { this.characterSelect?.refresh(); return; }
+    this.character = id;
+    this.player.setArt(this.combat.character.art);
+    this.player.resetPose();
+    this.waypoints = [];
+    this.destination?.destroy(); this.destination = undefined;
+    this.player.move(null);
+    this.characterSheet?.setCharacter(id);
+    this.characterSelect?.refresh();
+    saveCharacterChoice(id);
+    this.combatHUD?.say(`${this.combat.character.name} entra em campo. Cultivo, Gu e pedras preservados.`);
   }
 
   private activationMessage(id: GuId): string {
@@ -436,7 +471,11 @@ class QingMaoScene extends Phaser.Scene {
         this.player.move(null); this.player.setAlpha(0.5);
         // Pose de queda travada no último quadro até o respawn.
         this.player.playPose('down', this.time.now, null);
-        this.guEffects?.burst('death', this.player.x, this.player.y - 12, 'smoke', 0x3a1f24);
+        const fallen = this.combat.character;
+        this.guEffects?.burst('death', this.player.x, this.player.y - 12,
+          fallen.effects === 'ice' ? 'frost' : 'smoke',
+          fallen.effects === 'ice' ? fallen.accent : 0x3a1f24,
+          fallen.effects === 'ice' ? 'ice-effects' : 'gu-effects');
         this.combatHUD?.say('Derrotado. A penalidade por morte ainda não foi definida.');
       }
       if (event.type === 'dash' && event.x !== undefined && event.y !== undefined) {
@@ -470,17 +509,31 @@ class QingMaoScene extends Phaser.Scene {
     syncPool(this.projectileViews, shots.length, () => this.add.graphics().setDepth(900),
       view => view.destroy());
     shots.forEach((shot, index) => {
-      const shape = bladeShape(shot.width);
-      const color = guColor(GU_CATALOG[shot.guId].visual.color);
+      const color = shot.tint;
       const blade = this.projectileViews[index]!;
-      // A forma só é redesenhada quando o Gu muda (largura/cor vêm dele).
-      if (blade.getData('signature') !== `${shot.guId}:${shot.width}`) {
-        blade.setData('signature', `${shot.guId}:${shot.width}`);
-        blade.clear().fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
-        blade.beginPath();
-        blade.arc(0, 0, shape.radius, -Math.PI / 2, Math.PI / 2);
-        blade.arc(5, 0, shape.inner, Math.PI / 2, -Math.PI / 2, true);
-        blade.closePath(); blade.fillPath(); blade.strokePath();
+      // A forma só é redesenhada quando o Gu (ou o personagem) muda.
+      const signature = `${shot.style}:${shot.guId ?? 'basic'}:${shot.width}`;
+      if (blade.getData('signature') !== signature) {
+        blade.setData('signature', signature);
+        blade.clear();
+        if (shot.style === 'ice') {
+          // Estilhaço: losango comprido apontando para a direção do disparo.
+          const shard = shardShape(shot.width);
+          blade.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
+          blade.beginPath();
+          blade.moveTo(shard.length, 0);
+          blade.lineTo(shard.length / 2, -shard.half);
+          blade.lineTo(0, 0);
+          blade.lineTo(shard.length / 2, shard.half);
+          blade.closePath(); blade.fillPath(); blade.strokePath();
+        } else {
+          const shape = bladeShape(shot.width);
+          blade.fillStyle(color, 0.95).lineStyle(1, 0x2c2b3a);
+          blade.beginPath();
+          blade.arc(0, 0, shape.radius, -Math.PI / 2, Math.PI / 2);
+          blade.arc(5, 0, shape.inner, Math.PI / 2, -Math.PI / 2, true);
+          blade.closePath(); blade.fillPath(); blade.strokePath();
+        }
       }
       const placement = placementOf(shot);
       blade.setPosition(placement.x, placement.y).setRotation(placement.rotation);

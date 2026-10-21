@@ -57,6 +57,17 @@ export function bladeShape(width: number): BladeShape {
 }
 
 /**
+ * Estilhaço de gelo (Bai Ning Bing): losango comprido, mais estreito que a lâmina
+ * e sem ponta curva. A geometria é a mesma em qualquer cor — o tint vem do código.
+ */
+export interface ShardShape { length: number; half: number }
+
+export function shardShape(width: number): ShardShape {
+  const half = Math.max(3, width / 2);
+  return { length: Math.max(12, width * 1.8), half };
+}
+
+/**
  * Projétil de criatura: orbe com halo escuro e contorno claro, para não ser
  * confundido com a lâmina do jogador nem com o fundo.
  */

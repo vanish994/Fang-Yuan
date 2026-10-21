@@ -143,11 +143,15 @@ test('novo Fang Yuan: 4 quadros × 4 direções em textura 2×, mapa 32px e pés
   assert.deepEqual(animation.direction_order, ['down', 'left', 'up', 'right']);
   assert.equal(animation.fps, 8);
   assert.deepEqual(animation.grid, [4, 4]);
-  // Grade e ordem das direções vivem em `fangYuanPoses`, compartilhado pelas quatro poses.
-  const poses = readFileSync(new URL('../src/entities/fangYuanPoses.ts', import.meta.url), 'utf8');
-  assert.match(poses, /FRAMES_PER_DIRECTION = 4/);
+  // Grade e ordem das direções vivem em `playerPoses`, compartilhado pelos dois
+  // personagens jogáveis (e `fangYuanPoses` reexporta com os nomes antigos).
+  const poses = readFileSync(new URL('../src/entities/playerPoses.ts', import.meta.url), 'utf8');
+  assert.match(poses, /POSES_PER_DIRECTION = 4/);
   assert.match(poses, /'down', 'left', 'up', 'right'/);
-  const source = readFileSync(new URL('../src/entities/FangYuan.ts', import.meta.url), 'utf8');
+  const legacy = readFileSync(new URL('../src/entities/fangYuanPoses.ts', import.meta.url), 'utf8');
+  assert.match(legacy, /FANG_YUAN_FRAMES_PER_DIRECTION = POSES_PER_DIRECTION/);
+  // A classe do sprite virou `PlayerCharacter`, compartilhada pelos dois personagens.
+  const source = readFileSync(new URL('../src/entities/PlayerCharacter.ts', import.meta.url), 'utf8');
   assert.match(source, /setScale\(0\.5\)/);
   assert.match(source, /setSize\(28, 20\)\.setOffset\(18, 40\)/);
 });

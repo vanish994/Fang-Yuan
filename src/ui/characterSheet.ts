@@ -1,4 +1,5 @@
 import { characterSheetState, FANG_YUAN_PROFILE } from '../entities/characterProfile';
+import { playerCharacter, type PlayerCharacterId } from '../combat/characterCatalog';
 import { breakthroughMaterialName } from '../entities/cultivationBalance';
 import { recipeAvailability, recipeBlockReason, recipeRenderKey, type RecipeContext }
   from './recipeView';
@@ -277,6 +278,27 @@ export class CharacterSheet {
     this.tabs.advance.addEventListener('keydown', this.onTabKeyDown);
     this.tabs.inventory.addEventListener('keydown', this.onTabKeyDown);
     document.addEventListener('keydown', this.onKeyDown);
+  }
+
+  /**
+   * Identidade mostrada na ficha. O motor é a fonte do personagem em campo; aqui só
+   * se troca nome, área e retrato, sem tocar em cultivo, Gu ou receitas.
+   */
+  setCharacter(id: PlayerCharacterId): void {
+    const profile = playerCharacter(id);
+    requiredElement<HTMLElement>('character-name').textContent = profile.name;
+    requiredElement<HTMLElement>('character-area').textContent = profile.id === 'fang-yuan'
+      ? FANG_YUAN_PROFILE.area : `${FANG_YUAN_PROFILE.area} · a distância`;
+    requiredElement<HTMLElement>('sheet-title').textContent = profile.name;
+    const eyebrow = document.querySelector<HTMLElement>('.sheet-header .eyebrow');
+    if (eyebrow) {
+      eyebrow.textContent = profile.id === 'fang-yuan' ? 'Personagem / 01' : 'Personagem / 02';
+    }
+    const portrait = document.querySelector<HTMLElement>('.sheet-portrait');
+    if (portrait) {
+      portrait.dataset.character = profile.id;
+      portrait.setAttribute('aria-label', `Retrato de ${profile.name}`);
+    }
   }
 
   update(facing: CardinalDirection, moving: boolean): void {

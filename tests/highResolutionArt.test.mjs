@@ -13,7 +13,8 @@ const size = relative => {
 
 test('fontes 1920px preservadas e atlas 2× com todos os quadros de cada manifesto', () => {
   for (const source of [
-    'fang-yuan-walk-4dir-4frames-master.png', 'npc-static-4dir-master.png',
+    'fang-yuan-walk-4dir-4frames-master.png', 'bai-ning-bing-walk-4dir-4frames-master.png',
+    'bai-ning-bing-cast-4dir-4frames-master.png', 'npc-static-4dir-master.png',
     'mob-static-4dir-master.png', 'boss-static-4dir-master.png',
   ]) {
     const path = `art/source/${source}`;
@@ -22,6 +23,8 @@ test('fontes 1920px preservadas e atlas 2× com todos os quadros de cada manifes
   }
   for (const [path, dims] of [
     ['characters/fang-yuan-walk-64.png', [256, 256]],
+    ['characters/bai-ning-bing-walk-64.png', [256, 256]],
+    ['characters/ice-effects-4x4-48.png', [192, 192]],
     ['npcs/npc-static-4dir-64.png', [256, 640]],
     ['mobs/mob-static-4dir-64.png', [256, 960]],
     ['bosses/boss-static-4dir-96.png', [384, 384]],
@@ -31,9 +34,9 @@ test('fontes 1920px preservadas e atlas 2× com todos os quadros de cada manifes
 test('texturas altas mantêm tamanhos lógicos e hitbox sem alterar IA ou regras', () => {
   const main = file('src/main.ts').toString();
   const npc = file('src/entities/npcView.ts').toString();
-  const player = file('src/entities/FangYuan.ts').toString();
+  const player = file('src/entities/PlayerCharacter.ts').toString();
   const css = readStyles();
-  assert.match(main, /fang-yuan-walk-64\.png'[\s\S]*?frameWidth: 64, frameHeight: 64/);
+  assert.match(main, /\.png`[\s\S]*?frameWidth: 64, frameHeight: 64/);
   assert.match(main, /mob-static-4dir-64\.png'[\s\S]*?frameWidth: 64, frameHeight: 64/);
   assert.match(main, /boss-static-4dir-96\.png'[\s\S]*?frameWidth: 96, frameHeight: 96/);
   assert.match(main, /setScale\(boss \? 0\.45 : 0\.425\)/);
@@ -43,7 +46,7 @@ test('texturas altas mantêm tamanhos lógicos e hitbox sem alterar IA ou regras
   assert.match(player, /setSize\(28, 20\)\.setOffset\(18, 40\)/);
   assert.match(css, /\.sheet-portrait::before/);
   assert.match(css, /256px 256px no-repeat/);
-  assert.equal(64 * 0.5, 32, 'Fang Yuan mantém 32px no mundo');
+  assert.equal(64 * 0.5, 32, 'personagem mantém 32px no mundo (Fang Yuan e Bai Ning Bing)');
   assert.equal(28 * 0.5, 14, 'largura do corpo Arcade preservada');
   assert.equal(20 * 0.5, 10, 'altura do corpo Arcade preservada');
   assert.equal(18 * 0.5, 9, 'offset horizontal preservado');

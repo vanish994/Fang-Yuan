@@ -17,30 +17,39 @@ grade nominal em vários quadros), alinha os pés e redimensiona com Lanczos.
 O tamanho no mundo e a colisão não dependem da resolução destas texturas.
 As três últimas linhas dos mobs continuam **somente arte**, sem atributos.
 
-## Fang Yuan — quatro poses
+## Personagens jogáveis — quatro poses cada
 
-| master | pose | uso no jogo |
+| personagem | masters | uso |
 |---|---|---|
-| `fang-yuan-walk-4dir-4frames-master.png` | caminhada | locomoção |
-| `fang-yuan-cast-4dir-4frames-master.png` | conjuração | ativar Gu de ataque/apoio/item |
-| `fang-yuan-dash-4dir-4frames-master.png` | arremetida | Gu de movimento |
-| `fang-yuan-down-4dir-4frames-master.png` | queda | morte do herói, travada até o respawn |
+| Fang Yuan (corpo a corpo) | `fang-yuan-{walk,cast,dash,down}-4dir-4frames-master.png` | locomoção, ativar Gu, arremetida e queda |
+| Bai Ning Bing (à distância) | `bai-ning-bing-{walk,cast,dash,down}-4dir-4frames-master.png` | as mesmas quatro poses, com básico à distância |
 
-Todas são grades 4×4 de 480px e são escaladas por **um único fator** (o maior
-quadro entre as quatro), então o corpo não muda de tamanho ao trocar de animação.
-Detalhes em `fang-yuan-poses.json`.
+Todas são grades 4×4 de 480px e são escaladas por **um único fator comum aos dois
+personagens** (o maior quadro entre as oito poses), então o corpo não muda de
+tamanho ao trocar de animação nem um personagem fica maior que o outro.
+Detalhes em `fang-yuan-poses.json` e `bai-ning-bing-poses.json`.
 
-**Atenção à ordem das linhas:** os quatro masters vêm desenhados como
+A linha **cast** do Bai Ning Bing já traz o gesto de disparo: é ela que aparece
+tanto ao ativar um Gu quanto no ataque básico de gelo.
+
+**Atenção à ordem das linhas:** os oito masters vêm desenhados como
 `down`, **`right`**, `up`, **`left`**, e o atlas publicado usa
 `down`, `left`, `up`, `right` — a mesma ordem dos NPCs, mobs e bosses. O script
-troca as linhas 2 e 4 (`FANG_YUAN_MASTER_ROWS = [0, 3, 2, 1]`) e, depois de
+troca as linhas 2 e 4 (`MASTER_ROW_MAP = [0, 3, 2, 1]`) e, depois de
 montar cada atlas, confere pelo lado do rosto se a linha lateral realmente olha
 para o lado que diz olhar (`check_side_rows`). Sem a troca, andar para a esquerda
-mostrava o sprite virado para a direita.
+mostrava o sprite virado para a direita. Essa conferência automática cobre só o
+Fang Yuan: no Bai Ning Bing o cabelo branco em volta do rosto confunde a medida, e a
+ordem dele foi verificada olhando os quadros.
 
-## Partículas de Gu
+## Partículas — duas folhas, mesma ideia
 
-`gu-effects-4x4-32.png` traz quatro formas (redemoinho, corte, fumaça e rastro)
-em quatro quadros de 32px. O jogo publica uma **máscara clara** dessa folha: a cor
-sai do `visual.color` de cada Gu em tempo real (`setParticleTint`), então nenhum
-Gu novo precisa de arte de efeito própria.
+| master | atlas | personagem | formas |
+|---|---|---|---|
+| `gu-effects-4x4-32.png` | `gu-effects-4x4-32.png` | Fang Yuan | redemoinho, corte, fumaça, rastro (32px) |
+| `ice-effects-4x4-master.png` | `ice-effects-4x4-48.png` | Bai Ning Bing | geada, estilhaço, explosão, onda (48px) |
+
+As duas folhas são publicadas como **máscara clara**: a cor sai do `visual.color`
+de cada Gu em tempo real (`setParticleTint`) e, no ataque básico sem Gu, da cor de
+destaque do personagem. Nenhum Gu novo e nenhuma cor nova precisam de arte extra —
+a arte nunca carrega a tintura.

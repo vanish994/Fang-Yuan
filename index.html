@@ -15,6 +15,8 @@
       <small>4 direções · trechos retos · 3 × 3 chunks</small>
     </div>
     <div class="top-actions">
+      <button type="button" id="character-switch" class="character-switch" aria-controls="character-select"
+        aria-expanded="false" aria-label="Trocar de personagem">Fang Yuan</button>
       <button type="button" id="fullscreen-toggle" class="fullscreen-toggle" aria-label="Entrar em tela cheia"
         aria-pressed="false" title="Entrar em tela cheia">
         <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -32,6 +34,16 @@
         <p>Gire o celular para ver o mapa e os controles completos. Na paisagem, o botão ao lado do Menu ativa a tela cheia.</p>
       </div>
     </div>
+    <aside id="character-select" class="character-select" aria-labelledby="character-select-title" hidden>
+      <header class="character-select-header">
+        <div><span class="eyebrow">Escolha do cultivador</span>
+          <h2 id="character-select-title">Fang Yuan</h2></div>
+        <button type="button" id="character-select-close" class="sheet-close" aria-label="Fechar seleção">×</button>
+      </header>
+      <p class="character-select-note">Trocar de personagem mantém cultivo, Gu, pedras e materiais. Só a arte,
+        a vida, o passo e o formato do ataque básico mudam.</p>
+      <div class="character-options" role="group" aria-label="Personagens jogáveis"></div>
+    </aside>
     <aside id="character-sheet" class="character-sheet" aria-labelledby="sheet-title" hidden>
       <header class="sheet-header"><div><span class="eyebrow">Personagem / 01</span>
         <h2 id="sheet-title">Fang Yuan</h2></div>

@@ -4,9 +4,11 @@ Uso: python -m venv .venv && .venv/bin/pip install Pillow
      .venv/bin/python scripts/build-sprite-atlases.py
 Os PNG originais enviados pelo usuário ficam em art/source/.
 
-Fang Yuan tem quatro poses (caminhada, conjuração, arremetida abençoada e queda).
-Todas compartilham o MESMO fator de escala: se cada pose fosse escalada pela
-própria altura, o personagem mudaria de tamanho ao trocar de animação.
+Cada personagem jogável (Fang Yuan e Bai Ning Bing) tem quatro poses (caminhada,
+conjuração, arremetida e queda). As poses de um personagem compartilham o MESMO
+fator de escala: se cada pose fosse escalada pela própria altura, o personagem
+mudaria de tamanho ao trocar de animação. O fator também é comum aos dois
+personagens, para que um não fique maior que o outro.
 """
 from pathlib import Path
 from PIL import Image
@@ -179,14 +181,14 @@ def effect_mask(source: Image.Image) -> Image.Image:
     return output
 
 
-def fang_yuan_scale() -> float:
-    """Um único fator para as quatro poses: mede o maior quadro entre elas.
+def pose_scale(masters: dict[str, str]) -> float:
+    """Um único fator para as quatro poses de um personagem: mede o maior quadro.
 
-    Sem isso cada pose calcularia o próprio fator pela própria altura e o personagem
-    cresceria ao conjurar ou encolheria ao cair.
+    Sem isso cada pose calcularia o próprio fator pela própria altura e o
+    personagem cresceria ao conjurar ou encolheria ao cair.
     """
     widest = tallest = 0
-    for source_file in FANG_YUAN_MASTERS.values():
+    for source_file in masters.values():
         source = Image.open(SOURCE / source_file).convert('RGBA')
         for top, bottom in rows_from_alpha(source, 0, 4 * MASTER_CELL, 4):
             for col in range(4):
@@ -196,32 +198,68 @@ def fang_yuan_scale() -> float:
     return min(56 / tallest, 60 / widest)
 
 
-FANG_YUAN_MASTERS = {
-    'walk': 'fang-yuan-walk-4dir-4frames-master.png',
-    'cast': 'fang-yuan-cast-4dir-4frames-master.png',
-    'dash': 'fang-yuan-dash-4dir-4frames-master.png',
-    'down': 'fang-yuan-down-4dir-4frames-master.png',
+def player_scale() -> float:
+    """Escala comum a TODOS os personagens jogáveis: preserva a proporção
+    relativa das artes e mantém o mesmo tamanho no mundo."""
+    return min(pose_scale(masters) for masters in PLAYER_MASTERS.values())
+
+
+# Personagens jogáveis: mesma grade 4×4 de 480px por pose, quatro poses cada.
+PLAYER_MASTERS = {
+    'fang-yuan': {
+        'walk': 'fang-yuan-walk-4dir-4frames-master.png',
+        'cast': 'fang-yuan-cast-4dir-4frames-master.png',
+        'dash': 'fang-yuan-dash-4dir-4frames-master.png',
+        'down': 'fang-yuan-down-4dir-4frames-master.png',
+    },
+    'bai-ning-bing': {
+        'walk': 'bai-ning-bing-walk-4dir-4frames-master.png',
+        'cast': 'bai-ning-bing-cast-4dir-4frames-master.png',
+        'dash': 'bai-ning-bing-dash-4dir-4frames-master.png',
+        'down': 'bai-ning-bing-down-4dir-4frames-master.png',
+    },
 }
 
-# Os masters novos desenham as linhas como baixo, DIREITA, cima, esquerda — o inverso
-# do atlas do jogo (baixo, esquerda, cima, direita). Sem esta troca o personagem anda
+# Os masters desenham as linhas como baixo, DIREITA, cima, esquerda — o inverso do
+# atlas do jogo (baixo, esquerda, cima, direita). Sem esta troca o personagem anda
 # para a esquerda com o sprite virado para a direita (e vice-versa) nas quatro poses.
 # Conferido olhando o lado do rosto em cada linha: 1ª linha = direita, 4ª = esquerda.
-FANG_YUAN_MASTER_ROWS = [0, 3, 2, 1]
+# Vale para os dois personagens: as duas artes vieram do mesmo gerador.
+MASTER_ROW_MAP = [0, 3, 2, 1]
+
+# Só o Fang Yuan tem a pele contrastada o bastante para a conferência automática do
+# lado do rosto; o Bai Ning Bing tem cabelo branco em volta do rosto e o teste mede
+# a coisa errada. Para ele a ordem foi conferida olhando quadro a quadro.
+CHECK_SIDE_ROWS = {'fang-yuan'}
+
+# Efeitos de gelo do Bai Ning Bing: 4 formas × 4 quadros de 480px. Viram máscara,
+# então a cor também vem do código (nada de arte duplicada por cor).
+ICE_EFFECTS_MASTER = 'ice-effects-4x4-master.png'
+ICE_EFFECTS_ATLAS = 'characters/ice-effects-4x4-48.png'
+ICE_EFFECTS_CELL = 48
+
+
+def mask_into_place(path: Path) -> None:
+    """Reescreve um atlas de efeitos como máscara clara (o jogo pinta a cor)."""
+    image = Image.open(path).convert('RGBA')
+    effect_mask(image).save(path, optimize=True)
 
 
 if __name__ == '__main__':
-    scale = fang_yuan_scale()
-    print(f'escala compartilhada do Fang Yuan: {scale:.4f}')
-    for pose, source_file in FANG_YUAN_MASTERS.items():
-        build_grid(f'Fang Yuan ({pose})', source_file,
-                   f'characters/fang-yuan-{pose}-64.png', 4, 4, 64, 56, 60, scale,
-                   feet_anchor=True, row_map=FANG_YUAN_MASTER_ROWS)
-        check_side_rows(DEST / f'characters/fang-yuan-{pose}-64.png', 64, f'Fang Yuan ({pose})')
-    # Retrato do painel: mesma pose, quadro 32px, 4×4 (o CSS usa 256px de fundo).
-    build_grid('Fang Yuan (retrato)', FANG_YUAN_MASTERS['walk'],
-               'characters/fang-yuan-walk-32.png', 4, 4, 32, 28, 30, scale,
-               feet_anchor=True, row_map=FANG_YUAN_MASTER_ROWS)
+    scale = player_scale()
+    print(f'escala compartilhada dos personagens: {scale:.4f}')
+    for character, masters in PLAYER_MASTERS.items():
+        for pose, source_file in masters.items():
+            build_grid(f'{character} ({pose})', source_file,
+                       f'characters/{character}-{pose}-64.png', 4, 4, 64, 56, 60, scale,
+                       feet_anchor=True, row_map=MASTER_ROW_MAP)
+            if character in CHECK_SIDE_ROWS:
+                check_side_rows(DEST / f'characters/{character}-{pose}-64.png', 64,
+                                f'{character} ({pose})')
+        # Retrato do painel: mesma pose, quadro 32px, 4×4 (o CSS usa 256px de fundo).
+        build_grid(f'{character} (retrato)', masters['walk'],
+                   f'characters/{character}-walk-32.png', 4, 4, 32, 28, 30, scale,
+                   feet_anchor=True, row_map=MASTER_ROW_MAP)
     build_grid('NPCs', 'npc-static-4dir-master.png',
                'npcs/npc-static-4dir-64.png', 4, 10, 64, 58, 60, stride=192, x_start=576)
     build_grid('mobs', 'mob-static-4dir-master.png',
@@ -234,3 +272,11 @@ if __name__ == '__main__':
     effects = Image.open(SOURCE / 'gu-effects-4x4-32.png').convert('RGBA')
     effect_mask(effects).save(DEST / 'characters/gu-effects-4x4-32.png', optimize=True)
     print('Efeitos de Gu: 4×4 quadros 32px -> public/assets/characters/gu-effects-4x4-32.png')
+
+    # Efeitos de gelo: a célula inteira é reduzida (sem recorte) para manter o
+    # crescimento do quadro dentro da animação de cada forma.
+    build_grid('Efeitos de gelo', ICE_EFFECTS_MASTER, ICE_EFFECTS_ATLAS, 4, 4,
+               ICE_EFFECTS_CELL, ICE_EFFECTS_CELL, ICE_EFFECTS_CELL, scale=1.0,
+               crop_to_subject=False)
+    mask_into_place(DEST / ICE_EFFECTS_ATLAS)
+    print(f'Efeitos de gelo: 4×4 quadros {ICE_EFFECTS_CELL}px -> public/assets/{ICE_EFFECTS_ATLAS}')

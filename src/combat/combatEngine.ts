@@ -16,11 +16,26 @@ import { isWildGuCandidate, rollWildGu, type WildSpawnOptions } from './wildGu';
 import { stepEnemyProjectiles, useWildGu, wildMeleeMultiplier } from './enemyAbilities';
 import { distance, vectors } from './geometry';
 import { WildGuDropLog } from './wildGuDrops';
+import { PLAYER_CHARACTERS, playerCharacter, type PlayerCharacterId,
+  type PlayerCharacterProfile } from './characterCatalog';
 const deny = (reason: string): ActionResult => ({ ok: false, reason, events: [] });
+/** Cor do Gu em inteiro (a arte do efeito não guarda cor: o tint vem daqui). */
+const colorOf = (id: GuId): number => {
+  const parsed = Number.parseInt(GU_CATALOG[id].visual.color.replace('#', ''), 16);
+  return Number.isFinite(parsed) ? parsed : 0xffffff;
+};
 const positive = (value: number) => Number.isFinite(value) && value > 0;
 
+/** Aparência do projétil do jogador: lâmina de Gu (Fang Yuan) ou estilhaço (Bai Ning Bing). */
+export type ProjectileStyle = 'blade' | 'ice';
+
 interface Projectile {
-  guId: GuId; x: number; y: number; direction: Direction; traveled: number; hit: Set<string>;
+  /** `null` no ataque básico à distância, que não pertence a nenhum Gu. */
+  guId: GuId | null;
+  style: ProjectileStyle;
+  /** Cor já resolvida: do catálogo do Gu ou do personagem. Nunca vem da arte. */
+  tint: number;
+  x: number; y: number; direction: Direction; traveled: number; hit: Set<string>;
   damage: number; range: number; width: number; speed: number; pierce: boolean;
   splashRadius: number; splashDone: boolean;
 }
@@ -60,6 +75,8 @@ export class CombatEngine {
   readonly testInventory = new Set<GuId>();
   readonly assimilated = new Set<GuId>();
   inventory: Record<GuId, number> = emptyInventory();
+  /** Personagem jogável atual: muda arte, vida, defesa, passo e básico — não as regras de Gu. */
+  private profile: PlayerCharacterProfile;
   readonly hero: Point & { health: number; maxHealth: number; alive: boolean };
   essence: number;
   selectedId: string | null = null;
@@ -97,7 +114,8 @@ export class CombatEngine {
 
   constructor(readonly config: CombatSettings = COMBAT_CONFIG, x = 0, y = 0,
     cultivation?: CultivationState, private readonly store: GuStateStore | null = new GuStateStore(),
-    random?: () => number) {
+    random?: () => number, character: PlayerCharacterId = 'fang-yuan') {
+    this.profile = playerCharacter(character);
     // Injetar um RNG torna a simulação inteira reprodutível (testes, replay,
     // depuração). Sem injeção, o motor usa Math.random como sempre.
     this.injectedRandom = random ?? null;
@@ -176,8 +194,9 @@ export class CombatEngine {
     for (const id of assimilated) bonus += GU_CATALOG[id].assimilation?.maxHealthBonus ?? 0;
     const passive = passiveId ? GU_CATALOG[passiveId].passive : undefined;
     const multiplier = passive?.maxHealthMultiplier ?? 1;
-    return Math.max(1, Math.round((this.cultivationStats.maxHealth + bonus) * multiplier)
+    const base = Math.max(1, Math.round((this.cultivationStats.maxHealth + bonus) * multiplier)
       + (passive?.maxHealthBonus ?? 0));
+    return Math.max(1, Math.round(base * this.profile.combat.maxHealthMultiplier));
   }
 
   private refreshMaxHealth(keepRatio = true): void {
@@ -189,6 +208,23 @@ export class CombatEngine {
   }
 
   destroy(): void { this.unsubscribeCultivation(); }
+
+  // ── Personagem jogável ──────────────────────────────────────────────────
+  get character(): PlayerCharacterProfile { return this.profile; }
+
+  /**
+   * Troca de personagem mantendo cultivo, Gu, pedras e materiais: só a arte, os
+   * números de combate e o formato do básico mudam. A vida é reescalada pela
+   * proporção atual, então ninguém morre (nem cura) só por trocar.
+   */
+  setCharacter(id: PlayerCharacterId): boolean {
+    if (!(id in PLAYER_CHARACTERS) || id === this.profile.id) return false;
+    this.profile = PLAYER_CHARACTERS[id];
+    this.refreshMaxHealth();
+    this.projectiles.length = 0;
+    return true;
+  }
+
   get attack(): number { return this.cultivationStats.attack; }
   get baseDefense(): number { return this.cultivationStats.defense; }
   get cultivationRank(): number { return this.cultivationState.rank; }
@@ -205,7 +241,8 @@ export class CombatEngine {
 
   defenseAt(now: number): number {
     this.pruneEffects(now);
-    let value = this.cultivationStats.defense + (this.passive()?.defense ?? 0);
+    let value = this.cultivationStats.defense + (this.passive()?.defense ?? 0)
+      + this.profile.combat.defenseBonus;
     const low = this.passive()?.lowHealthDefense;
     if (low && this.hero.maxHealth > 0 && this.hero.health / this.hero.maxHealth <= low.healthRatio) {
       value += low.defense;
@@ -229,7 +266,8 @@ export class CombatEngine {
     this.pruneEffects(now);
     const passive = this.passive()?.movementMultiplier ?? 1;
     const dash = now < this.speedBonusUntil ? this.dashSpeedMultiplier : 1;
-    return Math.max(0.1, passive * dash * (1 + this.maxEffect('speed')));
+    return Math.max(0.1, passive * dash * this.profile.combat.speedMultiplier
+      * (1 + this.maxEffect('speed')));
   }
 
   private maxEffect(key: TimedKey): number {
@@ -456,7 +494,7 @@ export class CombatEngine {
   activate(id: GuId, now: number, direction: Direction,
     isFree: (x: number, y: number) => boolean = () => true): ActionResult {
     this.lastNow = now;
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     const gu = GU_CATALOG[id];
     if (!gu || !this.isEquipped(id)) return deny('Gu não equipado.');
     if (!isUsable(gu) || gu.categories.includes('consumable')) return deny('Este Gu não é ativável.');
@@ -552,7 +590,8 @@ export class CombatEngine {
     for (let index = 0; index < Math.max(1, count); index++) {
       const offset = count > 1 ? (index - (count - 1) / 2) * 14 : 0;
       this.projectiles.push({
-        guId: id, x: this.hero.x + (lateral ? offset : 0),
+        guId: id, style: 'blade', tint: colorOf(id),
+        x: this.hero.x + (lateral ? offset : 0),
         y: this.hero.y - 12 + (lateral ? 0 : offset), direction, traveled: 0, hit: new Set(),
         damage, range, width, speed, pierce, splashRadius, splashDone: false,
       });
@@ -600,7 +639,7 @@ export class CombatEngine {
   }
 
   dash(now: number, direction: Direction, isFree: (x: number, y: number) => boolean): ActionResult {
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     const id = this.equipment.movement;
     if (!id) return deny('Equipe o Gu de movimento.');
     return this.activate(id, now, direction, isFree);
@@ -609,7 +648,7 @@ export class CombatEngine {
   /** Consumível: só desconta do inventário depois de o save ser concluído. */
   useItem(id: GuId, now: number): ActionResult {
     this.lastNow = now;
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     const gu = GU_CATALOG[id];
     if (!gu || !gu.categories.includes('consumable')) return deny('Este item não é consumível.');
     if (this.owned(id) <= 0) return deny('Item indisponível.');
@@ -632,7 +671,7 @@ export class CombatEngine {
   // ── Assimilação ───────────────────────────────────────────────────────────
   assimilate(id: GuId, now: number): ActionResult {
     this.lastNow = now;
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     if (this.inCombat(now)) return deny('Assimilação bloqueada durante o combate.');
     const gu = GU_CATALOG[id];
     if (!gu || !isAssimilable(gu)) return deny('Este Gu não pode ser assimilado.');
@@ -652,7 +691,7 @@ export class CombatEngine {
   // ── Refino ────────────────────────────────────────────────────────────────
   refine(recipeId: string, now: number): ActionResult {
     this.lastNow = now;
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     if (this.inCombat(now)) return deny('Refino bloqueado durante o combate.');
     const recipe = recipeById(recipeId);
     if (!recipe) return deny('Receita desconhecida.');
@@ -721,20 +760,48 @@ export class CombatEngine {
     return events;
   }
 
+  /**
+   * Ataque básico do personagem: corpo a corpo (Fang Yuan) ou projétil (Bai Ning Bing).
+   *
+   * O básico à distância NÃO checa linha de visão no disparo — quem voa é o
+   * estilhaço, e ele para na parede como qualquer projétil. É a vantagem do alcance,
+   * paga com menos dano, recarga mais longa e vida menor.
+   */
   basicAttack(now: number, isFree: (x: number, y: number) => boolean = () => true): ActionResult {
     this.lastNow = now;
-    if (!this.hero.alive) return deny('Fang Yuan está derrotado.');
+    if (!this.hero.alive) return deny(`${this.profile.name} está derrotado.`);
     const enemy = this.target;
     if (!enemy) return deny('Selecione um alvo ou ative alvo automático.');
     const gap = distance(this.hero, enemy);
-    if (gap > this.config.basic.range) return deny('Alvo fora do alcance.');
-    for (let d = 4; d < gap; d += 4) {
-      if (!isFree(this.hero.x + (enemy.x - this.hero.x) * d / gap,
-        this.hero.y + (enemy.y - this.hero.y) * d / gap)) return deny('Obstáculo entre Fang Yuan e o alvo.');
+    if (gap > this.profile.basic.range) return deny('Alvo fora do alcance.');
+    if (this.profile.kind === 'melee') {
+      for (let d = 4; d < gap; d += 4) {
+        if (!isFree(this.hero.x + (enemy.x - this.hero.x) * d / gap,
+          this.hero.y + (enemy.y - this.hero.y) * d / gap)) {
+          return deny(`Obstáculo entre ${this.profile.name} e o alvo.`);
+        }
+      }
     }
     if (this.cooldownRemaining('basic', now)) return deny('Ataque em recarga.');
-    this.cooldowns.set('basic', now + this.config.basic.cooldownMs);
-    const amount = Math.max(1, Math.round(this.attack * this.meleeDamageMultiplier(now)));
+    this.cooldowns.set('basic', now + this.profile.basic.cooldownMs);
+    const base = this.attack * this.profile.combat.damageMultiplier;
+    if (this.profile.kind === 'projectile') {
+      const amount = Math.max(1, Math.round(base * this.damageMultiplier(now, 'physical')));
+      const dx = enemy.x - this.hero.x, dy = enemy.y - this.hero.y;
+      const direction: Direction = Math.abs(dx) >= Math.abs(dy)
+        ? dx > 0 ? 'right' : 'left' : dy > 0 ? 'down' : 'up';
+      this.projectiles.push({
+        guId: null, style: 'ice', tint: this.profile.accent,
+        // O disparo sai alinhado ao alvo, não ao centro do tile: é o básico dele.
+        x: this.hero.x, y: this.hero.y - 12, direction, traveled: 0, hit: new Set(),
+        damage: amount, range: Math.min(this.profile.basic.range, Math.max(gap, 24)),
+        width: this.profile.basic.width, speed: this.profile.basic.projectileSpeed,
+        pierce: false, splashRadius: 0, splashDone: false,
+      });
+      this.engage(now);
+      return { ok: true, events: [{ type: 'activate', x: this.hero.x, y: this.hero.y }] };
+    }
+    const amount = Math.max(1, Math.round(base * this.meleeDamageMultiplier(now)));
     return { ok: true, events: this.damageEnemy(enemy, amount, now) };
   }
 

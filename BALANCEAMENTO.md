@@ -256,6 +256,30 @@ Regras e raciocínio:
 - O inventário de teste ainda concede uma cópia de cada Gu Rank 1; o efeito
   econômico real da banca aparece quando esse inventário for retirado.
 
+## Personagens jogáveis — Bai Ning Bing (v0.5)
+
+Dois personagens, **as mesmas regras**: Gu, cultivo, refino, banca e salvamento são
+únicos; o que muda é arte, sobrevivência, passo e formato do ataque básico. Os números
+abaixo são parâmetros de gameplay (não canon) e a referência do Fang Yuan **não** foi
+alterada na v0.5.
+
+| Personagem | Vida | Defesa | Passo | Básico | Alcance | Recarga | DPS do básico |
+|---|---:|---:|---:|---|---:|---:|---:|
+| Fang Yuan (corpo a corpo) | 100% | 2 | 100% | 14 de dano, imediato | 62 px | 600 ms | ~23,3 |
+| Bai Ning Bing (à distância) | 85% | 1 | 105% | 9 de dano, projétil 420 px/s | 190 px | 650 ms | ~13,8 |
+
+Justificativa, eixo a eixo: ela **perde** em dano (−41% por segundo), em eficiência
+(650 ms contra 600 ms) e em sobrevivência (−15% de vida, 1 de defesa a menos); **ganha**
+em alcance (3× o do corpo a corpo) e num passo 5% maior, que é o que permite manter a
+distância. Nenhum dos dois é simultaneamente superior em dano, alcance, velocidade e
+eficiência.
+
+O básico à distância não faz checagem de linha de visão no disparo, porque quem viaja é
+o projétil: ele para na parede como qualquer outro, e é por isso que atirar num alvo
+atrás de árvore desperdiça o tiro em vez de atravessar o obstáculo. O dano continua
+proporcional ao ataque de cultivo (0,64 × ataque), então os dois personagens escalam
+junto nos nove Ranks; o Gu da Lua e os demais Gu de ataque seguem iguais para os dois.
+
 ## Regra de trabalho
 
 Não vamos inflar HP/DEF para criar dificuldade. Toda alteração deve ser validada contra TTK, dano recebido, custo em essência, disponibilidade de recursos, risco/recompensa e progressão de Rank. Depois dos testes de combate, a economia será recalibrada para que a progressão seja exigente sem virar grind vazio.
