@@ -64,7 +64,8 @@ test('ficha touch: requisitos, confirmação, resultado e proteção contra toqu
   }
   // recortes de painel podem vir do markup ou da folha de estilo
   const page = `${html}\n${css}`;
-  for (const asset of ['panel-9slice.png', 'header.png', 'portrait-frame.png', 'close-button.png']) {
+  for (const asset of ['panel-9slice.png', 'header-3slice.png', 'frame-portrait.png',
+    'btn-close-4x88.png', 'chip-9slice.png', 'card-gu-9slice.png']) {
     assert.match(page, new RegExp(asset.replace('.', '\\.')));
   }
   assert.doesNotMatch(html, /class="combat-gear"/);

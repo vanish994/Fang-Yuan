@@ -1,0 +1,369 @@
+/* Pele do pacote de interface enviado pelo usuário (webnovel de cultivo chinês).
+   A pele entra por cima de main.css: medidas, layout, áreas de toque e
+   acessibilidade continuam lá. O atlas é 2× o tamanho de exibição, então todo
+   `border-image-slice` vale o dobro do `border-width` em pixels de tela.
+   Nenhum texto é recortado da arte: rótulos seguem em HTML/DOM. */
+
+:root {
+  --ui-text: #f6e7c6;
+  --ui-text-dim: #d6c7a4;
+  --ui-void: #1f232a;
+  --ui-bar-health: #c2564f;
+  --ui-bar-essence: #5fb4b8;
+}
+
+/* A arte vem em 2× e é exibida em 1×. Escala suave evita perder os fios de
+   1 px da moldura quando o navegador reduz por vizinho mais próximo.
+   Os sprites do mundo continuam em `pixelated` (main.css não é tocado). */
+.character-sheet, .character-select, .vendor-panel, .rotate-card,
+.gu-card, .gu-choice, .recipe-card, .character-option, .vendor-row, .gu-slot,
+.map-label, .combat-top, .combat-feedback, .combat-cicada, #display-feedback,
+.sheet-close, .sheet-toggle, .character-switch, .eyebrow, .advance-action,
+.combat-respawn, .vendor-action, .gu-card-action, .combat-target button,
+.combat-joystick, .joystick-knob, .combat-actions button, .gu-icon[data-gu],
+.combat-bars progress, .sheet-portrait::after, .stat-grid div, .sheet-sea-panel,
+.sheet-tabs button, .stat-layers div, .sheet-header, .character-select-header {
+  image-rendering: auto;
+}
+
+/* ── Painéis grandes (ficha, escolha, banca, aviso de rotação) ───────────── */
+.character-sheet,
+.character-select,
+.vendor-panel,
+.rotate-card {
+  border-width: 26px;
+  border-image: url('/assets/ui/panel-9slice.png') 64 fill / 26px / 0 stretch;
+  background-color: transparent;
+}
+
+/* ── Cabeçalhos e abas ──────────────────────────────────────────────────── */
+.eyebrow {
+  padding: 5px 16px;
+  color: var(--ui-text);
+  text-shadow: 0 1px 2px #000000a6;
+  background: url('/assets/ui/header-3slice.png') center / 100% 100% no-repeat;
+}
+.sheet-toggle,
+.character-switch {
+  color: var(--ui-text);
+  text-shadow: 0 1px 2px #000000a6;
+  background: url('/assets/ui/header-3slice.png') center / 100% 100% no-repeat;
+}
+.sheet-toggle[aria-expanded="true"] {
+  background: url('/assets/ui/header-3slice.png') center / 100% 100% no-repeat;
+}
+.character-switch[aria-expanded="true"] { filter: brightness(1.12); }
+.sheet-toggle-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  font-size: 0;
+  background: url('/assets/ui/icon-diamond.png') center / 100% 100% no-repeat;
+}
+.sheet-header,
+.character-select-header {
+  border-bottom: 0;
+  padding-bottom: 18px;
+  background: url('/assets/ui/divider-3slice.png') center bottom / 100% 9px no-repeat;
+}
+.sheet-tabs { background: var(--ui-void); }
+.sheet-identity { background: var(--ui-void); }
+.sheet-tabs button {
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  background: none;
+}
+.sheet-tabs button[aria-selected="true"] {
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  color: var(--ui-text);
+  background: url('/assets/ui/pill-gold-3slice.png') center / 100% 100% no-repeat;
+}
+
+/* ── Botões de fechar: quatro estados desenhados no atlas ────────────────── */
+.sheet-close {
+  background-image: url('/assets/ui/btn-close-4x88.png');
+  background-size: 400% 100%;
+  background-position: 0 0;
+}
+.sheet-close:hover { background-position: 33.333% 0; }
+.sheet-close:active { background-position: 66.667% 0; }
+.sheet-close:disabled { background-position: 100% 0; }
+
+/* ── Retrato redondo: miolo transparente, personagem por baixo ───────────── */
+.sheet-portrait { background-color: transparent; }
+.sheet-portrait::after {
+  background: url('/assets/ui/frame-portrait.png') center / 64px 64px no-repeat;
+}
+@media (max-width: 370px) {
+  .sheet-portrait::after { background-size: 48px 48px; }
+}
+
+/* ── Cartões, fichas e linhas de lista ──────────────────────────────────── */
+.gu-card {
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  background: none;
+  border-radius: 0;
+}
+.gu-choice {
+  border-width: 8px;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  background: none;
+}
+.recipe-card {
+  border-width: 0 18px 0 10px;
+  border-image: url('/assets/ui/card-recipe-9slice.png') 0 62 0 34 fill /
+    0 18px 0 10px stretch;
+  background: none;
+  border-radius: 0;
+}
+.character-option {
+  border-width: 12px;
+  border-image: url('/assets/ui/card-gu-9slice.png') 60 fill / 12px / 0 stretch;
+  background: none;
+  border-radius: 0;
+}
+.character-option[aria-pressed="true"],
+.character-option.is-active {
+  border-color: transparent;
+  box-shadow: none;
+  filter: brightness(1.15);
+}
+.vendor-row {
+  border-width: 0 18px 0 10px;
+  border-image: url('/assets/ui/btn-list-9slice.png') 0 58 0 40 fill /
+    0 18px 0 10px stretch;
+  background: none;
+  border-radius: 0;
+}
+/* A fileira de Gu já é quase 1:1 com a arte (358×66): usa como fundo. */
+.gu-slot {
+  border: 0;
+  background: url('/assets/ui/slot-gu-9slice.png') 0 0 / 100% 100% no-repeat;
+  padding-left: 8px;
+}
+.stat-layers div {
+  border-width: 0 18px 0 10px;
+  border-image: url('/assets/ui/card-character-9slice.png') 0 58 0 34 fill /
+    0 18px 0 10px stretch;
+  background: none;
+  box-shadow: inset 3px 0 0 #7f9dbb;
+}
+.stat-grid div,
+.sheet-sea-panel,
+.gu-intrinsic {
+  border-width: 8px;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  background: none;
+  border-radius: 0;
+}
+.sheet-section,
+.sheet-header h2,
+.sheet-identity,
+.sheet-note,
+.vendor-section { color: var(--ui-text); }
+
+/* ── Botões de ação ────────────────────────────────────────────────────── */
+.advance-action,
+.combat-respawn {
+  border: 0;
+  background: url('/assets/ui/pill-green-3slice.png') center / 100% 100% no-repeat;
+  color: var(--ui-text);
+  text-shadow: 0 1px 2px #000000a6;
+}
+.advance-action:disabled {
+  border: 0;
+  background: url('/assets/ui/pill-green-3slice.png') center / 100% 100% no-repeat;
+  color: #b9b3a4;
+  filter: grayscale(.55) brightness(.85);
+  opacity: 1;
+}
+.vendor-action,
+.gu-card-action {
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/btn-small-green.png') 14 fill / 8px / 0 stretch;
+  background: none;
+  color: var(--ui-text);
+}
+#vendor-materials .vendor-action {
+  border-image: url('/assets/ui/btn-small-brown.png') 14 fill / 8px / 0 stretch;
+}
+.gu-card-action {
+  border-image: url('/assets/ui/btn-small-slate.png') 14 fill / 8px / 0 stretch;
+}
+.gu-card-action[data-action="assimilate"] {
+  border-image: url('/assets/ui/btn-small-red.png') 14 fill / 8px / 0 stretch;
+}
+.gu-card-action[data-action="refine"] {
+  border-image: url('/assets/ui/btn-small-brown.png') 14 fill / 8px / 0 stretch;
+}
+.vendor-action:disabled,
+.gu-card-action:disabled {
+  filter: grayscale(.75) brightness(.75);
+  opacity: .6;
+}
+
+/* ── HUD de campo ──────────────────────────────────────────────────────── */
+.map-label,
+.combat-top {
+  border-width: 8px;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 8px / 0 stretch;
+  background-color: transparent;
+}
+.combat-feedback,
+.combat-cicada,
+#display-feedback {
+  border-width: 7px;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 7px / 0 stretch;
+  background-color: transparent;
+}
+.combat-cicada {
+  background-image: url('/assets/ui/badge-cicada.png');
+  background-repeat: no-repeat;
+  background-size: 26px 28px;
+  background-position: 6px center;
+  padding-left: 36px;
+}
+
+/* ── Barras de vida e essência: trilho do atlas e preenchimento branco ──── */
+.combat-bars progress {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  height: 12px;
+  background: url('/assets/ui/bar-track.png') 0 0 / 100% 100% no-repeat;
+}
+.combat-bars progress::-webkit-progress-bar { background: transparent; }
+#combat-health { --ui-bar: var(--ui-bar-health); }
+#combat-essence { --ui-bar: var(--ui-bar-essence); }
+#combat-health::-webkit-progress-value,
+#combat-essence::-webkit-progress-value {
+  background-color: var(--ui-bar);
+  background-image: url('/assets/ui/bar-fill.png');
+  background-size: 100% 100%;
+  background-blend-mode: multiply;
+}
+#combat-health::-moz-progress-bar,
+#combat-essence::-moz-progress-bar {
+  background-color: var(--ui-bar);
+  background-image: url('/assets/ui/bar-fill.png');
+  background-size: 100% 100%;
+  background-blend-mode: multiply;
+}
+.combat-target button {
+  border: 6px solid transparent;
+  border-image: url('/assets/ui/chip-9slice.png') 14 fill / 6px / 0 stretch;
+  background: none;
+  color: var(--ui-text);
+}
+
+/* ── Direcional e botões redondos ──────────────────────────────────────── */
+.combat-joystick {
+  border-color: transparent;
+  background-color: transparent;
+  background-image: url('/assets/ui/joystick-base.png');
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: none;
+}
+.joystick-knob {
+  border: 0;
+  color: transparent;
+  font-size: 0;
+  background-color: transparent;
+  background-image: url('/assets/ui/joystick-knob-3x96.png');
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  background-position: 0 0;
+  box-shadow: none;
+}
+.combat-joystick[data-direction] .joystick-knob { background-position: 50% 0; }
+.combat-joystick:active .joystick-knob { background-position: 100% 0; }
+.combat-actions button {
+  border-color: transparent;
+  background-color: transparent;
+  background-image: url('/assets/ui/btn-round-4x128.png');
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  background-position: 0 0;
+  box-shadow: none;
+  color: var(--ui-text);
+}
+.combat-actions button:hover { background-position: 33.333% 0; }
+.combat-actions button:active { background-position: 66.667% 0; }
+.combat-actions button:disabled {
+  background-position: 100% 0;
+  opacity: 1;
+  cursor: not-allowed;
+}
+/* Ação básica tem ícone próprio na arte: o ⚔ do markup só existia como glifo. */
+.combat-actions button[data-action="basic"] {
+  background-image: url('/assets/ui/btn-basic.png');
+  background-size: 100% 100%;
+  background-position: 0 0;
+  font-size: 0;
+}
+.combat-actions button[data-action="basic"] small { font-size: 10px; }
+
+/* ── Minimapa circular ─────────────────────────────────────────────────── */
+/* O minimapa é 88 px: moldura de 9 fatias comeria o canvas, então fica só o
+   aro dourado desenhado no próprio canvas. */
+.combat-minimap {
+  border: 1px solid #c9ad79a0;
+  background: #121630d9;
+}
+.combat-minimap canvas {
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #c9ad79, 0 0 0 4px #243326;
+}
+.combat-minimap .minimap-title { color: var(--ui-text); }
+
+/* ── Ícones de Gu: grade 8×8 de 64 px do atlas ─────────────────────────── */
+.gu-icon[data-gu] {
+  --cell: 48px;
+  background-image: url('/assets/ui/gu-icons-8x8-64.png');
+  background-size: calc(var(--cell) * 8) calc(var(--cell) * 8);
+  background-position: calc(var(--cell) * -1 * var(--col)) calc(var(--cell) * -1 * var(--row));
+  background-repeat: no-repeat;
+  border: 0;
+  color: transparent;
+  text-shadow: none;
+  font-size: 0;
+}
+.combat-actions .gu-icon { --cell: 40px; }
+
+/* Mapa Gu → célula do atlas (coluna/linha na grade 8×8). A escolha segue o
+   elemento e a cor de cada Gu; os sigilos são arte do pack, não retratos
+   canônicos de Gu — a escala vem de --cell, então o mesmo mapa serve para
+   os 48 px da ficha e os 40 px do botão de combate. */
+.gu-icon[data-gu="moonlight"] { --col: 7; --row: 0; }
+.gu-icon[data-gu="bone-spear"] { --col: 4; --row: 2; }
+.gu-icon[data-gu="star-arrow"] { --col: 0; --row: 0; }
+.gu-icon[data-gu="star-dart"] { --col: 1; --row: 1; }
+.gu-icon[data-gu="ghost-fire"] { --col: 3; --row: 3; }
+.gu-icon[data-gu="exploding-egg"] { --col: 2; --row: 0; }
+.gu-icon[data-gu="stone-skin"] { --col: 2; --row: 3; }
+.gu-icon[data-gu="jade-skin"] { --col: 7; --row: 2; }
+.gu-icon[data-gu="bronze-skin"] { --col: 5; --row: 1; }
+.gu-icon[data-gu="iron-skin"] { --col: 1; --row: 2; }
+.gu-icon[data-gu="rock-skin"] { --col: 6; --row: 3; }
+.gu-icon[data-gu="beast-skin"] { --col: 4; --row: 1; }
+.gu-icon[data-gu="liquor-worm"] { --col: 3; --row: 2; }
+.gu-icon[data-gu="little-light"] { --col: 3; --row: 0; }
+.gu-icon[data-gu="amplify-effect"] { --col: 7; --row: 3; }
+.gu-icon[data-gu="cleansing-water"] { --col: 5; --row: 0; }
+.gu-icon[data-gu="flash-blink"] { --col: 0; --row: 4; }
+.gu-icon[data-gu="all-out-effort"] { --col: 0; --row: 2; }
+.gu-icon[data-gu="whirlwind"] { --col: 1; --row: 0; }
+.gu-icon[data-gu="clear-wind-wheel"] { --col: 6; --row: 1; }
+.gu-icon[data-gu="dragonpill-cricket"] { --col: 3; --row: 4; }
+.gu-icon[data-gu="bear-strength"] { --col: 1; --row: 3; }
+.gu-icon[data-gu="white-boar"] { --col: 4; --row: 4; }
+.gu-icon[data-gu="black-boar"] { --col: 5; --row: 3; }
+.gu-icon[data-gu="moonglow"] { --col: 5; --row: 2; }
+.gu-icon[data-gu="white-jade"] { --col: 4; --row: 3; }
