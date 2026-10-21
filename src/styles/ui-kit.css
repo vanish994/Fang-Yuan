@@ -367,3 +367,21 @@
 .gu-icon[data-gu="black-boar"] { --col: 5; --row: 3; }
 .gu-icon[data-gu="moonglow"] { --col: 5; --row: 2; }
 .gu-icon[data-gu="white-jade"] { --col: 4; --row: 3; }
+
+/* Em telas estreitas a moldura de 26 px comeria o conteúdo da ficha: a mesma
+   arte, com menos borda (a escala do ornamento acompanha `border-image-width`). */
+@media (max-width: 420px) {
+  .character-sheet, .character-select, .vendor-panel {
+    border-width: 18px;
+    border-image-width: 18px;
+  }
+  .character-sheet, .character-select, .vendor-panel {
+    border-image-slice: 56 fill;
+  }
+}
+@media (max-width: 700px) {
+  .combat-top, .map-label {
+    border-width: 6px;
+    border-image-width: 6px;
+  }
+}
