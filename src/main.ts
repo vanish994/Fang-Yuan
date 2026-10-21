@@ -30,6 +30,7 @@ import { bossFrame } from './combat/bossSprites';
 import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world/mobRespawn';
 import { mobFrame } from './combat/mobSprites';
 import { effectForStyle } from './ui/guEffects';
+import { autoBasicDecision, meleeLineBlocked } from './combat/autoBasic';
 import { GuEffectView } from './ui/guEffectView';
 import { ART_VERSION } from './assets/artVersion';
 
@@ -78,6 +79,11 @@ class QingMaoScene extends Phaser.Scene {
   private readonly instanceSpawns = new Map<string, string>();
   private nextAreaTransitionAt = 0;
   private waypoints: WorldPoint[] = [];
+  /**
+   * Básico automático: armado pelo toque num inimigo, o personagem repete o
+   * golpe no ritmo da recarga até andar ou trocar de alvo.
+   */
+  private autoBasic = false;
   private navigationPrevious?: WorldPoint;
   private blockedTravelMs = 0;
   private retriedTravel = false;
@@ -251,7 +257,8 @@ class QingMaoScene extends Phaser.Scene {
     graphic.on('pointerdown', (_pointer: Phaser.Input.Pointer, _x: number, _y: number,
       event: Phaser.Types.Input.EventData) => {
       event.stopPropagation();
-      if (this.combat.select(enemy.id)) this.combatHUD?.say(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
+      if (!this.combat.select(enemy.id)) return;
+      this.armAutoBasic(`Alvo selecionado: ${enemy.name ?? enemy.id}`);
     });
     const barY = boss ? 10 : 6;
     const back = this.add.rectangle(0, barY, 28, 4, 0x291e1d).setVisible(false);
@@ -314,6 +321,7 @@ class QingMaoScene extends Phaser.Scene {
       return;
     }
     if (action === 'respawn') {
+      this.disarmAutoBasic();
       if (this.combat.respawn(24.5 * TILE_SIZE, 24.5 * TILE_SIZE)) {
         if (this.currentArea.definition.id !== 'vila_gu_yue')
           this.loadArea('vila_gu_yue', 24.5 * TILE_SIZE, 24.5 * TILE_SIZE);
@@ -380,6 +388,47 @@ class QingMaoScene extends Phaser.Scene {
   }
 
   /**
+   * Arma o básico automático (toque num inimigo). A cadência é a da recarga do
+   * personagem — o golpe sai no toque e depois a cada `cooldownMs`, nunca em um
+   * ritmo próprio. Andar, trocar de alvo, morrer ou perder o alvo desarma.
+   */
+  private armAutoBasic(prefix: string): void {
+    this.autoBasic = true;
+    this.combatHUD?.setAutoBasic(true);
+    this.updateAutoBasic(this.time.now);
+    const target = this.combat.target;
+    const gap = target ? Math.hypot(target.x - this.player.x, target.y - this.player.y) : 0;
+    const outOfRange = target !== null && gap > this.combat.character.basic.range;
+    this.combatHUD?.say(`${prefix} · básico automático ligado. Ande ou troque de alvo para parar.`
+      + (outOfRange ? ' Aproxime-se para acertar.' : ''));
+  }
+
+  private disarmAutoBasic(): void {
+    if (!this.autoBasic) return;
+    this.autoBasic = false;
+    this.combatHUD?.setAutoBasic(false);
+  }
+
+  /** Chamado a cada quadro: só solta o golpe quando a recarga terminou. */
+  private updateAutoBasic(now: number): void {
+    if (!this.autoBasic) return;
+    const target = this.combat.target;
+    const decision = autoBasicDecision({
+      alive: this.combat.hero.alive,
+      target: target ? { x: target.x, y: target.y } : null,
+      hero: { x: this.player.x, y: this.player.y },
+      range: this.combat.character.basic.range,
+      cooldownRemaining: this.combat.cooldownRemaining('basic', now),
+      blocked: target !== null && this.combat.character.kind === 'melee'
+        && meleeLineBlocked({ x: this.player.x, y: this.player.y }, target, this.isFree),
+      moving: this.player.movingDirection !== null || this.waypoints.length > 0
+        || Boolean(this.combatHUD?.direction),
+    });
+    if (decision === 'stop') { this.disarmAutoBasic(); return; }
+    if (decision === 'attack') this.onCombatAction('basic');
+  }
+
+  /**
    * Pose + partículas da ação. É puramente visual: quem resolve dano/efeito é o
    * motor de combate, e a pose volta sozinha para a caminhada. A folha e a forma
    * do efeito vêm do personagem; a cor continua vindo do Gu (ou do personagem).
@@ -405,6 +454,7 @@ class QingMaoScene extends Phaser.Scene {
    */
   private switchCharacter(id: PlayerCharacterId): void {
     if (!this.combat.setCharacter(id)) { this.characterSelect?.refresh(); return; }
+    this.disarmAutoBasic();
     this.character = id;
     this.player.setArt(this.combat.character.art);
     this.player.resetPose();
@@ -427,6 +477,7 @@ class QingMaoScene extends Phaser.Scene {
   }
 
   private settleAfterDash(): void {
+    this.disarmAutoBasic();
     this.waypoints = [];
     this.destination?.destroy(); this.destination = undefined;
     this.player.move(null);
@@ -478,6 +529,7 @@ class QingMaoScene extends Phaser.Scene {
         this.cameras.main.flash(300, 194, 211, 134);
       }
       if (event.type === 'hero-death') {
+        this.disarmAutoBasic();
         this.waypoints = []; this.destination?.destroy(); this.destination = undefined;
         this.player.move(null); this.player.setAlpha(0.5);
         // Pose de queda travada no último quadro até o respawn.
@@ -584,6 +636,7 @@ class QingMaoScene extends Phaser.Scene {
 
   /** Troca a unidade de gameplay; não reinicia o cultivo nem o motor de Gu. */
   private loadArea(id: AreaId, x: number, y: number): void {
+    this.disarmAutoBasic();
     this.waypoints = [];
     this.destination?.destroy(); this.destination = undefined;
     this.player.move(null);
@@ -658,6 +711,8 @@ class QingMaoScene extends Phaser.Scene {
   }
 
   private walkTo(x: number, y: number, recovering = false): void {
+    // Qualquer toque no chão é movimento: o básico automático para aqui.
+    this.disarmAutoBasic();
     if (!this.combat.hero.alive) return;
     const previousDirection = this.player.movingDirection;
     this.waypoints = [];
@@ -702,6 +757,7 @@ class QingMaoScene extends Phaser.Scene {
       return nearby ? { x: nearby.x, y: nearby.y } : null;
     });
     this.handleCombatEvents(this.combat.tick(time, delta, this.isFree));
+    this.updateAutoBasic(time);
     for (const [id, view] of this.enemyViews) {
       const enemy = this.combat.enemies.get(id);
       if (!enemy?.alive) continue;
@@ -736,6 +792,7 @@ class QingMaoScene extends Phaser.Scene {
     const speed = WALK_SPEED * this.combat.speedMultiplier(time);
     const stick = this.combatHUD?.direction;
     if (stick) {
+      this.disarmAutoBasic();
       if (this.waypoints.length) { this.waypoints = []; this.destination?.destroy(); this.destination = undefined; }
       this.navigationPrevious = undefined;
       this.blockedTravelMs = 0;

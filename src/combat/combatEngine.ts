@@ -14,6 +14,8 @@ import { cultivationCombatStats, primordialEssenceQualityMultiplier,
 import { mitigatedDamage } from './damageFormula';
 import { isWildGuCandidate, rollWildGu, type WildSpawnOptions } from './wildGu';
 import { stepEnemyProjectiles, useWildGu, wildMeleeMultiplier } from './enemyAbilities';
+import { meleeLineBlocked } from './autoBasic';
+import { cardinalStep } from './enemyMovement';
 import { distance, vectors } from './geometry';
 import { WildGuDropLog } from './wildGuDrops';
 import { PLAYER_CHARACTERS, playerCharacter, type PlayerCharacterId,
@@ -99,6 +101,8 @@ export class CombatEngine {
   private readonly processedRewards = new Set<string>();
   private readonly agentBrains = new Map<string, AgentBrain>();
   private readonly enemyHomes = new Map<string, Point>();
+  /** Eixo em que cada criatura está andando: dá o trajeto em L, sem escada. */
+  private readonly chaseAxes = new Map<string, 'x' | 'y'>();
   private readonly enemyStats = new Map<string, CombatSettings['enemy']>();
   private readonly roaming = new Set<string>();
   private readonly effects = new Map<TimedKey, TimedEffect>();
@@ -398,7 +402,8 @@ export class CombatEngine {
 
   clearAreaEnemies(): void {
     this.enemies.clear(); this.agentBrains.clear(); this.enemyHomes.clear();
-    this.enemyStats.clear(); this.roaming.clear(); this.projectiles.length = 0;
+    this.enemyStats.clear(); this.roaming.clear(); this.chaseAxes.clear();
+    this.projectiles.length = 0;
     this.enemyProjectiles.length = 0;
     // Drops de Gu já registrados sobrevivem à troca de área: a criatura morreu
     // e o jogador ainda pode recebê-los. Recompensas nunca são recriadas.
@@ -774,13 +779,8 @@ export class CombatEngine {
     if (!enemy) return deny('Selecione um alvo ou ative alvo automático.');
     const gap = distance(this.hero, enemy);
     if (gap > this.profile.basic.range) return deny('Alvo fora do alcance.');
-    if (this.profile.kind === 'melee') {
-      for (let d = 4; d < gap; d += 4) {
-        if (!isFree(this.hero.x + (enemy.x - this.hero.x) * d / gap,
-          this.hero.y + (enemy.y - this.hero.y) * d / gap)) {
-          return deny(`Obstáculo entre ${this.profile.name} e o alvo.`);
-        }
-      }
+    if (this.profile.kind === 'melee' && meleeLineBlocked(this.hero, enemy, isFree)) {
+      return deny(`Obstáculo entre ${this.profile.name} e o alvo.`);
     }
     if (this.cooldownRemaining('basic', now)) return deny('Ataque em recarga.');
     this.cooldowns.set('basic', now + this.profile.basic.cooldownMs);
@@ -951,8 +951,14 @@ export class CombatEngine {
       if (!target) continue;
       const gap = distance(enemy, target); if (gap <= stoppingDistance) continue;
       const step = Math.min(stats.speed * dt, gap - stoppingDistance);
-      const nx = enemy.x + (target.x - enemy.x) / gap * step, ny = enemy.y + (target.y - enemy.y) / gap * step;
-      if (isFree(nx, ny)) { enemy.x = nx; enemy.y = ny; } else brain.stop();
+      if (!(step > 0)) continue;
+      // Mesma regra do jogador: um eixo por vez, nunca na diagonal. Se o eixo
+      // preferido estiver bloqueado, a criatura desliza pelo outro.
+      const next = cardinalStep(enemy, target, step, isFree, this.chaseAxes.get(enemy.id) ?? null);
+      if (next.moved) {
+        enemy.x = next.x; enemy.y = next.y;
+        if (next.axis) this.chaseAxes.set(enemy.id, next.axis);
+      } else brain.stop();
     }
     return events;
   }
