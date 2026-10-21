@@ -31,6 +31,16 @@ import { RespawnQueue, respawnDelay, RESPAWN_MIN_PLAYER_DISTANCE } from './world
 import { mobFrame } from './combat/mobSprites';
 import { effectForStyle } from './ui/guEffects';
 import { GuEffectView } from './ui/guEffectView';
+import { ART_VERSION } from './assets/artVersion';
+
+/**
+ * Versão da arte dos personagens e das partículas, gerada por
+ * `scripts/build-sprite-atlases.py` a partir do hash dos atlas publicados.
+ * Os PNGs de personagem mantêm o mesmo nome entre versões, e navegador/proxy pode
+ * continuar entregando o arquivo antigo — foi assim que a caminhada invertida
+ * "voltou" depois de corrigida. A query `?v=` derruba a URL antiga do cache.
+ */
+const artURL = (path: string) => `${path}?v=${ART_VERSION}`;
 
 class QingMaoScene extends Phaser.Scene {
   private player!: PlayerCharacter;
@@ -97,17 +107,18 @@ class QingMaoScene extends Phaser.Scene {
     // Cada personagem jogável tem quatro poses: caminhada, conjuração, arremetida e queda.
     for (const art of ['fang-yuan', 'bai-ning-bing']) {
       for (const pose of ['walk', 'cast', 'dash', 'down']) {
-        this.load.spritesheet(`${art}-${pose}`, `assets/characters/${art}-${pose}-64.png`, {
+        this.load.spritesheet(`${art}-${pose}`,
+          artURL(`assets/characters/${art}-${pose}-64.png`), {
           frameWidth: 64, frameHeight: 64,
         });
       }
     }
     // Partículas de Gu: 4 formas × 4 quadros em tons neutros, pintadas em tempo real.
-    this.load.spritesheet('gu-effects', 'assets/characters/gu-effects-4x4-32.png', {
+    this.load.spritesheet('gu-effects', artURL('assets/characters/gu-effects-4x4-32.png'), {
       frameWidth: 32, frameHeight: 32,
     });
     // Partículas de gelo do Bai Ning Bing: mesma ideia, desenho e célula (48px) próprios.
-    this.load.spritesheet('ice-effects', 'assets/characters/ice-effects-4x4-48.png', {
+    this.load.spritesheet('ice-effects', artURL('assets/characters/ice-effects-4x4-48.png'), {
       frameWidth: 48, frameHeight: 48,
     });
     preloadNpcSprites(this);

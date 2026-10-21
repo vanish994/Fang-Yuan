@@ -49,6 +49,12 @@ ordem dele foi verificada olhando os quadros.
 | `gu-effects-4x4-32.png` | `gu-effects-4x4-32.png` | Fang Yuan | redemoinho, corte, fumaça, rastro (32px) |
 | `ice-effects-4x4-master.png` | `ice-effects-4x4-48.png` | Bai Ning Bing | geada, estilhaço, explosão, onda (48px) |
 
+Cada atlas publicado entra no jogo com uma query de versão (`?v=`), calculada pelo
+próprio script a partir do hash dos arquivos (`src/assets/artVersion.ts`). Sem isso,
+um navegador ou proxy de preview pode continuar entregando o PNG antigo — foi assim
+que a caminhada invertida pareceu "voltar" depois de corrigida — porque os arquivos
+mantêm o mesmo nome entre versões.
+
 As duas folhas são publicadas como **máscara clara**: a cor sai do `visual.color`
 de cada Gu em tempo real (`setParticleTint`) e, no ataque básico sem Gu, da cor de
 destaque do personagem. Nenhum Gu novo e nenhuma cor nova precisam de arte extra —

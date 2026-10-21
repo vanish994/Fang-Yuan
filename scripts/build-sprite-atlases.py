@@ -10,6 +10,7 @@ fator de escala: se cada pose fosse escalada pela própria altura, o personagem
 mudaria de tamanho ao trocar de animação. O fator também é comum aos dois
 personagens, para que um não fique maior que o outro.
 """
+from hashlib import sha256
 from pathlib import Path
 from PIL import Image
 
@@ -239,6 +240,32 @@ ICE_EFFECTS_ATLAS = 'characters/ice-effects-4x4-48.png'
 ICE_EFFECTS_CELL = 48
 
 
+def write_art_version() -> str:
+    """Grava a versão da arte usada nas URLs (`?v=`) a partir dos atlas publicados.
+
+    Os PNGs de personagem mantêm o mesmo nome entre versões, então o navegador (ou
+    um proxy de preview) pode continuar entregando o arquivo antigo — foi assim que
+    a caminhada invertida "voltou" depois de corrigida. O hash muda sozinho quando a
+    arte muda e derruba a URL antiga de qualquer cache.
+    """
+    files = sorted(p for folder in ('characters',) for p in (DEST / folder).glob('*.png')
+                   if p.name.startswith(('fang-yuan', 'bai-ning-bing', 'gu-effects', 'ice-effects')))
+    digest = sha256()
+    for path in files:
+        digest.update(path.name.encode())
+        digest.update(path.read_bytes())
+    version = digest.hexdigest()[:10]
+    target = ROOT / 'src/assets/artVersion.ts'
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        '/** GERADO por scripts/build-sprite-atlases.py — não editar à mão.\n'
+        ' * Versão da arte dos personagens e das partículas: muda com o conteúdo dos\n'
+        ' * atlas e é usada como query (`?v=`) para vencer cache de navegador/proxy. */\n'
+        f"export const ART_VERSION = '{version}';\n")
+    print(f'versão da arte: {version} -> {target.relative_to(ROOT)}')
+    return version
+
+
 def mask_into_place(path: Path) -> None:
     """Reescreve um atlas de efeitos como máscara clara (o jogo pinta a cor)."""
     image = Image.open(path).convert('RGBA')
@@ -280,3 +307,6 @@ if __name__ == '__main__':
                crop_to_subject=False)
     mask_into_place(DEST / ICE_EFFECTS_ATLAS)
     print(f'Efeitos de gelo: 4×4 quadros {ICE_EFFECTS_CELL}px -> public/assets/{ICE_EFFECTS_ATLAS}')
+
+    # Sempre por último: a versão cobre exatamente os atlas que acabaram de ser gerados.
+    write_art_version()

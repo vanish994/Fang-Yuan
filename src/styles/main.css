@@ -79,11 +79,11 @@
     image-rendering: pixelated; background-repeat: no-repeat; background-position: 0 0;
     background-size: 224px 224px; }
   .character-portrait[data-character="fang-yuan"] {
-    background-image: url('./assets/characters/fang-yuan-walk-32.png'); }
+    background-image: url('./assets/characters/fang-yuan-walk-32.png?v=22d807fe24'); }
   .character-portrait[data-character="bai-ning-bing"] {
-    background-image: url('./assets/characters/bai-ning-bing-walk-32.png'); }
+    background-image: url('./assets/characters/bai-ning-bing-walk-32.png?v=22d807fe24'); }
   .sheet-portrait[data-character="bai-ning-bing"]::before {
-    background-image: url('./assets/characters/bai-ning-bing-walk-32.png'); }
+    background-image: url('./assets/characters/bai-ning-bing-walk-32.png?v=22d807fe24'); }
   .sheet-close { width: 44px; height: 44px; flex: 0 0 44px; margin: -6px -8px 0 8px;
     border: 0; background: url('./assets/ui/close-button.png') 0 0 / 176px 44px no-repeat;
     image-rendering: pixelated; font-size: 0; }
@@ -128,7 +128,7 @@
   /* Recorta só o primeiro quadro (baixo) do atlas 4×4 de 32px ampliado 2×; sem vazar a
      linha seguinte. A arte do retrato é a mesma pose de caminhada enviada pelo usuário. */
   .sheet-portrait::before { position: absolute; top: 16px; left: 0; content: '';
-    width: 64px; height: 64px; background: url('./assets/characters/fang-yuan-walk-32.png')
+    width: 64px; height: 64px; background: url('./assets/characters/fang-yuan-walk-32.png?v=22d807fe24')
       0 0 / 256px 256px no-repeat; }
   .sheet-portrait::after { position: absolute; inset: 0; content: '';
     background: url('./assets/ui/portrait-frame.png') center / 100% 100% no-repeat; }
