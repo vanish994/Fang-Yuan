@@ -128,6 +128,17 @@ export class CombatHUD {
     this.feedbackUntil = performance.now() + 3500;
   }
 
+  /**
+   * Marca no botão Básico que o golpe está repetindo sozinho (`data-auto`).
+   * É só indicação visual: quem decide bater continua sendo a cena + o motor.
+   */
+  setAutoBasic(armed: boolean): void {
+    const basic = this.actions.get('basic');
+    if (!basic || basic.hasAttribute('data-auto') === armed) return;
+    basic.toggleAttribute('data-auto', armed);
+    basic.title = armed ? 'Ataque básico automático ligado: ande ou troque de alvo para parar.' : '';
+  }
+
   private paintIcon(icon: HTMLElement | undefined, id: GuId | null): void {
     if (!icon) return;
     if (!id) {
